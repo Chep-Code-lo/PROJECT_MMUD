@@ -5,6 +5,15 @@ export type Ticket = {
   title: string;
   description: string;
   status: TicketStatus;
-  priority: "LOW" | "MEDIUM" | "HIGH";
+  priority: string;
+  createdBy?: string;
+  assignedTo?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
+export type TicketRequest = {
+  title: string;
+  description: string;
+  priority: string;
+};

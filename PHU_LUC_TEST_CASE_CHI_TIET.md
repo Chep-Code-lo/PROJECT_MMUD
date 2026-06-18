@@ -16,6 +16,78 @@ Nguồn bằng chứng chính:
 - runtime `docker compose`
 - query DB MySQL container
 
+### 1.1. Chuỗi chứng minh mật mã ứng dụng cần thu thập
+
+Nếu mục tiêu là chứng minh dự án đúng hướng mật mã ứng dụng, tester không nên test rời rạc từng endpoint rồi kết luận chung chung. Thay vào đó nên thu thập theo 4 chuỗi bằng chứng sau:
+
+#### Chuỗi 1: Password at rest
+
+1. Đăng ký hoặc dùng sẵn user demo.
+2. Query bảng `users`.
+3. So sánh `password_hash` giữa nhiều user dùng cùng password.
+
+Ý nghĩa:
+
+- chứng minh password không lưu plaintext
+- chứng minh có salt vì cùng password nhưng hash khác nhau
+
+#### Chuỗi 2: Token authenticity và authorization
+
+1. Login để lấy JWT thật.
+2. Decode token.
+3. Gọi API với token hợp lệ, token giả, token sửa, token hết hạn.
+4. Gọi API admin bằng token user.
+
+Ý nghĩa:
+
+- chứng minh token có chữ ký và hạn dùng
+- chứng minh role matrix chạy ở runtime thật
+
+#### Chuỗi 3: Dữ liệu customer at rest
+
+1. Tạo customer bằng API.
+2. Query bảng `customers`.
+3. Đối chiếu plaintext response với ciphertext trong DB.
+4. Sửa ciphertext trong DB rồi gọi lại API đọc customer.
+
+Ý nghĩa:
+
+- chứng minh AES đang được gắn vào luồng CRUD thật
+- chứng minh GCM tag phát hiện dữ liệu bị sửa
+
+#### Chuỗi 4: Transport security
+
+1. Kiểm tra compose local đang là HTTP.
+2. Kiểm tra file Nginx deploy có HTTPS redirect và TLS `1.2/1.3`.
+3. Kết luận rõ local demo và deploy thật khác nhau ở đâu.
+
+Ý nghĩa:
+
+- chứng minh lớp transport là phần bắt buộc để nối bcrypt + JWT + AES thành một chuỗi bảo vệ hoàn chỉnh
+
+### 1.2. Bằng chứng nên chụp màn hình hoặc lưu lại
+
+Nên thu thập ít nhất các bằng chứng sau:
+
+1. Swagger login trả `accessToken`.
+2. JWT decoded cho thấy `sub`, `iat`, `exp`, `alg`.
+3. `GET /api/auth/me` trả `200` với token đúng.
+4. `GET /api/auth/me` trả `401` với token giả/hết hạn.
+5. `GET /api/admin/summary` hoặc `/api/customers` trả `403` khi dùng token `USER`.
+6. Query bảng `users` cho thấy hash bcrypt dạng `$2a$10$...`.
+7. Query bảng `customers` cho thấy `phone_encrypted/address_encrypted/tax_code_encrypted` là ciphertext.
+8. Case sửa ciphertext rồi API trả lỗi.
+9. `docker compose ps` và URL chạy local.
+10. Nếu có quét ZAP, chụp phần alert/warning chính.
+
+### 1.3. Ý nghĩa của phụ lục này
+
+Phụ lục không chỉ để liệt kê test case. Nó phải giúp người test trả lời được ba câu hỏi:
+
+1. Mỗi bước đang chứng minh thuộc tính nào của mật mã ứng dụng.
+2. Kết quả pass/fail đó nói gì về tính bảo mật của dự án.
+3. Khi demo hoặc bảo vệ, nên giải thích kết quả đó ra sao để không biến báo cáo thành lý thuyết giáo trình.
+
 ## 2. Test case Swagger chi tiết
 
 ### 2.1. `POST /api/auth/register`
@@ -147,7 +219,40 @@ Token runtime thực tế đã decode:
 - `exp=2026-06-19T14:59:56Z`
 - không có claim `role`
 
-### 4.2. Bảng test JWT
+### 4.2. Cách đọc token thật từ dự án
+
+#### Cách 1: Dùng Swagger
+
+1. Login bằng `POST /api/auth/login`.
+2. Copy `accessToken`.
+3. Dán lên `jwt.io` hoặc tool decode nội bộ.
+
+#### Cách 2: Dùng PowerShell
+
+```powershell
+$body = @{ email='admin@securityapp.local'; password='Password@123' } | ConvertTo-Json
+$login = Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/api/auth/login' -ContentType 'application/json' -Body $body
+$login.accessToken
+```
+
+Sau đó decode 2 phần đầu của JWT:
+
+- phần 1: header
+- phần 2: payload
+
+Điểm bắt buộc phải ghi lại:
+
+- thuật toán ký đang dùng là gì
+- `sub` là ai
+- `exp` có tồn tại không
+- token có nhét dữ liệu nhạy cảm vào payload hay không
+
+Ý nghĩa mật mã ứng dụng:
+
+- nếu payload đã lộ quá nhiều thông tin business, thiết kế token sẽ kém an toàn hơn
+- với source hiện tại, payload chỉ có `sub/iat/exp`, đây là thiết kế gọn và phù hợp hơn
+
+### 4.3. Bảng test JWT
 
 | ID | Mục tiêu | Input | Bước thực hiện | Expected Result | Actual Result | Risk |
 |---|---|---|---|---|---|---|
@@ -162,7 +267,17 @@ Token runtime thực tế đã decode:
 | `JWT-09` | Vai trò nằm trong claim hay DB | Decode token và so với source | So sánh JWT payload với `JwtAuthenticationFilter` | Không có claim `role`; quyền lấy từ DB | Đã xác minh source và runtime | Cao |
 | `JWT-10` | userA truy cập dữ liệu userB | Cần endpoint user-owned | Tìm endpoint kiểu `/api/users/{id}` hoặc object owner | `Chưa xác định từ source code hiện tại.` | `Chưa xác định từ source code hiện tại.` | Trung bình |
 
-### 4.3. Vì sao từng case phải có
+### 4.4. Ý nghĩa mật mã ứng dụng của từng nhóm test JWT
+
+| Nhóm test | Thuộc tính được chứng minh | Vì sao quan trọng |
+|---|---|---|
+| Token hợp lệ -> `200` | Tính xác thực | Chứng minh server tự phát hành token mà chính nó chấp nhận |
+| Token giả/sửa -> `401` | Tính toàn vẹn | Chứng minh attacker không thể tự bịa hoặc sửa token rồi qua mặt server |
+| Token hết hạn -> `401` | Giới hạn thời gian sử dụng | Giảm rủi ro reuse token quá lâu |
+| Token user -> admin API -> `403` | Gắn đúng authn với authz | Token hợp lệ chưa đồng nghĩa có mọi quyền |
+| Token subject không tồn tại -> `401` | Gắn token với danh tính thật trong DB | Chứng minh source không tin token mù quáng |
+
+### 4.5. Vì sao từng case phải có
 
 - `JWT-02` đến `JWT-05` chứng minh Spring Security không chỉ kiểm tra “có token”, mà còn kiểm chữ ký và hạn dùng.
 - `JWT-06` chứng minh chỉ ký đúng chưa đủ; subject phải map được tới user thật trong DB.
@@ -179,7 +294,27 @@ Token runtime thực tế đã decode:
 3. Query DB `users`.
 4. So sánh hash của 3 user cùng mật khẩu demo.
 
-### 5.2. Bảng test
+### 5.2. Lệnh SQL và cách đọc hash bcrypt
+
+Query DB:
+
+```powershell
+docker exec securityapp-db mysql -uroot -proot securityapp -e "SELECT id,email,password_hash,role FROM users ORDER BY id;"
+```
+
+Điểm cần nhìn vào:
+
+- hash bắt đầu bằng `$2a$10$...`
+- 3 user demo có cùng password nhưng chuỗi hash khác nhau
+- không có cột nào lưu plaintext password
+
+Ý nghĩa:
+
+- `$2a$` cho thấy hash runtime đúng format bcrypt
+- `10` thể hiện cost factor đang được dùng
+- hash khác nhau chứng minh có salt
+
+### 5.3. Bảng test
 
 | ID | Mục tiêu | Input | Bước thực hiện | Expected Result | Actual Result | Risk |
 |---|---|---|---|---|---|---|
@@ -189,11 +324,17 @@ Token runtime thực tế đã decode:
 | `BCR-04` | Không lưu plaintext | Query `users.password_hash` | So sánh với password thật | Không có plaintext | Đã xác minh runtime | Rất cao |
 | `BCR-05` | Hash vẫn dùng được để login | Login bằng admin/staff/user demo | Gọi `POST /api/auth/login` | `200` | Đã xác minh runtime | Cao |
 
-### 5.3. Vì sao phải test như vậy
+### 5.4. Vì sao phải test như vậy
 
 - `BCR-02` tránh hiểu sai rằng mọi password đều được hash; thực tế source có validation trước.
 - `BCR-03` là bằng chứng rõ nhất cho salt.
 - `BCR-04` là tiêu chí tối thiểu của hệ thống có dùng password hashing đúng.
+
+Ý nghĩa mật mã ứng dụng:
+
+- bcrypt là lớp bảo vệ cho `bí mật xác thực`
+- nếu chỉ test login pass/fail mà không nhìn DB thì chưa chứng minh được bài toán mật mã ứng dụng
+- bằng chứng DB là phần làm cho kết luận “có bcrypt thật” trở nên thuyết phục
 
 ## 6. Test case AES
 
@@ -205,7 +346,24 @@ Token runtime thực tế đã decode:
 4. Gọi `GET /api/customers` hoặc `GET /api/customers/{id}` để đối chiếu plaintext response.
 5. Nếu muốn test integrity, sửa ciphertext trong DB rồi gọi lại API.
 
-### 6.2. Bảng test
+### 6.2. Lệnh SQL để kiểm tra ciphertext
+
+```powershell
+docker exec securityapp-db mysql -uroot -proot securityapp -e "SELECT id,name,email,phone_encrypted,address_encrypted,tax_code_encrypted,created_at,updated_at FROM customers ORDER BY id DESC LIMIT 5;"
+```
+
+Điểm cần quan sát:
+
+- `name` và `email` vẫn đọc được
+- `phone_encrypted`, `address_encrypted`, `tax_code_encrypted` là chuỗi Base64 dài, không phải plaintext
+- nếu vừa mới tạo customer qua API thì response trả plaintext nhưng DB lại lưu ciphertext
+
+Ý nghĩa:
+
+- đây là bằng chứng rõ nhất cho việc AES đang bảo vệ dữ liệu at rest
+- đồng thời cho thấy source hiện tại chỉ mã hóa có chọn lọc chứ không mã hóa toàn bộ bản ghi
+
+### 6.3. Bảng test
 
 | ID | Mục tiêu | Input | Bước thực hiện | Expected Result | Actual Result | Risk |
 |---|---|---|---|---|---|---|
@@ -218,11 +376,40 @@ Token runtime thực tế đã decode:
 | `AES-07` | Sai IV | Làm hỏng phần IV trong payload Base64 | Gọi đọc customer | Giải mã fail | Chưa chạy trực tiếp trong phiên phân tích hiện tại. | Cao |
 | `AES-08` | Integrity tag hoạt động | Dùng payload bị sửa 1 byte | Gọi đọc customer | Giải mã fail | Suy ra từ source và đã được củng cố bởi `AES-05` | Rất cao |
 
-### 6.3. Vì sao phải test như vậy
+### 6.4. Kịch bản tamper ciphertext chi tiết
+
+Mục tiêu của kịch bản này là chứng minh AES-GCM trong dự án không chỉ “mã hóa được”, mà còn phát hiện dữ liệu bị sửa.
+
+Các bước:
+
+1. Login admin.
+2. Tạo 1 customer mới.
+3. Query DB để lấy `phone_encrypted`.
+4. Cắt bớt vài ký tự cuối của ciphertext.
+5. Update record trong DB bằng ciphertext đã bị cắt.
+6. Gọi `GET /api/customers/{id}`.
+
+Kỳ vọng:
+
+- API không thể giải mã record đó
+- source hiện tại trả `500`
+
+Ý nghĩa mật mã ứng dụng:
+
+- nếu chỉ cần “decrypt ra cái gì đó” thì attacker có thể sửa dữ liệu mà server không biết
+- với GCM, ciphertext bị sửa sẽ bị từ chối vì authentication tag không còn khớp
+- runtime của dự án đã cho thấy điều này xảy ra thật
+
+### 6.5. Vì sao phải test như vậy
 
 - `AES-01` đến `AES-04` chứng minh confidentiality.
 - `AES-05` đến `AES-08` chứng minh integrity của GCM.
 - Với source hiện tại, ciphertext hỏng sẽ đi tới `500` generic. Đây là behavior đúng theo code hiện có nhưng nên được ghi rõ cho người chấm.
+
+Điểm cần nhấn mạnh khi trình bày:
+
+- DB thấy ciphertext không đủ để kết luận implementation tốt
+- phải có thêm case tamper để chứng minh GCM đang làm đúng vai trò integrity/authentication của nó
 
 ## 7. Test case HTTPS/TLS
 
@@ -243,6 +430,31 @@ Token runtime thực tế đã decode:
 | `TLS-03` | Kiểm tra cấu hình TLS version | Đọc `deploy/nginx/securityapp.conf` | Kiểm tra `ssl_protocols` | Có `TLSv1.2 TLSv1.3` | Đã xác minh bằng source | Cao |
 | `TLS-04` | Password/JWT không đi qua URL | Đọc source login/axios/JWT flow | Kiểm tra body POST và header Authorization | Không thấy password/JWT trong query string | Đã xác minh bằng source | Rất cao |
 | `TLS-05` | Password/JWT không lộ trong log đã kiểm | Xem `docker logs securityapp-backend --tail 200` | Tìm `Authorization`, token, plaintext password | Không phát hiện trong tail log đã kiểm | Đã xác minh runtime ở mức tail log | Trung bình |
+
+### 7.3. Vì sao TLS vẫn bắt buộc dù đã có JWT, bcrypt và AES
+
+Đây là phần rất hay bị trình bày thiếu trong đồ án mật mã ứng dụng.
+
+Nếu chỉ có:
+
+- bcrypt
+- JWT
+- AES
+
+nhưng không có TLS ở môi trường thật, thì:
+
+- password lúc login vẫn có thể bị nghe lén
+- bearer token vẫn có thể bị lấy cắp trên đường truyền
+- dữ liệu customer đã giải mã trong response vẫn có thể bị nhìn thấy
+
+Nói ngắn gọn:
+
+- bcrypt bảo vệ `khi đã xuống DB`
+- AES bảo vệ `khi đã xuống DB`
+- JWT signature bảo vệ `token khỏi bị sửa`
+- TLS mới là thứ bảo vệ `đường truyền`
+
+Đây là lý do test TLS phải được đặt cùng chuỗi với JWT/AES/bcrypt, không nên tách như một phần “network” thuần túy.
 
 ## 8. Test case Postman/Newman
 
@@ -327,6 +539,23 @@ Kỳ vọng:
 - status code đúng
 - biến `token/customerId` được set/unset đúng
 
+### 8.5. Những gì Postman chứng minh được và không chứng minh được
+
+Postman/Newman chứng minh tốt:
+
+- login phát hành token
+- token được dùng đúng ở header `Authorization`
+- `401` và `403` hoạt động đúng
+- customer CRUD chạy được ở tầng API
+
+Postman/Newman không tự chứng minh được:
+
+- password trong DB có phải bcrypt hay không
+- dữ liệu customer trong DB có phải ciphertext hay không
+- ciphertext bị sửa có làm GCM fail hay không nếu không kết hợp thêm bước query/tamper DB
+
+Vì vậy, trong bài này Postman là công cụ chứng minh `hành vi bảo mật ở lớp API`, còn DB query mới là phần chứng minh `mật mã ứng dụng ở lớp lưu trữ`.
+
 ## 9. Test case OWASP ZAP
 
 ### 9.1. Mục tiêu
@@ -379,6 +608,23 @@ http://localhost:8080/v3/api-docs
 | `Content Security Policy (CSP) Header Not Set` | `Medium (High)` | `693` | `http://host.docker.internal:8080/swagger-ui.html` | Không có evidence cụ thể trong instance |
 | `Modern Web Application` | `Informational (Medium)` | `-1` | `http://host.docker.internal:8080/swagger-ui.html` | `<script src="./swagger-ui-bundle.js" charset="UTF-8"> </script>` |
 
+### 9.5. Những gì ZAP không thay thế được
+
+ZAP rất hữu ích để:
+
+- phát hiện header thiếu
+- rà surface public
+- hỗ trợ inventory endpoint
+
+Nhưng ZAP không thay thế được các chứng minh cốt lõi của mật mã ứng dụng trong dự án này:
+
+- bcrypt trong bảng `users`
+- AES ciphertext trong bảng `customers`
+- tamper ciphertext để chứng minh integrity của GCM
+- decode JWT để chỉ ra token không chứa claim nhạy cảm
+
+Nếu dùng ZAP như bằng chứng duy nhất cho phần mật mã ứng dụng thì báo cáo sẽ bị lệch trọng tâm.
+
 ## 10. Ghi chú cuối cùng cho người test
 
 1. Case `OAuth2` chỉ nên test khi nhóm bổ sung implementation chạy thật.
@@ -386,3 +632,12 @@ http://localhost:8080/v3/api-docs
 3. Case `JWT userA truy cập dữ liệu userB` chưa test được vì source không có endpoint user-owned kiểu đó.
 4. Case `123456` ở phần bcrypt phải ghi rõ là source hiện tại chặn từ validation, không đi tới bước hash.
 5. Case `AES tamper` hiện có giá trị trình diễn tốt vì đã xác minh runtime rằng ciphertext hỏng làm API trả `500`.
+
+Nếu cần demo ngắn mà vẫn đúng trọng tâm mật mã ứng dụng, thứ tự nên là:
+
+1. Login -> lấy JWT -> decode token.
+2. Test `401/403` để chứng minh token và role matrix.
+3. Tạo customer -> query DB để chứng minh AES ciphertext.
+4. Query bảng `users` để chứng minh bcrypt.
+5. Tamper ciphertext -> gọi lại API để chứng minh integrity của AES-GCM.
+6. Kết thúc bằng việc giải thích vì sao TLS là mắt xích bắt buộc khi deploy thật.

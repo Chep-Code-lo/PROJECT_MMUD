@@ -25,6 +25,41 @@ Nguyên tắc sử dụng trong tài liệu này:
 - Nếu một tính năng không thấy implementation chạy thật, tài liệu sẽ ghi rõ: `Chưa xác định từ source code hiện tại.`
 - Không tự giả định endpoint ngoài những endpoint có thật trong controller/OpenAPI.
 
+### 1.1. Mục tiêu kiểm thử dưới góc nhìn mật mã ứng dụng
+
+Nếu nhìn dự án này như một bài kiểm thử API thông thường thì chỉ cần kiểm `200/401/403/409` là chưa đủ. Với hướng mật mã ứng dụng, mục tiêu cần chứng minh phải cụ thể hơn:
+
+1. Password của user không được lưu ở dạng có thể đọc lại.
+2. Token phiên đăng nhập phải có khả năng chống giả mạo và chống sửa đổi.
+3. Dữ liệu nhạy cảm của customer khi nằm trong database phải ở dạng không đọc được nếu chỉ lộ DB.
+4. Dữ liệu khi truyền trên đường mạng phải có lớp bảo vệ transport phù hợp, nếu không thì bcrypt và AES ở backend vẫn chưa đủ.
+5. Cơ chế mật mã phải được gắn đúng vào luồng nghiệp vụ thật, không chỉ tồn tại trong code nhưng không được dùng.
+
+Vì vậy, phần trọng tâm của báo cáo này không phải là mô tả lý thuyết JWT, bcrypt hay AES nói chung, mà là chứng minh chính xác:
+
+- cơ chế nào đang được dùng trong source hiện tại
+- nó đang bảo vệ tài sản nào
+- tester phải kiểm gì để kết luận cơ chế đó đang hoạt động đúng trong dự án này
+
+### 1.2. Tài sản và bí mật cần bảo vệ
+
+| Tài sản / bí mật | Nơi xuất hiện trong dự án | Cơ chế đang bảo vệ | Ý nghĩa mật mã ứng dụng |
+|---|---|---|---|
+| Password gốc của user | `POST /api/auth/register`, `POST /api/auth/login` | `BCryptPasswordEncoder` | Nếu DB lộ, attacker không đọc lại plaintext password trực tiếp |
+| JWT access token | `AuthResponse.accessToken`, `localStorage`, header `Authorization` | HMAC `HS256` qua `JwtService` | Chống giả mạo/sửa token nếu secret chưa lộ |
+| JWT secret | `APP_JWT_SECRET`, `app.jwt.secret` | Bí mật đối xứng của backend | Nếu lộ secret này thì attacker có thể forge token hợp lệ |
+| AES app secret | `APP_AES_SECRET`, `app.aes.secret` | Nguồn để dẫn xuất AES key | Nếu lộ secret này thì attacker có thể giải mã toàn bộ dữ liệu customer đã mã hóa |
+| `phone`, `address`, `taxCode` của customer | bảng `customers` | `AES/GCM/NoPadding` | Bảo vệ dữ liệu nhạy cảm khi lưu trữ |
+| Dữ liệu login và token trên đường truyền | request frontend -> backend, deploy qua Nginx | TLS trong `deploy/nginx/securityapp.conf` | Chống nghe lén khi truyền password/JWT |
+| Audit trace | bảng `audit_logs` | Không thấy mã hóa | Phục vụ truy vết, nhưng không phải vùng dữ liệu đang được mật mã hóa trong source hiện tại |
+
+Điểm cần nhấn mạnh:
+
+- bcrypt bảo vệ password khi lưu trữ, không bảo vệ password trên đường truyền.
+- AES bảo vệ trường dữ liệu nhạy cảm trong DB, không bảo vệ JWT.
+- JWT signature bảo vệ tính toàn vẹn và tính xác thực của token, không mã hóa nội dung payload.
+- TLS là lớp bảo vệ lúc truyền, không thay thế cho bcrypt hay AES.
+
 ## 2. Kiến trúc hệ thống
 
 | Tầng | Thực tế từ source | Nhận xét |
@@ -36,7 +71,27 @@ Nguyên tắc sử dụng trong tài liệu này:
 | Reverse Proxy | Có file mẫu `deploy/nginx/securityapp.conf` | Có redirect `80 -> 443` và TLS `1.2/1.3`, nhưng chưa được nối vào compose hiện tại |
 | API docs | `springdoc-openapi`, file export `docs/api/openapi.json` | Có Swagger UI, nhưng metadata security trong OpenAPI chưa phản ánh đầy đủ runtime auth |
 
-### 2.1. Frontend
+### 2.1. Mô hình bảo vệ dữ liệu đầu cuối
+
+| Bước dữ liệu | Dữ liệu đang đi qua | Cơ chế bảo vệ | Điều tester cần chứng minh |
+|---|---|---|---|
+| User nhập password để login | plaintext password | Chưa có mật mã ở client side; dự án trông chờ TLS ở transport | Nếu chạy production không có TLS thì password vẫn lộ trên đường truyền |
+| Backend xác thực login | email + password | Spring Security `DaoAuthenticationProvider` + bcrypt verify | Password trong DB không phải plaintext và login chỉ pass khi hash match |
+| Backend phát hành phiên | access token | JWT `HS256` | Token giả, token sửa, token hết hạn phải bị chặn |
+| Frontend gọi API sau login | bearer token | `Authorization: Bearer ...` | Role matrix phải hoạt động đúng với token hợp lệ |
+| Backend lưu dữ liệu customer | `phone`, `address`, `taxCode` | AES-GCM | DB phải chỉ thấy ciphertext |
+| Backend đọc dữ liệu customer | ciphertext -> plaintext response | AES-GCM decrypt trong service | Nếu ciphertext hỏng thì phải fail, chứng minh GCM có integrity |
+| User truy cập qua internet khi deploy | password, JWT, dữ liệu response | TLS qua Nginx | Phải có HTTPS để tránh sniffing |
+
+Nhìn từ mô hình này, dự án đang dùng mật mã ở 3 lớp khác nhau:
+
+- `bcrypt` cho bí mật xác thực ở trạng thái lưu trữ
+- `JWT HMAC` cho phiên và quyền truy cập
+- `AES-GCM` cho dữ liệu nhạy cảm của customer trong database
+
+Đây là đúng tinh thần của mật mã ứng dụng: mỗi loại dữ liệu được bảo vệ bằng cơ chế phù hợp với vai trò của nó, thay vì cố dùng một kỹ thuật cho mọi thứ.
+
+### 2.2. Frontend
 
 Route thực tế từ source:
 
@@ -57,7 +112,7 @@ Luồng frontend thực tế:
 5. `ProtectedRoute` gọi `GET /api/auth/me` để xác thực phiên và kiểm tra role.
 6. Logout chỉ là xóa token ở frontend, không có logout endpoint ở backend.
 
-### 2.2. Backend
+### 2.3. Backend
 
 Kiến trúc backend thực tế:
 
@@ -66,7 +121,7 @@ Kiến trúc backend thực tế:
 - `GlobalExceptionHandler` chuẩn hóa lỗi `400/409/500`
 - `SecurityConfig` xử lý `401/403` dạng JSON
 
-### 2.3. Database
+### 2.4. Database
 
 Bảng thực tế trong `database/schema.sql`:
 
@@ -81,7 +136,7 @@ Không tìm thấy bảng:
 - `tickets`
 - `file_uploads`
 
-### 2.4. Docker và Reverse Proxy
+### 2.5. Docker và Reverse Proxy
 
 `docker-compose.yml` hiện tại chạy:
 
@@ -179,6 +234,48 @@ Ghi chú:
 | Postman/Newman | Có | `docs/postman/` | Có collection và environment chạy local |
 | OWASP ZAP | Có | `docs/security/zap.yaml`, report HTML/JSON/XML | Report baseline đã có sẵn |
 | HTTPS/TLS | Có ở mức deploy config | `deploy/nginx/securityapp.conf`, `deploy/ssl/README.md` | Chưa bật trong compose local |
+
+### 4.1. Bản đồ vật liệu mật mã trong source
+
+| Vật liệu mật mã | Nguồn | Cách dùng trong source | Nhận xét |
+|---|---|---|---|
+| `APP_JWT_SECRET` | env / `application.properties` | `JwtService.deriveKey()` -> `Keys.hmacShaKeyFor(...)` | Đây là bí mật đối xứng dùng để ký token |
+| `APP_AES_SECRET` | env / `application.properties` | `EncryptionService.deriveKey()` -> `SecretKeySpec(..., "AES")` | Đây là bí mật gốc để dẫn xuất key AES |
+| Salt bcrypt | phát sinh nội bộ bởi BCrypt | không lưu riêng, nằm trong chuỗi hash | Đây là hành vi đúng của bcrypt |
+| IV GCM | `SecureRandom.nextBytes(iv)` | ghép vào đầu payload trước khi Base64 | Mỗi lần encrypt tạo IV mới |
+| Authentication tag GCM | sinh ra khi `cipher.doFinal(...)` | nằm trong phần encrypted payload | Dùng để phát hiện ciphertext bị sửa |
+
+Điểm quan trọng về mặt mật mã ứng dụng:
+
+- Dự án hiện không dùng RSA, ECC hay key pair bất đối xứng.
+- JWT và AES đều đang phụ thuộc vào cùng kiểu secret text nhập từ cấu hình, sau đó băm `SHA-256` để lấy key.
+- Không thấy key rotation, key versioning hoặc secret separation theo tenant/user.
+
+### 4.2. Ranh giới của mật mã trong dự án
+
+Những gì đang được bảo vệ bởi mật mã:
+
+- password user trong DB
+- `phone`, `address`, `taxCode` của customer trong DB
+- tính toàn vẹn và xác thực của JWT
+
+Những gì hiện không được mã hóa trong source:
+
+- `email` và `name` của customer
+- nội dung `audit_logs.details`
+- `actorEmail` trong audit log
+- JWT payload
+
+Ý nghĩa:
+
+- JWT payload không được mã hóa là bình thường, vì JWT ở đây đang dùng để ký chứ không phải để che giấu dữ liệu.
+- `email` customer để plaintext là trade-off thực tế của source hiện tại, vì repository cần check unique theo email.
+- Audit log hiện nghiêng về truy vết hơn là bảo mật nội dung log bằng mật mã.
+
+Do đó, khi kiểm thử theo hướng mật mã ứng dụng, không nên viết kết luận kiểu “hệ thống đã mã hóa toàn bộ dữ liệu nhạy cảm”. Kết luận đúng phải là:
+
+- hệ thống đã mã hóa một phần dữ liệu business nhạy cảm cụ thể của customer
+- nhưng vẫn còn nhiều trường plaintext vì nhu cầu truy vấn, định danh hoặc truy vết
 
 ## 5. Danh sách API thực tế
 
@@ -325,6 +422,32 @@ Lý do:
 | `mvn test` trong `backend/` | Pass `8` test, `0` failures |
 | `npm run build` trong `frontend/` | Build pass thành công |
 
+### 8.1. Chuỗi chứng minh mật mã ứng dụng từ runtime
+
+Nếu cần trình bày ngắn gọn nhưng đúng trọng tâm trước giảng viên hoặc reviewer, chuỗi chứng minh có thể đi theo thứ tự này:
+
+1. Login thành công để lấy JWT thật.
+   Ý nghĩa: chứng minh hệ thống dùng password đã hash để xác thực, sau đó mới phát hành token.
+2. Decode JWT và kiểm tra `sub`, `iat`, `exp`, `alg`.
+   Ý nghĩa: chứng minh access token không phải chuỗi ngẫu nhiên vô danh mà là token có cấu trúc, có hạn dùng và có chữ ký.
+3. Gọi `GET /api/auth/me` với token hợp lệ, token giả, token sửa, token hết hạn.
+   Ý nghĩa: chứng minh Spring Security đang kiểm integrity và validity của token thật.
+4. Gọi `/api/admin/summary` hoặc `/api/customers` bằng token `USER`.
+   Ý nghĩa: chứng minh token hợp lệ vẫn bị chặn nếu quyền không đủ.
+5. Tạo customer mới rồi query DB.
+   Ý nghĩa: chứng minh business flow thật có gắn AES vào dữ liệu nhạy cảm trước khi lưu.
+6. Sửa ciphertext trong DB rồi gọi API đọc lại.
+   Ý nghĩa: chứng minh AES-GCM không chỉ che giấu dữ liệu mà còn phát hiện dữ liệu bị sửa.
+7. Query bảng `users`.
+   Ý nghĩa: chứng minh password trong DB ở dạng bcrypt hash khác nhau, không phải plaintext.
+
+Đây là chuỗi bằng chứng đúng với hướng mật mã ứng dụng, vì nó nối được:
+
+- đầu vào người dùng
+- cơ chế mật mã trong code
+- trạng thái dữ liệu trong DB
+- hành vi bảo mật ở runtime
+
 ## 9. Đánh giá JWT
 
 ### 9.1. Cách JWT được triển khai
@@ -345,7 +468,28 @@ Từ source hiện tại:
   - `jti`
   - `nbf`
 
-### 9.2. JWT runtime đã decode
+### 9.2. Luồng JWT end-to-end trong dự án
+
+Luồng JWT thực tế trong source hiện tại là:
+
+1. `AuthController.login()` nhận `LoginRequest`.
+2. `AuthService.login()` gọi `authenticationManager.authenticate(...)`.
+3. `DaoAuthenticationProvider` dùng `CustomUserDetailsService` + `BCryptPasswordEncoder` để verify password.
+4. Nếu xác thực thành công, `JwtService.generateToken(user)` tạo JWT mới.
+5. Frontend lưu `accessToken` vào `localStorage`.
+6. `axiosClient` tự động gắn `Authorization: Bearer <token>`.
+7. `JwtAuthenticationFilter` lấy token từ header, parse chữ ký và đọc `sub`.
+8. Filter load lại user thật từ DB bằng email trong `sub`.
+9. Nếu token hợp lệ và user tồn tại, `SecurityContext` được set.
+10. `SecurityConfig` mới là nơi quyết định quyền route dựa trên role của user trong DB.
+
+Ý nghĩa mật mã ứng dụng của luồng này:
+
+- password chỉ được dùng để mở phiên, không đi lại trong các request business sau login
+- JWT trở thành vật mang quyền truy cập ngắn hạn
+- chữ ký của JWT chỉ là bước đầu; role cuối cùng vẫn lấy từ DB, giúp giảm rủi ro nếu client cố sửa claim role
+
+### 9.3. JWT runtime đã decode
 
 Mẫu token admin lấy trực tiếp sau login ngày `2026-06-18` có nội dung:
 
@@ -360,7 +504,26 @@ Mẫu token admin lấy trực tiếp sau login ngày `2026-06-18` có nội dun
 | Signature | Có, dạng HMAC SHA-256 |
 | Lifetime | `86400` giây, tương đương `24` giờ |
 
-### 9.3. Ý nghĩa kiểm thử quan trọng
+### 9.4. Ý nghĩa mật mã học của header, payload, signature
+
+Từ token runtime thực tế của dự án này có thể rút ra 4 điểm quan trọng:
+
+1. `alg=HS256` nghĩa là đây là token ký bằng khóa đối xứng.
+   Điều này có nghĩa ai giữ được `APP_JWT_SECRET` sẽ có khả năng tạo token hợp lệ.
+2. Payload chỉ chứa `sub`, `iat`, `exp`.
+   Điều này tốt ở góc nhìn giảm lộ dữ liệu, vì token không chứa thông tin business nhạy cảm hay PII thừa.
+3. Payload của JWT không được mã hóa.
+   Đây là hành vi bình thường của JWT ký; token này đảm bảo integrity/authenticity chứ không đảm bảo confidentiality.
+4. `exp` cách `iat` đúng `24` giờ.
+   Điều này cho thấy token có hạn dùng, nhưng TTL còn khá dài nếu áp dụng production.
+
+Nói cách khác:
+
+- chữ ký JWT trong dự án này đang bảo vệ `tính toàn vẹn` và `tính xác thực`
+- nó không hề che giấu nội dung payload
+- vì vậy thiết kế hiện tại đúng khi không nhét dữ liệu nhạy cảm của customer vào token
+
+### 9.5. Ý nghĩa kiểm thử quan trọng
 
 Điểm rất quan trọng của source hiện tại:
 
@@ -377,7 +540,7 @@ Hệ quả kiểm thử:
   - token có `sub` không tồn tại
   - token hợp lệ nhưng user role không đủ quyền
 
-### 9.4. Bảng test JWT
+### 9.6. Bảng test JWT
 
 | Test case | Expected | Actual | Giải thích |
 |---|---|---|---|
@@ -390,7 +553,7 @@ Hệ quả kiểm thử:
 | JWT userA truy cập dữ liệu userB | `Chưa xác định từ source code hiện tại.` | `Chưa xác định từ source code hiện tại.` | Không có endpoint user-owned kiểu `/api/users/{id}` để test BOLA userA/userB |
 | JWT ký đúng nhưng `sub` không tồn tại trong DB | `401` | `401` | `loadUserByUsername()` ném exception, request rơi về unauthorized |
 
-### 9.5. Đánh giá Spring Security
+### 9.7. Đánh giá Spring Security
 
 Điểm tốt:
 
@@ -406,6 +569,12 @@ Hệ quả kiểm thử:
 - Token TTL `24h` khá dài cho môi trường production
 - Frontend lưu JWT trong `localStorage`
 - Secret mặc định đang hardcode trong `docker-compose.yml` và `application.properties`
+
+Từ góc nhìn mật mã ứng dụng, điểm đáng lưu ý nhất không phải là “JWT có dùng hay không”, mà là:
+
+- secret ký token đang là tài sản cực kỳ nhạy cảm
+- token không được mã hóa nên không được đặt dữ liệu nhạy cảm vào payload
+- lớp ký token chỉ an toàn khi secret không lộ và transport có TLS
 
 ## 10. Đánh giá OAuth2
 
@@ -433,6 +602,21 @@ Nhận xét thực tế:
 - Repo có dependency mở đường cho OAuth2.
 - Nhưng source đang chạy thật hiện nay không có implementation OAuth2 để kiểm thử chức năng.
 
+### 10.3. Ý nghĩa với hướng mật mã ứng dụng
+
+Với đề tài này, việc có dependency OAuth2 trong `pom.xml` chưa đủ để xem như dự án đang có một cơ chế mật mã/ủy quyền thứ hai đã sẵn sàng kiểm thử. Để đánh giá đúng theo source hiện tại:
+
+- cơ chế xác thực đang vận hành thật là `username/password + JWT`
+- OAuth2 hiện mới ở mức khả năng mở rộng, chưa phải bằng chứng bảo mật đang chạy thật
+
+Do đó, không nên ghi trong báo cáo rằng dự án “đã triển khai OAuth2 login” nếu không có:
+
+- provider config
+- redirect URI
+- callback handler
+- token exchange
+- phiên đăng nhập OAuth2 chạy được ở runtime
+
 ## 11. Đánh giá bcrypt
 
 ### 11.1. Bằng chứng từ source
@@ -444,7 +628,22 @@ Nhận xét thực tế:
 | Demo users có dùng encoder không | Có, trong `DemoUserInitializer` |
 | Xác thực password có dùng Spring Security provider không | Có, `DaoAuthenticationProvider` |
 
-### 11.2. Ghi chú quan trọng về test password `123456`
+### 11.2. Ý nghĩa mật mã ứng dụng của bcrypt trong dự án
+
+Trong dự án này, bcrypt không được dùng để “mã hóa password” mà để:
+
+- làm password không thể đọc ngược trực tiếp từ DB
+- làm cho cùng một password sinh ra hash khác nhau nhờ salt
+- buộc backend phải xác thực bằng phép so khớp hash thay vì đọc plaintext
+
+Ý nghĩa thực tế nếu DB bị lộ:
+
+- attacker không thể chỉ nhìn bảng `users` rồi biết ngay password gốc
+- việc bẻ hash sẽ tốn công hơn nhiều so với lưu plaintext hoặc hash yếu
+
+Điểm này rất quan trọng với hướng mật mã ứng dụng vì nó chứng minh hệ thống đang bảo vệ `bí mật xác thực` ở trạng thái lưu trữ, không chỉ bảo vệ dữ liệu business.
+
+### 11.3. Ghi chú quan trọng về test password `123456`
 
 Yêu cầu test “tạo 3 tài khoản với password `123456`” không đi được đến bước hash trong source hiện tại vì:
 
@@ -456,7 +655,7 @@ Do đó:
 - Test đúng theo source hiện tại là dùng cùng một password hợp lệ có độ dài từ `8` trở lên
 - Hoặc dùng 3 tài khoản demo đang cùng password `Password@123`
 
-### 11.3. Bằng chứng DB runtime
+### 11.4. Bằng chứng DB runtime
 
 Từ bảng `users` runtime:
 
@@ -472,7 +671,25 @@ Nhận xét:
 - Điều này cho thấy bcrypt đang dùng salt ngẫu nhiên đúng như kỳ vọng.
 - Không thấy plaintext password trong DB.
 
-### 11.4. Kết luận bcrypt
+### 11.5. Cách đọc chuỗi bcrypt từ DB
+
+Từ dữ liệu runtime đã query được, các hash đều bắt đầu bằng dạng:
+
+```text
+$2a$10$...
+```
+
+Ý nghĩa của phần prefix này trong bối cảnh dự án:
+
+- `$2a$`: biến thể bcrypt đang được thư viện sinh ra
+- `10`: cost factor đang dùng là `10`
+
+Điều này cho phép tester kết luận:
+
+- hệ thống không chỉ “trông giống bcrypt”, mà hash runtime thực tế cũng mang format đặc trưng của bcrypt
+- cost factor không phải là giá trị trống hay hash do tự cài tay
+
+### 11.6. Kết luận bcrypt
 
 | Tiêu chí | Đánh giá |
 |---|---|
@@ -488,6 +705,7 @@ Nếu phát hiện plaintext:
 Hiện tại:
 
 - Không có dấu hiệu lưu plaintext từ source và DB runtime đã kiểm tra.
+- bcrypt đang là lớp bảo vệ đúng chỗ cho password at rest trong dự án này.
 
 ## 12. Đánh giá AES
 
@@ -504,7 +722,35 @@ Không thấy mã hóa:
 - `email`
 - `name`
 
-### 12.2. Cách AES được triển khai
+### 12.2. Ý nghĩa mật mã ứng dụng của các trường được mã hóa
+
+Ba trường đang được mã hóa là:
+
+- `phone`
+- `address`
+- `taxCode`
+
+Đây đều là dữ liệu business nhạy cảm có khả năng gây ảnh hưởng thực tế nếu lộ:
+
+- `phone`: thông tin liên hệ cá nhân/doanh nghiệp
+- `address`: vị trí, địa chỉ giao dịch
+- `taxCode`: mã số doanh nghiệp/thuế, mang giá trị định danh
+
+Trong khi đó `email` và `name` vẫn ở plaintext. Từ source hiện tại có thể thấy:
+
+- `email` còn được dùng để check unique trong repository
+- `name` và `email` được trả thẳng cho UI
+
+Điều này cho thấy một trade-off rất điển hình của mật mã ứng dụng:
+
+- trường nào cần truy vấn/đối chiếu trực tiếp thì thường bị giữ plaintext hoặc phải có thiết kế chỉ mục riêng
+- trường nào nhạy cảm hơn và không cần query phức tạp thì dễ được đưa vào AES encryption
+
+Vì vậy, kết luận đúng không phải là “toàn bộ bản ghi customer đều đã được mã hóa”, mà là:
+
+- source hiện tại đang bảo vệ có chọn lọc các trường được xem là nhạy cảm nhất của customer
+
+### 12.3. Cách AES được triển khai
 
 | Thuộc tính | Giá trị thực tế |
 |---|---|
@@ -515,7 +761,23 @@ Không thấy mã hóa:
 | Key derivation | `SHA-256(secret)` |
 | Payload format | `Base64(IV + ciphertext+tag)` |
 
-### 12.3. Bằng chứng runtime
+### 12.4. Luồng dữ liệu mã hóa từ request đến DB rồi quay lại response
+
+Luồng thực tế từ source:
+
+1. UI gửi `CustomerRequest` với plaintext `phone/address/taxCode`.
+2. `CustomerService.applyRequest()` gọi `encryptionService.encrypt(...)` cho từng trường.
+3. Entity `Customer` chỉ lưu các cột `_encrypted`.
+4. Khi đọc dữ liệu, `CustomerService.toResponse()` lại gọi `decrypt(...)`.
+5. API trả `CustomerResponse` ở dạng plaintext business data cho client đã được authorize.
+
+Ý nghĩa mật mã ứng dụng:
+
+- client không tự mã hóa trước khi gửi; trách nhiệm mã hóa nằm ở backend
+- DB là nơi nhìn thấy ciphertext
+- API response chỉ được giải mã sau khi request đã qua lớp authn/authz
+
+### 12.5. Bằng chứng runtime
 
 DB runtime hiện lưu:
 
@@ -527,7 +789,7 @@ DB runtime hiện lưu:
 - Dữ liệu nhạy cảm không nằm plaintext trong DB
 - Ứng dụng giải mã lại ở backend trước khi trả `CustomerResponse`
 
-### 12.4. Kiểm thử sai key, sai IV, ciphertext sửa, ciphertext cắt bớt
+### 12.6. Kiểm thử sai key, sai IV, ciphertext sửa, ciphertext cắt bớt
 
 | Tình huống | Kết quả suy ra từ source | Kết quả runtime | Nhận xét |
 |---|---|---|---|
@@ -536,13 +798,35 @@ DB runtime hiện lưu:
 | Ciphertext bị sửa | Giải mã fail | Đã xác minh tương đương bằng case sửa ciphertext, API trả `500` | Integrity của GCM hoạt động |
 | Ciphertext cắt bớt | Giải mã fail | Đã xác minh runtime, `GET /api/customers/{id}` trả `500` | Payload bị hỏng không giải mã được |
 
-### 12.5. Đánh giá confidentiality và integrity
+### 12.7. Ý nghĩa của GCM tag, IV ngẫu nhiên và cách dẫn xuất key
+
+Ba điểm mật mã quan trọng nhất của implementation hiện tại là:
+
+1. `IV` được tạo mới bằng `SecureRandom` cho mỗi lần encrypt.
+   Điều này phù hợp với GCM, vì nếu tái sử dụng IV với cùng key sẽ rất nguy hiểm.
+2. Payload chứa cả `IV + ciphertext + tag`.
+   Điều này cho phép backend giải mã đúng record mà không cần cột IV riêng.
+3. Key được dẫn xuất bằng `SHA-256(secret)` từ một secret text cấu hình.
+   Cách này đủ để tạo key có độ dài phù hợp cho runtime hiện tại, nhưng vẫn là một static app-wide key.
+
+Ý nghĩa rủi ro:
+
+- nếu `APP_AES_SECRET` lộ, toàn bộ dữ liệu customer đã mã hóa bằng cùng secret đều có nguy cơ bị giải mã
+- nếu ciphertext bị sửa, GCM tag sẽ làm decrypt fail, đó là lý do case tamper trả lỗi thay vì cho ra dữ liệu rác
+- source hiện tại chưa có key rotation hoặc key versioning, nên mọi record cùng phụ thuộc vào một bí mật gốc
+
+### 12.8. Đánh giá confidentiality và integrity
 
 | Tiêu chí | Đánh giá |
 |---|---|
 | Confidentiality | Đạt ở mức source hiện tại vì DB chỉ lưu ciphertext |
 | Integrity | Đạt ở mức crypto vì AES-GCM phát hiện ciphertext bị sửa |
 | Error handling khi dữ liệu mã hóa bị hỏng | Chưa tối ưu vì hiện trả `500` generic |
+
+Kết luận theo hướng mật mã ứng dụng:
+
+- lớp bảo vệ dữ liệu at rest của customer đang được triển khai thật và đang hoạt động
+- bằng chứng mạnh nhất là DB chỉ có ciphertext, còn tamper ciphertext làm decrypt fail
 
 ## 13. Đánh giá HTTPS/TLS
 
@@ -557,7 +841,29 @@ DB runtime hiện lưu:
 | TLS version | `TLSv1.2`, `TLSv1.3` trong Nginx config |
 | Certificate path | `/etc/nginx/ssl/fullchain.pem`, `/etc/nginx/ssl/privkey.pem` |
 
-### 13.2. Password/JWT có xuất hiện trong URL không
+### 13.2. Ý nghĩa của TLS trong chuỗi mật mã ứng dụng
+
+TLS là lớp rất dễ bị xem nhẹ khi đã có JWT, bcrypt và AES. Nhưng với source hiện tại:
+
+- bcrypt chỉ bảo vệ password trong DB
+- AES chỉ bảo vệ `phone/address/taxCode` trong DB
+- JWT signature chỉ bảo vệ token khỏi bị sửa hoặc giả mạo
+
+Không cơ chế nào trong ba cơ chế trên bảo vệ:
+
+- plaintext password lúc user vừa bấm login
+- bearer token lúc frontend gửi request
+- response API chứa dữ liệu customer đã giải mã
+
+Vì vậy, nếu triển khai thực tế mà không có HTTPS:
+
+- attacker cùng mạng có thể sniff được password
+- attacker có thể lấy JWT rồi replay request
+- attacker có thể nhìn thấy dữ liệu business trả về từ API
+
+Đây là lý do TLS không phải tính năng “ngoài lề”, mà là mắt xích cuối của chuỗi mật mã ứng dụng.
+
+### 13.3. Password/JWT có xuất hiện trong URL không
 
 Kết quả từ source:
 
@@ -569,7 +875,7 @@ Kết luận:
 
 - Không phát hiện password hoặc JWT đi trong URL từ source hiện tại.
 
-### 13.3. Password/JWT có xuất hiện trong log không
+### 13.4. Password/JWT có xuất hiện trong log không
 
 Kết quả từ source và log tail runtime:
 
@@ -582,11 +888,16 @@ Kết quả từ source và log tail runtime:
 - Frontend lưu JWT trong `localStorage`, không phải `httpOnly cookie`
 - Nếu có XSS ở frontend trong tương lai, JWT sẽ dễ bị lấy cắp hơn
 
-### 13.4. Kết luận TLS
+### 13.5. Kết luận TLS
 
 - Ở môi trường local compose hiện tại: chưa có HTTPS.
 - Ở mức source deploy: có cấu hình Nginx/TLS mẫu.
 - HTTP -> HTTPS redirect chỉ mới có ở file cấu hình deploy, chưa được chứng minh từ runtime compose hiện tại.
+
+Kết luận theo hướng mật mã ứng dụng:
+
+- nếu đứng riêng lẻ, JWT/bcrypt/AES của dự án đang làm đúng việc của chúng
+- nhưng để tạo thành một chuỗi bảo vệ hoàn chỉnh ngoài môi trường thật, TLS vẫn là điều kiện bắt buộc
 
 ## 14. Đánh giá Postman/Newman
 
@@ -643,6 +954,20 @@ Collection hiện tại chưa thấy script cho:
 - response time threshold
 - JSON schema validation đầy đủ
 
+### 14.4. Vai trò của Postman/Newman trong kiểm chứng mật mã ứng dụng
+
+Postman/Newman trong dự án này không chứng minh trực tiếp bản thân thuật toán mật mã là “đúng về mặt toán học”. Điều nó chứng minh được là:
+
+- JWT được phát hành đúng sau login thành công
+- request không có token hoặc token sai bị chặn đúng
+- role matrix thật đang hoạt động ở biên API
+- dữ liệu customer chỉ được trả về sau khi request qua được auth/authz
+
+Nói cách khác:
+
+- Postman/Newman rất mạnh để chứng minh `hành vi bảo mật ở lớp API`
+- nhưng không thay thế được kiểm tra DB để chứng minh bcrypt/AES đang bảo vệ dữ liệu at rest
+
 ## 15. Đánh giá OWASP ZAP
 
 ### 15.1. Artifact thực tế trong repo
@@ -683,6 +1008,24 @@ Chi tiết alert trích từ `zap-baseline-report.json`:
 - Chưa có bằng chứng scan authenticated API bằng JWT trong artifact repo hiện có.
 - Muốn scan theo đúng Phase 11 bằng OpenAPI `/v3/api-docs`, cần chạy thêm phiên ZAP import OpenAPI riêng.
 
+### 15.5. Ranh giới giữa ZAP và kiểm thử mật mã ứng dụng
+
+ZAP hữu ích để tìm:
+
+- header thiếu
+- bề mặt public
+- inventory endpoint
+- dấu hiệu misconfiguration
+
+Nhưng ZAP không thay thế được các kiểm tra sau:
+
+- query DB để chứng minh bcrypt không lưu plaintext
+- query DB để chứng minh AES lưu ciphertext
+- tamper ciphertext để chứng minh GCM tag đang bảo vệ integrity
+- decode JWT để chứng minh payload/signature thực tế
+
+Vì vậy, trong dự án này ZAP là một phần của bằng chứng bảo mật, nhưng không phải là phần mạnh nhất cho hướng mật mã ứng dụng.
+
 ## 16. Đánh giá OWASP API Security Top 10
 
 | Hạng mục | Cách test áp vào source hiện tại | Kết quả từ source/runtime | Rủi ro | Khuyến nghị |
@@ -714,6 +1057,20 @@ Chi tiết alert trích từ `zap-baseline-report.json`:
 | Frontend install dependency | `npm install` thay vì `npm ci` | Thấp đến Trung bình | Vấn đề reproducibility/hardening |
 | Volume database init | `./database:/docker-entrypoint-initdb.d:ro` | Thấp | Đã gắn read-only, điểm tốt |
 | Secret management | Không thấy Docker secrets / external secret store | Cao | Không phù hợp môi trường thật |
+
+### 17.1. Tác động trực tiếp của Docker/compose tới bí mật mật mã
+
+Trong dự án này, Docker không chỉ là câu chuyện vận hành. Nó ảnh hưởng trực tiếp tới an toàn của các bí mật mật mã:
+
+- `APP_JWT_SECRET` quyết định ai có thể forge JWT
+- `APP_AES_SECRET` quyết định ai có thể giải mã dữ liệu customer
+- `MYSQL_ROOT_PASSWORD` quyết định mức độ dễ dàng để đọc được DB
+
+Do đó, phần Docker Security ở đây gắn trực tiếp với mật mã ứng dụng, không phải hạng mục tách rời. Nếu compose hoặc môi trường deploy để lộ secret, thì:
+
+- lớp chữ ký JWT mất giá trị
+- lớp mã hóa AES mất giá trị
+- attacker có thể đọc ciphertext và đồng thời có key để giải mã
 
 ## 18. Phát hiện chính
 
@@ -765,6 +1122,14 @@ Tuy nhiên, nếu nhìn dưới góc độ triển khai thực tế ngoài môi 
 - token lưu ở `localStorage`
 - Docker chưa hardening mạnh
 - OpenAPI chưa mô tả security requirement đầy đủ
+
+Nếu chỉ xét riêng hướng mật mã ứng dụng, kết luận mạnh nhất của đợt phân tích này là:
+
+1. Dự án đã gắn mật mã vào đúng luồng nghiệp vụ thật, không phải chỉ thêm thư viện cho đủ đầu mục.
+2. `bcrypt` đang bảo vệ password at rest.
+3. `JWT HS256` đang bảo vệ tính toàn vẹn và tính xác thực của access token.
+4. `AES-GCM` đang bảo vệ dữ liệu nhạy cảm của customer trong DB và có bằng chứng integrity khi ciphertext bị sửa.
+5. Chuỗi bảo vệ chỉ hoàn chỉnh khi lớp TLS deploy được bật đúng trong môi trường thật.
 
 ## 21. Đề xuất cải thiện
 

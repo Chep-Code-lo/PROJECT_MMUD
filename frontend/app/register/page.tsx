@@ -77,6 +77,10 @@ export default function RegisterPage() {
             Đăng nhập
           </a>
         </p>
+
+        <p className="mt-4 text-xs text-gray-600 text-center">
+          Tài khoản tự đăng ký mặc định mang role USER.
+        </p>
       </form>
     </main>
   );

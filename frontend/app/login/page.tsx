@@ -63,6 +63,13 @@ export default function LoginPage() {
             Đăng ký
           </a>
         </p>
+
+        <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-gray-800">
+          <p className="font-semibold mb-2">Demo accounts</p>
+          <p>`admin@securityapp.local` / `Password@123`</p>
+          <p>`staff@securityapp.local` / `Password@123`</p>
+          <p>`user@securityapp.local` / `Password@123`</p>
+        </div>
       </form>
     </main>
   );

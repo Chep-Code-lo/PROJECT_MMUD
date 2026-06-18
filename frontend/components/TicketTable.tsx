@@ -26,6 +26,7 @@ export default function TicketTable({
         <thead>
           <tr className="bg-gray-100 text-left">
             <th className="border p-3">ID</th>
+            <th className="border p-3">Customer</th>
             <th className="border p-3">Title</th>
             <th className="border p-3">Description</th>
             <th className="border p-3">Priority</th>
@@ -38,6 +39,9 @@ export default function TicketTable({
           {tickets.map((ticket) => (
             <tr key={ticket.id} className="hover:bg-gray-50">
               <td className="border p-3">{ticket.id}</td>
+              <td className="border p-3">
+                {ticket.customerName ?? `Customer #${ticket.customerId}`}
+              </td>
               <td className="border p-3">{ticket.title}</td>
               <td className="border p-3">{ticket.description}</td>
               <td className="border p-3">{ticket.priority}</td>

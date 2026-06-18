@@ -13,7 +13,7 @@ export const ticketService = {
   },
 
   updateTicketStatus: async (id: number, status: TicketStatus) => {
-    const res = await axiosClient.put<Ticket>(`/api/tickets/${id}/status`, {
+    const res = await axiosClient.patch<Ticket>(`/api/tickets/${id}/status`, {
       status,
     });
     return res.data;

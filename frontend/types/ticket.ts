@@ -3,6 +3,8 @@ export type TicketPriority = "LOW" | "MEDIUM" | "HIGH";
 
 export type Ticket = {
   id: number;
+  customerId: number;
+  customerName?: string | null;
   title: string;
   description: string;
   status: TicketStatus;
@@ -16,6 +18,7 @@ export type Ticket = {
 };
 
 export type TicketRequest = {
+  customerId: number;
   title: string;
   description: string;
   priority: TicketPriority;

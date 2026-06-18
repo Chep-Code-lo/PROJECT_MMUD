@@ -14,6 +14,7 @@ export default function NewTicketPage() {
   const router = useRouter();
 
   const [form, setForm] = useState({
+    customerId: "",
     title: "",
     description: "",
     priority: "MEDIUM" as TicketPriority,
@@ -38,9 +39,15 @@ export default function NewTicketPage() {
       return;
     }
 
+    if (!form.customerId.trim()) {
+      setError("Vui long nhap customer id.");
+      return;
+    }
+
     try {
       await ticketService.createTicket({
         ...form,
+        customerId: Number(form.customerId),
         createdById: currentUserId,
       });
       router.push("/tickets");
@@ -74,6 +81,16 @@ export default function NewTicketPage() {
             {error && <p className="mb-4 text-red-600">{error}</p>}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                name="customerId"
+                label="Customer ID"
+                type="number"
+                min="1"
+                placeholder="Customer ID"
+                onChange={handleChange}
+                required
+              />
+
               <Input
                 name="title"
                 label="Title"

@@ -1,5 +1,11 @@
 package com.company.securityapp.dto;
 
-public class UserResponse {
+import com.company.securityapp.entity.Role;
+
+public record UserResponse(
+        Long id,
+        String fullName,
+        String email,
+        Role role) {
 }
 

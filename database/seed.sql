@@ -1,2 +1,13 @@
--- Seed data will be added here.
+-- No default customer rows are inserted here on purpose.
+-- Sensitive fields (phone, address, tax code) are encrypted with the runtime
+-- AES key, so the safest way to generate valid demo data is to create
+-- customers through POST /api/customers after the backend starts.
+-- Demo users are also provisioned at application startup by the backend so
+-- their bcrypt hashes stay managed in Java instead of being hardcoded here.
+--
+-- Suggested local reset order:
+-- DELETE FROM audit_logs;
+-- DELETE FROM tickets;
+-- DELETE FROM customers;
+-- DELETE FROM users;
 

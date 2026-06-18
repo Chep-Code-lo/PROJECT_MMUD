@@ -1,35 +1,47 @@
 services:
   database:
-    image: postgres:16
-    container_name: smallcompany-db
+    image: mysql:8.4
+    container_name: securityapp-db
     environment:
-      POSTGRES_DB: smallcompany
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123456
+      MYSQL_DATABASE: securityapp
+      MYSQL_ROOT_PASSWORD: root
     ports:
-      - "5432:5432"
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d:ro
 
   backend:
     build:
       context: ./backend
-    container_name: smallcompany-backend
+    container_name: securityapp-backend
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/smallcompany
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: 123456
-      JWT_SECRET: this-is-demo-secret-key-change-later
-      AES_SECRET_KEY: 12345678901234567890123456789012
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://database:3306/securityapp?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      APP_JWT_SECRET: change-this-secret-key-to-a-long-random-value-before-deploy
+      APP_AES_SECRET: change-this-32-char-aes-secret-key
+      APP_DEMO_USERS_ENABLED: "true"
+      APP_DEMO_USERS_PASSWORD: Password@123
+      APP_API_BASE_URL: http://localhost:8080
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:3000
     depends_on:
-      - database
+      database:
+        condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
-    container_name: smallcompany-frontend
+    container_name: securityapp-frontend
     ports:
       - "3000:3000"
     environment:
@@ -38,4 +50,4 @@ services:
       - backend
 
 volumes:
-  postgres_data:
+  mysql_data:

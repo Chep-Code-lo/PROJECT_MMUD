@@ -1,13 +1,15 @@
 # Giai doan 7: Giai thich chi tiet code va y tuong
 
-Stage 7 tren de bai la `Role Authorization`, nhung trong repo thuc te phan auth cu cua Stage 4 van con dang stub. Vi vay luc lam tiep, phan implementation da phai hoan thien auth/JWT that roi moi khoa role duoc. File nay giai thich ro quyet dinh do.
+Stage 7 la buoc chot authentication va role authorization that cho backend.
+Trong repo nay, de khoa route dung nghia thi phai hoan thien JWT truoc, nen giai doan nay duoc trien khai theo dung thu tu ky thuat.
 
-## 1. Muc tieu cua Stage 7
+## 1. Muc tieu cua giai doan 7
 
 - Chot 3 role: `ADMIN`, `STAFF`, `USER`
 - Phan biet ro `401` va `403`
-- Khong cho `USER` cham vao route quan tri
-- Van de Swagger mo de demo va test
+- Phat va validate `JWT`
+- Khong cho role thuong cham vao route quan tri
+- Van de Swagger public de demo va test
 
 ## 2. Cac file chinh da lam
 
@@ -33,9 +35,6 @@ Stage 7 tren de bai la `Role Authorization`, nhung trong repo thuc te phan auth 
 | `/api/admin/**` | `ADMIN` |
 | `/api/audit-logs/**` | `ADMIN` |
 | `/api/customers/**` | `ADMIN`, `STAFF` |
-| `/api/tickets/**` | `ADMIN`, `STAFF`, `USER` |
-
-Stage 7 la noi khoa matrix nay lai trong `SecurityConfig`.
 
 ## 4. Vi sao phai hoan thien auth that truoc khi khoa role
 
@@ -45,7 +44,7 @@ Neu auth chi la stub thi role authorization khong co gia tri that, vi:
 - khong co principal that trong security context
 - khong co user/role that trong database
 
-Nen implementation da di theo thu tu hop ly:
+Nen implementation di theo thu tu hop ly:
 
 1. Tao `User` entity that.
 2. Hash password bang bcrypt.
@@ -53,8 +52,6 @@ Nen implementation da di theo thu tu hop ly:
 4. Phat JWT.
 5. Dua user vao `SecurityContext`.
 6. Sau do moi ap role rule.
-
-No khong phai lan sang scope vo ly, ma la prerequisite ky thuat de Stage 7 chay dung.
 
 ## 5. `User` entity duoc thiet ke the nao
 
@@ -64,7 +61,7 @@ Y nghia:
 
 - entity database co the di thang vao Spring Security
 - `getAuthorities()` tra ve `ROLE_ADMIN`, `ROLE_STAFF`, `ROLE_USER`
-- khong can tao them adapter class dai dong
+- khong can tao adapter class vong vo
 
 `passwordHash` duoc dat `@JsonIgnore` de tranh lo hash ra response.
 
@@ -78,100 +75,61 @@ Y nghia:
 
 ### `JwtService`
 
+Service nay:
+
 - tao token
-- doc subject tu token
-- kiem tra token con han va dung user
+- doc email tu token
+- kiem tra han
+- validate token voi `UserDetails`
 
 ### `JwtAuthenticationFilter`
 
-Moi request protected se:
+Filter nay:
 
 1. Doc header `Authorization`
-2. Neu co prefix `Bearer `
-3. Tach JWT
-4. Extract username
-5. Load user tu database
-6. Validate token
-7. Gan `Authentication` vao `SecurityContext`
+2. Cat bo prefix `Bearer `
+3. Validate token
+4. Load user tu DB
+5. Dat `Authentication` vao `SecurityContext`
 
-Neu token sai, filter clear context va request sau do se bi `401`.
+## 7. `401` va `403` duoc tach the nao
 
-## 7. `401` va `403` khac nhau o dau
+Trong `SecurityConfig`:
 
-`SecurityConfig` co custom:
+- `AuthenticationEntryPoint` xu ly `401`
+- `AccessDeniedHandler` xu ly `403`
 
-- `AuthenticationEntryPoint`
-- `AccessDeniedHandler`
+Y nghia:
 
-Nen he thong tra JSON sach, khong phai HTML loi mac dinh.
+- khong co token hoac token sai => `401`
+- co token hop le nhung role khong du => `403`
 
-### `401 Unauthorized`
+Day la diem nguoi cham bai rat de hoi.
 
-Tra khi:
+## 8. Demo user duoc sinh de lam gi
 
-- khong co token
-- token sai
-- token het han
-
-Message:
-
-```text
-Authentication is required or the token is invalid.
-```
-
-### `403 Forbidden`
-
-Tra khi:
-
-- da dang nhap thanh cong
-- nhung role khong du quyen goi route
-
-Message:
-
-```text
-You do not have permission to access this resource.
-```
-
-Day la diem demo rat quan trong vi de bai yeu cau phan biet ro 2 loai loi nay.
-
-## 8. Demo user duoc seed nhu the nao
-
-`DemoUserInitializer` tao san 3 tai khoan:
+`DemoUserInitializer` tao san:
 
 - `admin@securityapp.local`
 - `staff@securityapp.local`
 - `user@securityapp.local`
 
-Password mac dinh:
+Tac dung:
 
-```text
-Password@123
-```
+- demo nhanh khong phai seed tay
+- Postman va Swagger co account on dinh de test
+- giam cong chuan bi moi lan chay lai he thong
 
-Cach lam nay giup:
+## 9. Test cua giai doan 7 chung minh dieu gi
 
-- Postman demo nhanh
-- frontend login demo nhanh
-- khong can chen bcrypt hash co dinh vao `seed.sql`
+`AuthSecurityIntegrationTest` cover:
 
-## 9. Test va bang chung
+- register/login/me flow chay that
+- token sai hoac thieu token bi `401`
+- `STAFF` vao duoc customer API
+- `USER` bi chan khoi customer API
+- `ADMIN` vao duoc summary
 
-`AuthSecurityIntegrationTest` da cover:
+## 10. Cach tom tat khi thuyet trinh
 
-- register
-- login
-- me
-- token thieu/sai => `401`
-- `USER` goi `/api/customers` => `403`
-- `USER` goi `/api/admin/summary` => `403`
-- `ADMIN` goi `/api/admin/summary` => `200`
-
-Ngoai test, stack Docker cung da duoc smoke test ngay `2026-06-18`:
-
-- login bang `admin@securityapp.local`
-- goi `/api/auth/me`
-- goi `/api/admin/summary`
-- login bang `user@securityapp.local`
-- goi `/api/customers` nhan `403`
-
-Stage 7 vi vay da chot xong phan authorization dung nghia, khong chi la doi role tren giao dien.
+> Giai doan 7 cua em khong chi viet role rule, ma hoan thien luon JWT auth de role rule co gia tri that. He thong phan biet ro `401` va `403`, co 3 role `ADMIN`, `STAFF`, `USER`, va chi mo dung nhung route can thiet cho tung nhom nguoi dung.

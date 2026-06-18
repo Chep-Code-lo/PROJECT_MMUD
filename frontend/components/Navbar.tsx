@@ -51,10 +51,6 @@ export default function Navbar() {
           </a>
         )}
 
-        <a href="/tickets" className="hover:text-blue-600">
-          Tickets
-        </a>
-
         {isAdmin && (
           <a href="/audit-logs" className="hover:text-blue-600">
             Audit Logs

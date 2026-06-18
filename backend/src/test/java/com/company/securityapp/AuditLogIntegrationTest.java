@@ -1,8 +1,9 @@
 package com.company.securityapp;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -10,7 +11,6 @@ import com.company.securityapp.entity.Role;
 import com.company.securityapp.entity.User;
 import com.company.securityapp.repository.AuditLogRepository;
 import com.company.securityapp.repository.CustomerRepository;
-import com.company.securityapp.repository.TicketRepository;
 import com.company.securityapp.repository.UserRepository;
 import com.company.securityapp.security.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,9 +43,6 @@ class AuditLogIntegrationTest {
     private CustomerRepository customerRepository;
 
     @Autowired
-    private TicketRepository ticketRepository;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -57,7 +54,6 @@ class AuditLogIntegrationTest {
     @BeforeEach
     void setUp() {
         auditLogRepository.deleteAll();
-        ticketRepository.deleteAll();
         customerRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -110,32 +106,22 @@ class AuditLogIntegrationTest {
 
         long customerId = objectMapper.readTree(customerResponse).get("id").asLong();
 
-        String ticketCreatePayload = objectMapper.writeValueAsString(Map.of(
-                "customerId", customerId,
-                "title", "Audit Ticket",
-                "description", "Track audit event flow",
-                "priority", "MEDIUM",
-                "createdById", 300));
+        String customerUpdatePayload = objectMapper.writeValueAsString(Map.of(
+                "name", "Audit Customer Updated",
+                "email", "audit-customer@example.test",
+                "phone", "0909000222",
+                "address", "Audit Street Updated",
+                "taxCode", "AUDIT-002"));
 
-        String ticketResponse = mockMvc.perform(post("/api/tickets")
+        mockMvc.perform(put("/api/customers/{id}", customerId)
                         .header("Authorization", "Bearer " + staffToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(ticketCreatePayload))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        long ticketId = objectMapper.readTree(ticketResponse).get("id").asLong();
-
-        String statusPayload = objectMapper.writeValueAsString(Map.of(
-                "status", "RESOLVED"));
-
-        mockMvc.perform(patch("/api/tickets/{id}/status", ticketId)
-                        .header("Authorization", "Bearer " + staffToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(statusPayload))
+                        .content(customerUpdatePayload))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/customers/{id}", customerId)
+                        .header("Authorization", "Bearer " + staffToken))
+                .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/audit-logs")
                         .header("Authorization", "Bearer " + adminToken))
@@ -143,8 +129,8 @@ class AuditLogIntegrationTest {
                 .andExpect(jsonPath("$[?(@.action=='LOGIN_SUCCESS')]").exists())
                 .andExpect(jsonPath("$[?(@.action=='LOGIN_FAILED')]").exists())
                 .andExpect(jsonPath("$[?(@.action=='CREATE_CUSTOMER')]").exists())
-                .andExpect(jsonPath("$[?(@.action=='CREATE_TICKET')]").exists())
-                .andExpect(jsonPath("$[?(@.action=='UPDATE_TICKET_STATUS')]").exists());
+                .andExpect(jsonPath("$[?(@.action=='UPDATE_CUSTOMER')]").exists())
+                .andExpect(jsonPath("$[?(@.action=='DELETE_CUSTOMER')]").exists());
     }
 
     private String createTokenForRole(Role role, String email) {

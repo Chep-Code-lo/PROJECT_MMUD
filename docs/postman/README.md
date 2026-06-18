@@ -1,6 +1,6 @@
 # Postman docs
 
-Thu muc nay chua collection va environment de test nhanh auth, customer, ticket, audit log va admin summary.
+Thu muc nay chua collection va environment de test nhanh auth, customer, audit log va admin summary.
 
 ## File chinh
 
@@ -23,7 +23,6 @@ Thu muc nay chua collection va environment de test nhanh auth, customer, ticket,
 - `staffToken`
 - `userToken`
 - `customerId`
-- `ticketId`
 
 ## Thu tu chay de demo nhanh
 
@@ -31,12 +30,14 @@ Thu muc nay chua collection va environment de test nhanh auth, customer, ticket,
 2. `Auth / Get Current User`
 3. `Admin / Summary`
 4. `Customers / Create Customer`
-5. `Customers / List Customers`
-6. `Tickets / Create Ticket`
-7. `Tickets / Update Ticket Status`
-8. `Security Checks / Customers as User (Expect 403)`
-9. `Security Checks / Auth Me without Token (Expect 401)`
-10. `Audit / List Audit Logs`
+5. `Customers / Get Customer By Id`
+6. `Customers / Update Customer`
+7. `Customers / Delete Customer`
+8. `Security Checks / Customers as Staff (Expect 200)`
+9. `Security Checks / Customers as User (Expect 403)`
+10. `Security Checks / Audit Logs as User (Expect 403)`
+11. `Security Checks / Auth Me without Token (Expect 401)`
+12. `Audit / List Audit Logs`
 
 ## Luu y quan trong
 
@@ -45,9 +46,8 @@ Thu muc nay chua collection va environment de test nhanh auth, customer, ticket,
 - `Login as Staff` se luu `staffToken`.
 - `Login as User` se luu `userToken`.
 - Request create customer se tu dong luu `customerId`.
-- Request create ticket se tu dong luu `ticketId`.
-- Body tao customer va ticket da dung Postman dynamic variable `{{$timestamp}}` de giam trung lap khi chay lai nhieu lan.
-- Collection da duoc sap lai de cleanup customer dien ra sau khi ticket da bi xoa.
+- Body tao customer dung Postman dynamic variable `{{$timestamp}}` de giam trung lap khi chay lai nhieu lan.
+- Collection da duoc rut gon de tap trung vao auth, customer CRUD va security checks.
 
 ## Chay bang Newman
 

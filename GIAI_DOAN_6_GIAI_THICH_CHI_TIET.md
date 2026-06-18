@@ -1,209 +1,123 @@
 # Giai doan 6: Giai thich chi tiet code va y tuong
 
-File nay dat o thu muc goc de dung luc nop bai va luc thuyet trinh. Muc tieu la giai thich ro Stage 6 da code gi, vi sao code nhu vay va no lien ket ra sao voi cac stage sau.
+File nay giai thich phan viec da duoc chot sau khi scope du an duoc lam gon lai.
+Trong phien ban hien tai, giai doan 6 tap trung vao viec lam chac REST contract cua `Customer API` va chuan bi du lieu de cac stage bao mat di tiep.
 
-## 1. Muc tieu cua Stage 6
+## 1. Muc tieu cua giai doan 6
 
-Stage 6 cua Ban 2 can hoan thanh `Ticket API` theo dung kieu RESTful:
+Giai doan 6 co 4 muc tieu ky thuat:
 
-- `GET /api/tickets`
-- `POST /api/tickets`
-- `GET /api/tickets/{id}`
-- `PUT /api/tickets/{id}`
-- `PATCH /api/tickets/{id}/status`
-- `DELETE /api/tickets/{id}`
+1. Chot CRUD customer theo dung HTTP method va status code.
+2. Lam sach validation va thong diep loi.
+3. Giup frontend co contract on dinh de goi that.
+4. Dat nen cho authorization, audit log va Swagger/Postman.
 
-Noi ngan gon:
+## 2. Cac file chinh can doc
 
-- Customer la doi tuong du lieu nhay cam cua Stage 5.
-- Ticket la doi tuong nghiep vu de gan voi customer.
-- API ticket phai du don gian de frontend demo, nhung van tach ro create/update/status update.
+- `backend/src/main/java/com/company/securityapp/dto/CustomerRequest.java`
+- `backend/src/main/java/com/company/securityapp/dto/CustomerResponse.java`
+- `backend/src/main/java/com/company/securityapp/service/CustomerService.java`
+- `backend/src/main/java/com/company/securityapp/controller/CustomerController.java`
+- `backend/src/main/java/com/company/securityapp/exception/ApiException.java`
+- `backend/src/main/java/com/company/securityapp/exception/GlobalExceptionHandler.java`
+- `backend/src/test/java/com/company/securityapp/CustomerControllerIntegrationTest.java`
 
-## 2. Cac file chinh da lam
+## 3. Contract REST da duoc chot nhu the nao
 
-### Backend
+API hien tai gom:
 
-- `backend/src/main/java/com/company/securityapp/dto/TicketRequest.java`
-- `backend/src/main/java/com/company/securityapp/dto/TicketResponse.java`
-- `backend/src/main/java/com/company/securityapp/dto/TicketStatusUpdateRequest.java`
-- `backend/src/main/java/com/company/securityapp/service/TicketService.java`
-- `backend/src/main/java/com/company/securityapp/controller/TicketController.java`
-- `backend/src/main/java/com/company/securityapp/entity/Ticket.java`
-- `backend/src/main/java/com/company/securityapp/entity/TicketStatus.java`
-- `backend/src/main/java/com/company/securityapp/entity/TicketPriority.java`
+- `GET /api/customers`
+- `GET /api/customers/{id}`
+- `POST /api/customers`
+- `PUT /api/customers/{id}`
+- `DELETE /api/customers/{id}`
 
-### Phan test va phan frontend lien quan
+Status code duoc quy uoc ro:
 
-- `backend/src/test/java/com/company/securityapp/TicketControllerIntegrationTest.java`
-- `frontend/types/ticket.ts`
-- `frontend/services/ticketService.ts`
-- `frontend/components/TicketTable.tsx`
-- `frontend/app/tickets/new/page.tsx`
+- `200` cho get/update thanh cong
+- `201` cho create
+- `204` cho delete
+- `400` cho validation sai
+- `404` cho customer khong ton tai
+- `409` cho email bi trung
 
-## 3. Y tuong domain model cua Ticket
+Dieu nay rat quan trong cho Swagger, Postman va frontend.
 
-Entity `Ticket` giu cac thong tin sau:
+## 4. Vi sao tach `CustomerRequest` va `CustomerResponse`
 
-- `customer`
-- `title`
-- `description`
-- `status`
-- `priority`
-- `createdById`
-- `assignedToId`
-- `createdAt`
-- `updatedAt`
+Neu dung entity lam request/response truc tiep se co 3 van de:
 
-Y do chinh:
+1. De lo field persistence noi bo.
+2. Kho doi contract neu DB doi.
+3. Frontend phai biet qua nhieu ve cau truc luu tru.
 
-- Ticket luon gan voi `Customer`, nen `customerId` la bat buoc.
-- `status` duoc tach thanh enum de tranh string linh tinh.
-- `priority` cung la enum de UI va backend thong nhat.
-- `createdById` va `assignedToId` duoc giu o muc don gian, khong can xay full workflow phan cong qua phuc tap.
+DTO giup backend giu quyen kiem soat contract API.
 
-## 4. Vi sao can 3 DTO khac nhau
+## 5. Validation duoc dat o dau
 
-### `TicketRequest`
+Validation dat ngay tren `CustomerRequest`.
 
-Dung cho `POST` va `PUT`.
+Ly do:
 
-No chua:
+- request vao sai thi chan som
+- service khong phai check lai nhung loi co hoc
+- Swagger/OpenAPI doc duoc schema ro hon
 
-- `customerId`
-- `title`
-- `description`
-- `priority`
-- `status`
-- `createdById`
-- `assignedToId`
+Nhung logic nghiep vu van dat o service, vi du:
 
-Nghia la client co the gui full payload khi tao hoac sua ticket.
+- chuan hoa email
+- check trung email
+- ma hoa field nhay cam
 
-### `TicketResponse`
+## 6. `CustomerService` giai quyet nghiep vu gi
 
-Dung de tra ve cho client.
+Service nay lam nhung viec chinh:
 
-No tra:
+- tim customer theo id
+- check duplicate email
+- chuan hoa text
+- ma hoa/giai ma field nhay cam
+- ghi business audit action
 
-- `customerId`
-- `customerName`
-- thong tin title, description, status, priority
-- thong tin thoi gian
+No la noi lien ket giua:
 
-Quan trong nhat la response khong tra nhung field nhay cam cua customer. Ticket chi can biet dang gan voi khach hang nao, khong can lo `phone`, `address`, `taxCode`.
+- HTTP layer
+- persistence layer
+- encryption layer
+- audit layer
 
-### `TicketStatusUpdateRequest`
+## 7. Vi sao thong diep loi phai ro rang
 
-Dung rieng cho `PATCH /api/tickets/{id}/status`.
+Mon hoc khong chi cham "co chay hay khong", ma con cham cach API duoc thiet ke.
 
-Payload chi co:
+Vi vay:
 
-```json
-{
-  "status": "PROCESSING"
-}
-```
+- validation sai phai tra body de doc
+- khong ton tai phai tra `404`
+- trung email phai tra `409`
 
-Tach nho nhu vay giup endpoint ro y nghia hon va dung tinh than REST:
+`GlobalExceptionHandler` giup thong nhat format loi cho toan bo backend.
 
-- `PUT` de cap nhat full resource
-- `PATCH` de cap nhat mot phan nho
+## 8. Giai doan 6 dong vai tro gi trong toan he thong
 
-## 5. Luong xu ly trong `TicketService`
+Sau giai doan nay:
 
-`TicketService` la noi giai quyet nghiep vu chinh.
+- frontend co endpoint that de goi
+- authorization co tai nguyen de khoa role
+- audit log co nghiep vu de theo doi
+- Swagger/Postman co endpoint thuc de tai lieu hoa
 
-Luot tao ticket hoat dong nhu sau:
+No la diem chuyen tu "co ma hoa" sang "co API that de demo".
 
-1. Nhan `TicketRequest`.
-2. Tim `Customer` theo `customerId`.
-3. Neu customer khong ton tai thi nem `404`.
-4. Tao `Ticket`.
-5. Map du lieu tu request vao entity qua `applyRequest(...)`.
-6. Neu request khong gui `status` thi mac dinh la `OPEN`.
-7. Save vao database.
+## 9. Test can chung minh
 
-Luot update ticket cung dung lai `applyRequest(...)` de tranh lap logic.
+Khi review giai doan nay, can chung minh duoc:
 
-Luot update status:
+1. Create customer thanh cong.
+2. Validation sai tra `400`.
+3. Du lieu nhay cam trong DB la ciphertext.
+4. Contract response khong lo cot `_encrypted`.
 
-1. Tim ticket theo id.
-2. Lay `oldStatus`.
-3. Gan status moi.
-4. Save.
+## 10. Cach tom tat khi thuyet trinh
 
-Sau Stage 8, service nay duoc noi them vao `AuditLogService` nen moi create/update/delete/status update deu de lai dau vet audit.
-
-## 6. Vi sao `PATCH /status` la quyet dinh dung
-
-Trong he thong ticket, hanh dong xay ra nhieu nhat thuong khong phai sua title hay description, ma la doi:
-
-- `OPEN`
-- `PROCESSING`
-- `RESOLVED`
-
-Neu bat client luon gui full `PUT` chi de doi status thi:
-
-- payload dai hon can thiet
-- de ghi de len field khac
-- frontend phai mang theo nhieu state khong lien quan
-
-Tach 1 endpoint `PATCH /status` lam intent ro rang hon:
-
-- nguoi cham bai nhin vao la hieu ngay luong ticket
-- frontend thao tac nhanh hon
-- test cung gon hon
-
-## 7. Validation va xu ly loi
-
-`TicketRequest` bat buoc:
-
-- `customerId`
-- `title`
-- `description`
-- `priority`
-- `createdById`
-
-`TicketStatusUpdateRequest` bat buoc:
-
-- `status`
-
-Mot so case quan trong:
-
-- `customerId` sai => `404 Customer not found.`
-- body thieu field => `400 Validation failed.`
-- ticket khong ton tai => `404 Ticket not found.`
-
-Nghia la Stage 6 khong chi lam CRUD cho co, ma con de luong loi ro rang de frontend va Postman demo duoc.
-
-## 8. Frontend da phai doi gi de khop backend
-
-Vi Stage 6 la API that, frontend cung phai dong bo contract:
-
-- `ticketService` gui `customerId`
-- update status dung `PATCH`
-- `TicketTable` hien `customerName`
-- form tao ticket yeu cau nhap `customerId`
-
-Noi cach khac, Stage 6 khong chi la backend CRUD, ma con chot ca giao keo giua backend va frontend cho Ticket flow.
-
-## 9. Test va bang chung
-
-`TicketControllerIntegrationTest` da cover:
-
-- tao ticket
-- list ticket
-- lay ticket theo id
-- update full ticket
-- patch status
-- xoa ticket
-- gui `customerId` khong ton tai
-
-Ngoai integration test, stack Docker da duoc smoke test thuc te ngay `2026-06-18`:
-
-- login `ADMIN`
-- tao customer
-- tao ticket
-- patch ticket sang `PROCESSING`
-
-Nghia la Stage 6 da dung duoc ca trong test va trong moi truong compose that.
+> Giai doan 6 cua em la buoc chot Customer API thanh 1 REST API dung nghia: co DTO rieng, validation ro, status code ro, response sach, va nghiep vu duoc don vao service de cac giai doan authorization, audit va frontend co the dung chung.

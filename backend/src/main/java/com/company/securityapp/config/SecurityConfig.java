@@ -74,8 +74,6 @@ public class SecurityConfig {
                         .hasRole("ADMIN")
                         .requestMatchers("/api/customers/**")
                         .hasAnyRole("ADMIN", "STAFF")
-                        .requestMatchers("/api/tickets/**")
-                        .hasAnyRole("ADMIN", "STAFF", "USER")
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

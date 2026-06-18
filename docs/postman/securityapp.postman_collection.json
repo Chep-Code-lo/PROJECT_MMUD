@@ -1,61 +1,13 @@
 {
   "info": {
-    "_postman_id": "bc3b83cb-1c6f-4c4b-a88f-1ec7b8f0f0a1",
+    "_postman_id": "91db2370-3850-4a91-a5ec-6d4b0f260001",
     "name": "Security App API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "openai-codex"
-  },
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{token}}",
-        "type": "string"
-      }
-    ]
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
       "name": "Auth",
       "item": [
-        {
-          "name": "Register User",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Postman User {{$timestamp}}\",\n  \"email\": \"postman.user.{{$timestamp}}@example.test\",\n  \"password\": \"Password@123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
-            }
-          },
-          "response": []
-        },
         {
           "name": "Login as Admin",
           "event": [
@@ -64,52 +16,63 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
                   "var data = pm.response.json();",
-                  "if (data.accessToken) {",
-                  "  pm.environment.set('adminToken', data.accessToken);",
-                  "  pm.environment.set('token', data.accessToken);",
-                  "}",
-                  "if (data.role) {",
-                  "  pm.environment.set('activeRole', data.role);",
-                  "}"
+                  "pm.environment.set(\"token\", data.accessToken);",
+                  "pm.environment.set(\"adminToken\", data.accessToken);",
+                  "pm.test(\"Admin token exists\", function () {",
+                  "  pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty;",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Current user has email\", function () {",
+                  "  pm.expect(data.email).to.eql(pm.environment.get(\"adminEmail\"));",
+                  "});"
+                ]
+              }
             }
-          },
-          "response": []
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
         },
         {
           "name": "Login as Staff",
@@ -119,51 +82,29 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
                   "var data = pm.response.json();",
-                  "if (data.accessToken) {",
-                  "  pm.environment.set('staffToken', data.accessToken);",
-                  "}",
-                  "if (data.role) {",
-                  "  pm.environment.set('staffRole', data.role);",
-                  "}"
+                  "pm.environment.set(\"staffToken\", data.accessToken);"
                 ]
               }
             }
           ],
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"{{staffPassword}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"{{staffPassword}}\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            }
-          },
-          "response": []
+            "url": "{{baseUrl}}/api/auth/login"
+          }
         },
         {
           "name": "Login as User",
@@ -173,70 +114,66 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
                   "var data = pm.response.json();",
-                  "if (data.accessToken) {",
-                  "  pm.environment.set('userToken', data.accessToken);",
-                  "}",
-                  "if (data.role) {",
-                  "  pm.environment.set('userRole', data.role);",
-                  "}"
+                  "pm.environment.set(\"userToken\", data.accessToken);"
                 ]
               }
             }
           ],
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            }
-          },
-          "response": []
-        },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
         {
-          "name": "Get Current User",
+          "name": "Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Summary has expected keys\", function () {",
+                  "  pm.expect(data).to.have.property(\"users\");",
+                  "  pm.expect(data).to.have.property(\"customers\");",
+                  "  pm.expect(data).to.have.property(\"auditLogs\");",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me"
-              ]
-            }
-          },
-          "response": []
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/admin/summary"
+          }
         }
       ]
     },
@@ -245,21 +182,29 @@
       "item": [
         {
           "name": "List Customers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/customers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "customers"
-              ]
-            }
-          },
-          "response": []
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/customers"
+          }
         },
         {
           "name": "Create Customer",
@@ -269,10 +214,15 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
                   "var data = pm.response.json();",
-                  "if (data.id) {",
-                  "  pm.environment.set('customerId', data.id);",
-                  "}"
+                  "pm.environment.set(\"customerId\", data.id);",
+                  "pm.environment.set(\"customerEmail\", data.email);",
+                  "pm.test(\"Customer id exists\", function () {",
+                  "  pm.expect(data.id).to.be.a(\"number\");",
+                  "});"
                 ]
               }
             }
@@ -281,305 +231,150 @@
             "method": "POST",
             "header": [
               {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Customer {{$timestamp}}\",\n  \"email\": \"postman.customer.{{$timestamp}}@example.test\",\n  \"phone\": \"0901234567\",\n  \"address\": \"123 Postman Street\",\n  \"taxCode\": \"POSTMAN-{{$timestamp}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"name\": \"Postman Customer {{$timestamp}}\",\n  \"email\": \"postman.customer.{{$timestamp}}@example.test\",\n  \"phone\": \"0909000111\",\n  \"address\": \"Postman Street {{$timestamp}}\",\n  \"taxCode\": \"POSTMAN-{{$timestamp}}\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/customers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "customers"
-              ]
-            }
-          },
-          "response": []
+            "url": "{{baseUrl}}/api/customers"
+          }
         },
         {
           "name": "Get Customer By Id",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/customers/{{customerId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "customers",
-                "{{customerId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Customer",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Postman Customer\",\n  \"email\": \"updated.postman.customer.{{$timestamp}}@example.test\",\n  \"phone\": \"0908888888\",\n  \"address\": \"456 Updated Street\",\n  \"taxCode\": \"POSTMAN-UPD-{{$timestamp}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/customers/{{customerId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "customers",
-                "{{customerId}}"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Tickets",
-      "item": [
-        {
-          "name": "List Tickets",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/tickets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tickets"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Ticket",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
                   "var data = pm.response.json();",
-                  "if (data.id) {",
-                  "  pm.environment.set('ticketId', data.id);",
-                  "}"
+                  "pm.test(\"Customer id matches environment\", function () {",
+                  "  pm.expect(data.id).to.eql(Number(pm.environment.get(\"customerId\")));",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customerId\": {{customerId}},\n  \"title\": \"Postman Ticket {{$timestamp}}\",\n  \"description\": \"Created from Postman collection\",\n  \"priority\": \"HIGH\",\n  \"createdById\": 1,\n  \"assignedToId\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
+            "url": "{{baseUrl}}/api/customers/{{customerId}}"
+          }
+        },
+        {
+          "name": "Update Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test(\"Customer update keeps the same email\", function () {",
+                  "  pm.expect(data.email).to.eql(pm.environment.get(\"customerEmail\"));",
+                  "});"
+                ]
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/tickets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tickets"
-              ]
             }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Ticket By Id",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/tickets/{{ticketId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tickets",
-                "{{ticketId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Ticket",
+          ],
           "request": {
             "method": "PUT",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customerId\": {{customerId}},\n  \"title\": \"Postman Ticket Updated {{$timestamp}}\",\n  \"description\": \"Updated from Postman collection\",\n  \"priority\": \"MEDIUM\",\n  \"status\": \"PROCESSING\",\n  \"createdById\": 1,\n  \"assignedToId\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/tickets/{{ticketId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tickets",
-                "{{ticketId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Ticket Status",
-          "request": {
-            "method": "PATCH",
-            "header": [
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
               {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"RESOLVED\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"name\": \"Postman Customer Updated\",\n  \"email\": \"{{customerEmail}}\",\n  \"phone\": \"0909000222\",\n  \"address\": \"Updated Address\",\n  \"taxCode\": \"POSTMAN-UPDATED\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/tickets/{{ticketId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tickets",
-                "{{ticketId}}",
-                "status"
-              ]
-            }
-          },
-          "response": []
+            "url": "{{baseUrl}}/api/customers/{{customerId}}"
+          }
         },
         {
-          "name": "Delete Ticket",
+          "name": "Delete Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});",
+                  "pm.environment.unset(\"customerId\");",
+                  "pm.environment.unset(\"customerEmail\");"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/tickets/{{ticketId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tickets",
-                "{{ticketId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Customer Cleanup",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/customers/{{customerId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "customers",
-                "{{customerId}}"
-              ]
-            }
-          },
-          "response": []
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/customers/{{customerId}}"
+          }
         }
       ]
     },
     {
-      "name": "Admin",
+      "name": "Audit",
       "item": [
         {
-          "name": "Summary",
+          "name": "List Audit Logs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Response is an array\", function () {",
+                  "  pm.expect(pm.response.json()).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/summary",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "summary"
-              ]
-            }
-          },
-          "response": []
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/audit-logs"
+          }
         }
       ]
     },
@@ -594,7 +389,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () {",
+                  "pm.test(\"Status code is 200\", function () {",
                   "  pm.response.to.have.status(200);",
                   "});"
                 ]
@@ -602,71 +397,15 @@
             }
           ],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{staffToken}}",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/customers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "customers"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Tickets as User (Expect 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "});"
-                ]
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
               }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{userToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/tickets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tickets"
-              ]
-            }
-          },
-          "response": []
+            ],
+            "url": "{{baseUrl}}/api/customers"
+          }
         },
         {
           "name": "Customers as User (Expect 403)",
@@ -676,7 +415,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 403', function () {",
+                  "pm.test(\"Status code is 403\", function () {",
                   "  pm.response.to.have.status(403);",
                   "});"
                 ]
@@ -684,30 +423,15 @@
             }
           ],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{userToken}}",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/customers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "customers"
-              ]
-            }
-          },
-          "response": []
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/customers"
+          }
         },
         {
           "name": "Audit Logs as User (Expect 403)",
@@ -717,7 +441,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 403', function () {",
+                  "pm.test(\"Status code is 403\", function () {",
                   "  pm.response.to.have.status(403);",
                   "});"
                 ]
@@ -725,30 +449,15 @@
             }
           ],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{userToken}}",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/audit-logs",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "audit-logs"
-              ]
-            }
-          },
-          "response": []
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/audit-logs"
+          }
         },
         {
           "name": "Auth Me without Token (Expect 401)",
@@ -758,7 +467,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 401', function () {",
+                  "pm.test(\"Status code is 401\", function () {",
                   "  pm.response.to.have.status(401);",
                   "});"
                 ]
@@ -766,47 +475,9 @@
             }
           ],
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Audit",
-      "item": [
-        {
-          "name": "List Audit Logs",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/audit-logs",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "audit-logs"
-              ]
-            }
-          },
-          "response": []
+            "url": "{{baseUrl}}/api/auth/me"
+          }
         }
       ]
     }

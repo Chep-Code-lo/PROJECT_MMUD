@@ -1,5 +1,6 @@
 import type { Customer } from "@/types/customer";
 import Button from "./Button";
+import { formatLocalDateTime } from "@/lib/dateTime";
 
 type CustomerTableProps = {
   customers: Customer[];
@@ -29,6 +30,8 @@ export default function CustomerTable({
             <th className="border p-3">Phone</th>
             <th className="border p-3">Address</th>
             <th className="border p-3">Tax Code</th>
+            <th className="border p-3">Created</th>
+            <th className="border p-3">Updated</th>
             <th className="border p-3">Action</th>
           </tr>
         </thead>
@@ -42,6 +45,12 @@ export default function CustomerTable({
               <td className="border p-3">{customer.phone}</td>
               <td className="border p-3">{customer.address}</td>
               <td className="border p-3">{customer.taxCode}</td>
+              <td className="border p-3" title={customer.createdAt ?? ""}>
+                {formatLocalDateTime(customer.createdAt)}
+              </td>
+              <td className="border p-3" title={customer.updatedAt ?? ""}>
+                {formatLocalDateTime(customer.updatedAt)}
+              </td>
               <td className="border p-3">
                 {onDelete && (
                   <Button

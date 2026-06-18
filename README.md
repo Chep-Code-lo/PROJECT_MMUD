@@ -1,26 +1,27 @@
-# Cloud API-Based Network Application Security for Small Company Services
+# Bảo mật ứng dụng mạng dựa trên Cloud API cho dịch vụ công ty nhỏ
 
-Monorepo nay duoc to chuc de demo do an MMUD theo huong `REST API + mat ma ung dung + bao mat API`. Trong nhanh hien tai, trong tam thuc te la:
+Monorepo này được tổ chức để demo đồ án MMUD theo hướng `REST API + mật mã ứng dụng + bảo mật API`.
+Scope hiện tại đã được rút gọn để bám đúng trọng tâm:
 
 - `JWT` cho authentication
 - `bcrypt` cho password hashing
-- `AES-GCM` cho du lieu nhay cam cua customer
+- `AES-GCM` cho dữ liệu nhạy cảm của customer
 - `Role Authorization` cho `ADMIN`, `STAFF`, `USER`
-- `Audit Log` de truy vet hanh dong
-- `Swagger/OpenAPI`, `Postman`, `OWASP ZAP` de ho tro tai lieu va kiem thu
-- `Docker Compose` va ghi chu `HTTPS/TLS` de phuc vu demo/deploy
+- `Audit Log` để truy vết hành động
+- `Swagger/OpenAPI`, `Postman/Newman`, `OWASP ZAP` để tài liệu hóa và kiểm thử
+- `Docker Compose` và ghi chú `HTTPS/TLS` để phục vụ demo/deploy
 
-`spring-boot-starter-oauth2-client` dang co trong `backend/pom.xml` de mo rong neu mon hoc bat buoc cham `OAuth2`, nhung luong demo hien tai su dung `JWT local auth` la chinh.
+`spring-boot-starter-oauth2-client` vẫn có trong `backend/pom.xml` để mở rộng nếu môn học bắt buộc chấm `OAuth2`, nhưng luồng demo hiện tại tập trung vào `JWT local auth`.
 
-## 1. Cau truc repo
+## 1. Cấu trúc repo
 
 - `backend/`: Spring Boot API, Spring Security, JWT, AES, bcrypt, audit log
-- `frontend/`: Next.js UI goi API that
-- `database/`: `schema.sql` va ghi chu seed/reset
-- `docs/api/`: OpenAPI export va huong dan Swagger
-- `docs/postman/`: collection, environment, huong dan Postman/Newman
+- `frontend/`: Next.js UI gọi API thật
+- `database/`: `schema.sql` và ghi chú seed/reset
+- `docs/api/`: OpenAPI export và hướng dẫn Swagger
+- `docs/postman/`: collection, environment, hướng dẫn Postman/Newman
 - `docs/security/`: ZAP plan, report HTML/JSON/XML, security notes
-- `deploy/`: reverse proxy Nginx va ghi chu TLS
+- `deploy/`: reverse proxy Nginx và ghi chú TLS
 
 Main package:
 
@@ -28,7 +29,7 @@ Main package:
 com.company.securityapp
 ```
 
-## 2. Cac luong bao mat dang co
+## 2. Các luồng bảo mật đang có
 
 ### Authentication
 
@@ -36,17 +37,17 @@ com.company.securityapp
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 
-Password khong luu plaintext. He thong hash bang `BCryptPasswordEncoder`.
+Password không lưu plaintext. Hệ thống hash bằng `BCryptPasswordEncoder`.
 
 ### AES Encryption
 
-Customer co 3 truong nhay cam duoc ma hoa bang `AES-GCM` truoc khi luu DB:
+Customer có 3 trường nhạy cảm được mã hóa bằng `AES-GCM` trước khi lưu DB:
 
 - `phone`
 - `address`
 - `taxCode`
 
-Trong database, cac cot luu that la:
+Trong database, các cột lưu thật là:
 
 - `phone_encrypted`
 - `address_encrypted`
@@ -54,30 +55,45 @@ Trong database, cac cot luu that la:
 
 ### Authorization matrix
 
-| Route | Quyen |
+| Route | Quyền |
 |---|---|
 | `/api/auth/register`, `/api/auth/login`, Swagger, health | Public |
-| `/api/auth/me` | Da dang nhap |
+| `/api/auth/me` | Đã đăng nhập |
 | `/api/admin/**` | `ADMIN` |
 | `/api/audit-logs/**` | `ADMIN` |
 | `/api/customers/**` | `ADMIN`, `STAFF` |
-| `/api/tickets/**` | `ADMIN`, `STAFF`, `USER` |
 
 ### Audit log
 
-He thong dang ghi log cho:
+Hệ thống đang ghi log cho:
 
 - login success
 - login failed
-- create/update/delete customer
-- create/update/delete ticket
-- update ticket status
+- create customer
+- update customer
+- delete customer
 
-## 3. Port mac dinh
+### Quy ước thời gian
+
+Hệ thống đang dùng quy ước:
+
+- backend lưu và trả thời gian theo `UTC`
+- frontend audit log hiển thị theo giờ dự án `UTC+7`
+- màn hình audit log tự động refresh mỗi `3` giây để dễ theo dõi gần real-time
+- mỗi dòng audit log có thêm thông tin `x giây/phút/giờ trước`
+
+Lý do:
+
+- `UTC` giúp backend, database và môi trường deploy không bị lệch nhau
+- `UTC+7` giúp màn demo nhìn thẳng ra giờ sự kiện theo múi giờ dự án
+- dòng `x giây/phút/giờ trước` giúp dễ đối chiếu với thời gian thực tế ngay lúc demo
+- vì vậy DB có thể hiển thị `UTC`, còn audit log UI hiển thị `UTC+7`, và đó là chủ đích
+
+## 3. Port mặc định
 
 - `frontend`: `3000`
 - `backend`: `8080`
-- `database`: `3307` tren host, `3306` trong container
+- `database`: `3307` trên host, `3306` trong container
 
 ## 4. Demo accounts
 
@@ -85,9 +101,9 @@ He thong dang ghi log cho:
 - `staff@securityapp.local` / `Password@123`
 - `user@securityapp.local` / `Password@123`
 
-## 5. Cach chay khuyen nghi: Docker Compose
+## 5. Cách chạy khuyến nghị: Docker Compose
 
-Day la cach phu hop nhat de test du an vi no len day du `frontend + backend + MySQL`.
+Đây là cách phù hợp nhất để test dự án vì nó lên đầy đủ `frontend + backend + MySQL`.
 
 ```powershell
 cd E:\PROJECT_MMUD
@@ -95,7 +111,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Neu can doc log:
+Nếu cần đọc log:
 
 ```powershell
 docker compose logs backend
@@ -103,37 +119,38 @@ docker compose logs frontend
 docker compose logs database
 ```
 
-URL sau khi len:
+Nếu trước đây đã chạy phiên bản cũ có module đã bị bỏ, nên reset volume 1 lần để demo sạch:
+
+```powershell
+docker compose down -v
+docker compose up -d --build
+```
+
+URL sau khi lên:
 
 - Frontend: `http://localhost:3000`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 - Health check: `http://localhost:8080/api/health`
 
-Dung he thong:
+Dừng hệ thống:
 
 ```powershell
 docker compose down
 ```
 
-Neu muon xoa ca volume database:
-
-```powershell
-docker compose down -v
-```
-
-## 6. Chay local khong dung Docker
+## 6. Chạy local không dùng Docker
 
 ### Backend
 
-Test nhanh bang profile H2:
+Test nhanh bằng profile H2:
 
 ```powershell
 cd backend
 mvn test
 ```
 
-Chay backend voi MySQL:
+Chạy backend với MySQL:
 
 ```powershell
 cd backend
@@ -141,7 +158,7 @@ mvn clean package -DskipTests
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Can config cac bien sau neu khong dung compose:
+Cần config các biến sau nếu không dùng compose:
 
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
@@ -160,92 +177,89 @@ npm run build
 npm run dev
 ```
 
-Frontend mac dinh goi ve `http://localhost:8080` neu `NEXT_PUBLIC_API_URL` khong duoc set.
+Frontend mặc định gọi về `http://localhost:8080` nếu `NEXT_PUBLIC_API_URL` không được set.
 
-## 7. Kiem thu bang Swagger/OpenAPI
+## 7. Kiểm thử bằng Swagger/OpenAPI
 
-Muc tieu cua Swagger trong bai nay:
+Mục tiêu của Swagger trong bài này:
 
-- tai lieu hoa API
+- tài liệu hóa API
 - test nhanh request/response
-- doi chieu status code va schema that
+- đối chiếu status code và schema thật
 
-### Buoc test
+### Bước test
 
-1. Mo `http://localhost:8080/swagger-ui.html`
-2. Goi `POST /api/auth/login` bang tai khoan `admin`
+1. Mở `http://localhost:8080/swagger-ui.html`
+2. Gọi `POST /api/auth/login` bằng tài khoản `admin`
 3. Copy `accessToken`
-4. Bam `Authorize`
-5. Nhap:
+4. Bấm `Authorize`
+5. Nhập:
 
 ```text
 Bearer <accessToken>
 ```
 
-6. Test cac nhom API:
+6. Test các nhóm API:
 
 - `GET /api/auth/me`
 - `GET /api/customers`
 - `POST /api/customers`
-- `GET /api/tickets`
-- `POST /api/tickets`
-- `PATCH /api/tickets/{id}/status`
+- `PUT /api/customers/{id}`
+- `DELETE /api/customers/{id}`
 - `GET /api/admin/summary`
 - `GET /api/audit-logs`
 
-### Dieu can kiem tra
+### Điều cần kiểm tra
 
-- `register` va `create customer/ticket` tra `201`
-- `delete customer/ticket` tra `204`
-- `me` khong co token thi `401`
-- `user` goi customer API thi `403`
+- `register` và `create customer` trả `201`
+- `delete customer` trả `204`
+- `me` không có token thì `401`
+- `user` gọi customer API thì `403`
 
-OpenAPI export moi nhat nam o:
+OpenAPI export mới nhất nằm ở:
 
 - [docs/api/openapi.json](/E:/PROJECT_MMUD/docs/api/openapi.json)
 - [docs/api/README.md](/E:/PROJECT_MMUD/docs/api/README.md)
 
-## 8. Kiem thu bao mat API bang Postman
+## 8. Kiểm thử bảo mật API bằng Postman
 
-Thu muc lien quan:
+Thư mục liên quan:
 
 - [docs/postman/securityapp.postman_collection.json](/E:/PROJECT_MMUD/docs/postman/securityapp.postman_collection.json)
 - [docs/postman/securityapp.local.postman_environment.json](/E:/PROJECT_MMUD/docs/postman/securityapp.local.postman_environment.json)
 - [docs/postman/README.md](/E:/PROJECT_MMUD/docs/postman/README.md)
 
-### Import va chay trong Postman
+### Import và chạy trong Postman
 
 1. Import collection
 2. Import environment `Security App Local`
-3. Chon environment
-4. Chay collection theo thu tu co san
+3. Chọn environment
+4. Chạy collection theo thứ tự có sẵn
 
-Collection hien tai da duoc sua de:
+Collection hiện tại đã được rút gọn theo scope mới:
 
-- giu `admin token` cho luong CRUD chinh
-- luu rieng `staffToken` va `userToken`
-- chay tron luong customer/ticket khong bi sai thu tu cleanup
-- co folder `Security Checks` de test `401`, `403`, `STAFF=200`, `USER=200`
+- auth
+- admin summary
+- customer CRUD
+- audit log
+- security checks cho `401` và `403`
 
-### Chay tu terminal bang Newman
+### Chạy từ terminal bằng Newman
 
 ```powershell
 npx --yes newman run docs\postman\securityapp.postman_collection.json -e docs\postman\securityapp.local.postman_environment.json --reporters cli
 ```
 
-Collection da duoc verify thanh cong bang Newman ngay `2026-06-18`.
-
-### Cac case bao mat nen test
+### Các case bảo mật nên test
 
 - `Auth Me without Token (Expect 401)`
 - `Customers as Staff (Expect 200)`
-- `Tickets as User (Expect 200)`
 - `Customers as User (Expect 403)`
 - `Audit Logs as User (Expect 403)`
 
-## 9. Kiem thu bao mat bang OWASP ZAP
+## 9. Kiểm thử bảo mật bằng OWASP ZAP
 
-Thu muc lien quan:
+Thư mục liên quan:
 
 - [docs/security/zap.yaml](/E:/PROJECT_MMUD/docs/security/zap.yaml)
 - [docs/security/zap-baseline-report.html](/E:/PROJECT_MMUD/docs/security/zap-baseline-report.html)
@@ -253,101 +267,95 @@ Thu muc lien quan:
 - [docs/security/zap-baseline-report.xml](/E:/PROJECT_MMUD/docs/security/zap-baseline-report.xml)
 - [docs/security/README.md](/E:/PROJECT_MMUD/docs/security/README.md)
 
-### Cach chay lai ZAP baseline
+### Cách chạy lại ZAP baseline
 
-Yeu cau: backend dang chay o `http://localhost:8080`.
+Yêu cầu: backend đang chạy ở `http://localhost:8080`.
 
 ```powershell
 docker run --rm -v "${PWD}\docs\security:/zap/wrk" ghcr.io/zaproxy/zaproxy:stable zap.sh -cmd -autorun /zap/wrk/zap.yaml
 ```
 
-Target baseline hien tai:
+Target baseline hiện tại:
 
 ```text
 http://host.docker.internal:8080/swagger-ui.html
 ```
 
-### Cach hieu
+### Cách hiểu
 
-- ZAP baseline duoc dung cho surface public de spider duoc
-- API co JWT duoc bo sung bang Postman/Newman va integration test
-- Muc tieu la co bang chung quet bao mat, khong phai thay the het test xac thuc/phan quyen
+- ZAP baseline được dùng cho surface public để spider được
+- API có JWT được bổ sung bằng Postman/Newman và integration test
+- mục tiêu là có bằng chứng quét bảo mật, không phải thay thế hết test xác thực/phân quyền
 
-Lan scan moi nhat:
+## 10. Kiểm chứng phần mật mã học trong database
 
-- `PASS`: `59`
-- `WARN`: `2`
-- `FAIL`: `0`
-
-## 10. Kiem chung phan mat ma hoc trong database
-
-### Kiem tra bcrypt hash
-
-Chay:
+### Kiểm tra bcrypt hash
 
 ```powershell
 docker exec securityapp-db mysql -uroot -proot securityapp -e "SELECT id,email,password_hash,role FROM users;"
 ```
 
-Ky vong:
+Kỳ vọng:
 
-- cot `password_hash` bat dau bang dang hash `bcrypt` nhu `$2a$...`
-- khong thay password goc
+- cột `password_hash` bắt đầu bằng dạng hash `bcrypt` như `$2a$...` hoặc `$2b$...`
+- không thấy password gốc
 
-### Kiem tra AES ciphertext
+### Kiểm tra AES ciphertext
 
-Tao it nhat 1 customer roi chay:
+Tạo ít nhất 1 customer rồi chạy:
 
 ```powershell
 docker exec securityapp-db mysql -uroot -proot securityapp -e "SELECT id,name,email,phone_encrypted,address_encrypted,tax_code_encrypted FROM customers;"
 ```
 
-Ky vong:
+Kỳ vọng:
 
-- `email` doc duoc
-- `phone_encrypted`, `address_encrypted`, `tax_code_encrypted` la chuoi ciphertext
-- khong thay plaintext nhu so dien thoai hay dia chi goc
+- `email` đọc được
+- `phone_encrypted`, `address_encrypted`, `tax_code_encrypted` là chuỗi ciphertext
+- không thấy plaintext như số điện thoại hay địa chỉ gốc
 
-### Kiem tra audit log
+### Kiểm tra audit log
 
 ```powershell
 docker exec securityapp-db mysql -uroot -proot securityapp -e "SELECT id,action,actor_email,success,created_at FROM audit_logs ORDER BY id DESC LIMIT 10;"
 ```
 
-Ky vong:
+Kỳ vọng:
 
-- thay `LOGIN_SUCCESS`, `LOGIN_FAILED`, `CREATE_CUSTOMER`, `CREATE_TICKET`, `UPDATE_TICKET_STATUS`
-- khong thay full JWT hoac AES secret trong log
+- thấy `LOGIN_SUCCESS`, `LOGIN_FAILED`, `CREATE_CUSTOMER`, `UPDATE_CUSTOMER`, `DELETE_CUSTOMER`
+- không thấy full JWT hoặc AES secret trong log
 
-## 11. Kiem tra nhanh bang giao dien
+## 11. Kiểm tra nhanh bằng giao diện
 
-Mo `http://localhost:3000/login` va test:
+Mở `http://localhost:3000/login` và test:
 
-1. Dang nhap `admin`
-2. Vao `Customers`, tao customer moi
-3. Vao `Tickets`, tao ticket moi va doi status
-4. Vao `Audit Logs`, xem cac action vua phat sinh
-5. Dang xuat
-6. Dang nhap `user`
-7. Thu vao route customer va xac nhan bi chan `403`
+1. Đăng nhập `admin`
+2. Vào `Customers`, tạo customer mới
+3. Sửa hoặc xóa customer để sinh thêm audit log
+4. Vào `Audit Logs`, xem các action vừa phát sinh
+5. Đăng xuất
+6. Đăng nhập `user`
+7. Thử vào route customer và xác nhận bị chặn `403`
 
-## 12. Tai lieu quan trong
+## 12. Tài liệu quan trọng
 
+- [CHECKLIST_TEST.md](/E:/PROJECT_MMUD/CHECKLIST_TEST.md)
+- [CHECKLIST_TEST_CHI_TIET_GIAI_THICH.md](/E:/PROJECT_MMUD/CHECKLIST_TEST_CHI_TIET_GIAI_THICH.md)
 - [docs/api/README.md](/E:/PROJECT_MMUD/docs/api/README.md)
 - [docs/postman/README.md](/E:/PROJECT_MMUD/docs/postman/README.md)
 - [docs/security/README.md](/E:/PROJECT_MMUD/docs/security/README.md)
 - [deploy/nginx/securityapp.conf](/E:/PROJECT_MMUD/deploy/nginx/securityapp.conf)
 - [deploy/ssl/README.md](/E:/PROJECT_MMUD/deploy/ssl/README.md)
 
-## 13. Ghi chu deploy va TLS
+## 13. Ghi chú deploy và TLS
 
-Repo da co:
+Repo đã có:
 
 - reverse proxy Nginx trong `deploy/nginx/securityapp.conf`
-- ghi chu TLS trong `deploy/ssl/README.md`
+- ghi chú TLS trong `deploy/ssl/README.md`
 
-Khi deploy that:
+Khi deploy thật:
 
-- khong nen public backend thuan HTTP ra internet
-- nen terminate TLS o reverse proxy
-- backend va frontend nen dat sau Nginx/HTTPS
+- không nên public backend thuần HTTP ra internet
+- nên terminate TLS ở reverse proxy
+- backend và frontend nên đặt sau Nginx/HTTPS

@@ -25,24 +25,6 @@ CREATE TABLE IF NOT EXISTS customers (
     CONSTRAINT uk_customers_email UNIQUE (email)
 );
 
-CREATE TABLE IF NOT EXISTS tickets (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    customer_id BIGINT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description VARCHAR(2000) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
-    priority VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
-    created_by_id BIGINT NOT NULL,
-    assigned_to_id BIGINT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT pk_tickets PRIMARY KEY (id),
-    CONSTRAINT fk_tickets_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
-);
-
-CREATE INDEX idx_tickets_customer_id ON tickets(customer_id);
-CREATE INDEX idx_tickets_status ON tickets(status);
-
 CREATE TABLE IF NOT EXISTS audit_logs (
     id BIGINT NOT NULL AUTO_INCREMENT,
     action VARCHAR(100) NOT NULL,

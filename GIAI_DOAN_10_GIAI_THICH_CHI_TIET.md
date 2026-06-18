@@ -2,7 +2,7 @@
 
 Stage 10 la buoc chot he thong de co the demo tron ven: co Swagger, co Postman, co ZAP, co Docker Compose va co huong dan TLS/deploy that.
 
-## 1. Muc tieu cua Stage 10
+## 1. Muc tieu cua stage 10
 
 - Swagger/OpenAPI phai khop code that
 - Co Postman collection va environment
@@ -35,138 +35,71 @@ Backend mo cong khai:
 - `http://localhost:8080/swagger-ui.html`
 - `http://localhost:8080/v3/api-docs`
 
-`docs/api/openapi.json` da duoc regenerate lai ngay `2026-06-18` tu backend dang chay de sua stale server URL tu `8084` ve dung `8080`.
+Swagger duoc giu public de:
 
-Dieu nay quan trong vi:
+- de demo nhanh
+- de test request/response
+- de doi chieu schema voi Postman
 
-- Postman import khong bi lech port
-- Tai lieu nop bai khop code that
-- ZAP va demo thu cong khong bi nham endpoint
+`openapi.json` la ban export tu backend dang chay, dung de nop kem bai va doi chieu contract.
 
 ## 4. Postman collection duoc thiet ke theo huong nao
 
 Collection duoc chia de demo nhanh cac luong:
 
 - auth
+- admin summary
 - customers
-- tickets
 - audit
-- admin
+- security checks
 
 Request login se tu dong luu `token`.
 Request tao customer se luu `customerId`.
-Request tao ticket se luu `ticketId`.
 
 Nghia la nguoi demo co the chay lien mach ma khong phai copy tay ID qua lai nhieu lan.
 
 ## 5. OWASP ZAP da duoc xu ly ra sao
 
-`docs/security/zap.yaml` da duoc cap nhat lai dung target hien tai:
+`docs/security/zap.yaml` duoc dat target:
 
 ```text
 http://host.docker.internal:8080/swagger-ui.html
 ```
 
-Lan scan moi nhat ngay `2026-06-18` cho ket qua:
+Ly do:
 
-- `PASS`: `59`
-- `WARN`: `2`
-- `FAIL`: `0`
+- Swagger UI la surface public
+- baseline spider truy cap duoc
+- authenticated API da duoc cover bo sung bang Postman/Newman va integration test
 
-Hai warning hien tai:
+## 6. Docker Compose va deploy note dong vai tro gi
 
-- `Content Security Policy (CSP) Header Not Set [10038]`
-- `Modern Web Application [10109]`
+`docker-compose.yml` giup bat:
 
-Quan trong:
+- frontend
+- backend
+- MySQL
 
-- khong co `FAIL-NEW`
-- artifact HTML/JSON/XML da luu lai day du trong `docs/security/`
+Day la cach demo nhanh nhat va on dinh nhat.
 
-## 6. Docker Compose da duoc chot the nao
+`deploy/nginx/securityapp.conf` va `deploy/ssl/README.md` duoc giu de giai thich huong deploy an toan:
 
-Stack gom 3 service:
+- backend khong nen public HTTP truc tiep
+- nen dat sau reverse proxy
+- TLS nen terminate o Nginx
 
-- `database`: `mysql:8.4`
-- `backend`: Spring Boot app
-- `frontend`: Next.js app
+## 7. Tai sao stage 10 quan trong voi mon hoc
 
-Port expose:
+Mon hoc khong chi cham code chay.
+No con cham:
 
-- `3000 -> frontend`
-- `8080 -> backend`
-- `3307 -> 3306` cua MySQL
+- API co tai lieu hay khong
+- co bang chung test hay khong
+- co security scan hay khong
+- co cach deploy an toan hay khong
 
-### Loi quan trong da sua
+Stage 10 la noi dong goi cac bang chung do.
 
-Ban compose cu dung:
+## 8. Cach tom tat khi thuyet trinh
 
-```text
---default-authentication-plugin=mysql_native_password
-```
-
-Nhung `mysql:8.4` khong con chap nhan option nay.
-
-Ket qua la database fail ngay luc start.
-
-Ban compose hien tai da bo option loi thoi do, sau do stack boot lai thanh cong.
-
-## 7. Dockerfile backend va frontend
-
-### Backend
-
-- multi-stage build voi Maven 17
-- stage runtime dung `eclipse-temurin:17-jre`
-
-### Frontend
-
-- install dependency
-- build Next.js
-- copy `.next`, `public`, `node_modules` vao runner image
-
-No du de chay demo local bang compose ma khong can cai dat tay tren may khac.
-
-## 8. Reverse proxy va TLS
-
-Stage 10 khong chi dung o local. Repo con de san:
-
-- `deploy/nginx/securityapp.conf`
-- `deploy/ssl/README.md`
-
-Y tuong deploy that:
-
-- frontend/backend dat sau reverse proxy
-- TLS terminate tai Nginx
-- backend khong public thuan HTTP ra internet
-
-Day la cach noi ket yeu cau mon hoc ve HTTPS/TLS voi stack hien tai.
-
-## 9. Kiem tra thuc te da chay
-
-Ngay `2026-06-18`, stack da duoc verify lai bang:
-
-```bash
-docker compose up -d --build
-docker compose ps
-docker compose logs backend
-docker compose logs frontend
-docker compose logs database
-```
-
-Ket qua:
-
-- database `healthy`
-- backend `Up`
-- frontend `Up`
-
-Smoke test API tren stack Docker cung da chay:
-
-- login admin thanh cong
-- goi `/api/auth/me`
-- goi `/api/admin/summary`
-- tao customer
-- tao ticket
-- patch ticket sang `PROCESSING`
-- login user va goi `/api/customers` nhan `403`
-
-No chung minh Stage 10 khong chi la viet tai lieu, ma da verify duoc deployment flow that.
+> Stage 10 cua em la buoc dong goi he thong de nop va demo: em co Swagger/OpenAPI de tai lieu hoa API, Postman/Newman de kiem thu role va auth, ZAP de quet surface public, Docker Compose de chay tron bo, va Nginx/TLS note de trinh bay huong deploy an toan.

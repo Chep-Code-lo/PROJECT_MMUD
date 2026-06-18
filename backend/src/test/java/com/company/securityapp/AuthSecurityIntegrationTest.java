@@ -9,7 +9,6 @@ import com.company.securityapp.entity.Customer;
 import com.company.securityapp.entity.Role;
 import com.company.securityapp.entity.User;
 import com.company.securityapp.repository.CustomerRepository;
-import com.company.securityapp.repository.TicketRepository;
 import com.company.securityapp.repository.UserRepository;
 import com.company.securityapp.security.JwtService;
 import com.company.securityapp.service.EncryptionService;
@@ -43,9 +42,6 @@ class AuthSecurityIntegrationTest {
     private CustomerRepository customerRepository;
 
     @Autowired
-    private TicketRepository ticketRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -56,7 +52,6 @@ class AuthSecurityIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        ticketRepository.deleteAll();
         customerRepository.deleteAll();
         userRepository.deleteAll();
     }

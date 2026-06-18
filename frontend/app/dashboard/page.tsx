@@ -45,6 +45,14 @@ export default function DashboardPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border p-6 rounded-xl bg-white shadow">
+              <h2 className="text-xl font-semibold mb-2">Security Scope</h2>
+              <p>
+                Dashboard nay tap trung vao JWT, bcrypt, AES-GCM cho customer
+                data va audit log de phuc vu huong mat ma ung dung.
+              </p>
+            </div>
+
             {(currentUser?.role === "ADMIN" || currentUser?.role === "STAFF") && (
               <a href="/customers" className="border p-6 rounded-xl bg-white shadow">
                 <h2 className="text-xl font-semibold mb-2">Customers</h2>
@@ -52,15 +60,10 @@ export default function DashboardPage() {
               </a>
             )}
 
-            <a href="/tickets" className="border p-6 rounded-xl bg-white shadow">
-              <h2 className="text-xl font-semibold mb-2">Tickets</h2>
-              <p>Tạo và xử lý ticket hỗ trợ với phân quyền truy cập.</p>
-            </a>
-
             {currentUser?.role === "ADMIN" && (
               <a href="/audit-logs" className="border p-6 rounded-xl bg-white shadow">
                 <h2 className="text-xl font-semibold mb-2">Audit Logs</h2>
-                <p>Xem lịch sử login, customer action và ticket action để demo bảo mật.</p>
+                <p>Xem lịch sử login va customer action de demo truy vet bao mat.</p>
               </a>
             )}
           </div>

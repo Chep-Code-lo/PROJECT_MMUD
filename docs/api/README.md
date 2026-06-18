@@ -17,8 +17,6 @@ Thu muc nay chua tai lieu OpenAPI/Swagger cua backend that.
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 - `GET/POST/PUT/DELETE /api/customers`
-- `GET/POST/PUT/DELETE /api/tickets`
-- `PATCH /api/tickets/{id}/status`
 - `GET /api/audit-logs`
 - `GET /api/admin/summary`
 - `GET /api/health`
@@ -29,7 +27,6 @@ Thu muc nay chua tai lieu OpenAPI/Swagger cua backend that.
 - Authenticated: `GET /api/auth/me`
 - `ADMIN`: `/api/admin/**`, `/api/audit-logs/**`
 - `ADMIN`, `STAFF`: `/api/customers/**`
-- `ADMIN`, `STAFF`, `USER`: `/api/tickets/**`
 
 ## Demo accounts
 
@@ -45,12 +42,12 @@ Chay backend, sau do export lai file:
 Invoke-WebRequest -Uri "http://localhost:8080/v3/api-docs" -OutFile "docs/api/openapi.json"
 ```
 
-File `openapi.json` da duoc regenerate lai theo stack hien tai ngay `2026-06-18` de server URL dung la `http://localhost:8080`.
+OpenAPI hien tai can phan anh dung cac status code chinh cua runtime nhu:
 
-OpenAPI hien tai da phan anh dung cac status code chinh cua runtime nhu:
-
-- `201` cho `register`, `create customer`, `create ticket`
-- `204` cho `delete customer`, `delete ticket`
+- `201` cho `register`, `create customer`
+- `204` cho `delete customer`
+- `401` cho request khong co token vao endpoint can auth
+- `403` cho role khong du quyen vao `/api/customers` hoac `/api/audit-logs`
 
 Luu y:
 

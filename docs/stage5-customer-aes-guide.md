@@ -1,272 +1,96 @@
-# Giai doan 5: Customer API + AES Guide
+# Stage 5 Customer AES Guide
 
-## 1. Muc tieu cua phan nay
+Tai lieu nay viet ky thuat hon file o thu muc goc.
+Muc tieu la giai thich ro vi sao customer la tam diem cua huong mat ma ung dung.
 
-Giai doan 5 co 4 muc tieu chinh:
+## 1. Trong tam cua stage
 
-1. Tao domain model backend cho `Customer`, `Ticket`, `AuditLog`.
-2. Hoan thien CRUD API cho `Customer`.
-3. Ma hoa truong nhay cam bang AES truoc khi luu DB.
-4. Dat san nen cho Giai doan 6-8 de lam ticket, authorization va audit log.
+Stage 5 khong phai chi la CRUD thong thuong.
+No phai chung minh 3 y:
 
-Phan nay chi giai quyet Customer API hoan chinh. `Ticket` va `AuditLog` duoc tao entity/repository/schema truoc de nhung giai doan sau co the di tiep ngay.
+1. API van dung duoc nhu he thong binh thuong.
+2. Du lieu nhay cam khong bi luu plaintext trong DB.
+3. Contract giua frontend va backend van giu de doc, de test.
 
-## 2. Cac file da dung/chinh
+## 2. Cac file can doc truoc
 
 - `database/schema.sql`
-- `database/seed.sql`
 - `backend/src/main/java/com/company/securityapp/entity/Customer.java`
-- `backend/src/main/java/com/company/securityapp/entity/Ticket.java`
-- `backend/src/main/java/com/company/securityapp/entity/AuditLog.java`
-- `backend/src/main/java/com/company/securityapp/entity/TicketStatus.java`
-- `backend/src/main/java/com/company/securityapp/entity/TicketPriority.java`
-- `backend/src/main/java/com/company/securityapp/repository/CustomerRepository.java`
-- `backend/src/main/java/com/company/securityapp/repository/TicketRepository.java`
-- `backend/src/main/java/com/company/securityapp/repository/AuditLogRepository.java`
 - `backend/src/main/java/com/company/securityapp/service/EncryptionService.java`
 - `backend/src/main/java/com/company/securityapp/service/CustomerService.java`
 - `backend/src/main/java/com/company/securityapp/controller/CustomerController.java`
-- `backend/src/main/java/com/company/securityapp/dto/CustomerRequest.java`
-- `backend/src/main/java/com/company/securityapp/dto/CustomerResponse.java`
-- `backend/src/main/java/com/company/securityapp/exception/ApiException.java`
-- `backend/src/main/java/com/company/securityapp/exception/GlobalExceptionHandler.java`
 - `backend/src/test/java/com/company/securityapp/CustomerControllerIntegrationTest.java`
 
-## 3. Luong xu ly request
+## 3. Vi sao chi ma hoa mot so field
 
-Luong xu ly cua `POST /api/customers`:
+Khong phai field nao cung nen ma hoa.
 
-1. Client gui JSON plaintext.
-2. `CustomerController` nhan request va bat validation bang `@Valid`.
-3. `CustomerService` chuan hoa du lieu, kiem tra email trung.
-4. `EncryptionService` ma hoa `phone`, `address`, `taxCode`.
-5. `CustomerRepository` luu entity vao DB.
-6. `CustomerService` doc entity vua luu, giai ma lai cac field nhay cam.
-7. API tra `CustomerResponse` plaintext cho frontend.
+Trong du an nay:
 
-Y nghia cua cach lam nay:
+- `email` duoc giu plaintext de login, check unique va tim kiem.
+- `phone`, `address`, `taxCode` la field nhay cam nen duoc ma hoa.
 
-- DB chi giu ciphertext.
-- API khong tra raw ciphertext ra ngoai.
-- Frontend van nhin thay du lieu goc nhu binh thuong.
+Neu ma hoa ca `email`, bai toan query va unique se phuc tap hon rat nhieu.
+Vi vay cach chon field nay la can bang giua bao mat va kha nang van hanh.
 
-## 4. Vi sao dung DTO ma khong tra entity truc tiep
+## 4. Luong ghi du lieu
 
-Khong nen tra entity JPA truc tiep vi:
+Khi frontend goi `POST /api/customers`:
 
-- Entity co field encrypted noi bo.
-- Ve sau de bi lo them field khong muon expose.
-- DTO giup tach ro "du lieu luu trong DB" va "du lieu tra cho client".
+1. Payload vao `CustomerRequest`.
+2. `CustomerService` trim text va chuan hoa email.
+3. `EncryptionService` ma hoa 3 field nhay cam.
+4. Entity duoc luu vao bang `customers`.
+5. Service doc lai entity va giai ma de map ra `CustomerResponse`.
 
-Trong code:
+Ket qua:
 
-- `CustomerRequest`: du lieu dau vao.
-- `CustomerResponse`: du lieu dau ra da giai ma.
+- frontend thay du lieu dung
+- DB chi thay ciphertext
 
-## 5. Vi sao chi ma hoa 3 field nay
+## 5. Ly do chon AES-GCM
 
-Spec yeu cau ma hoa:
+`AES-GCM` phu hop cho application data vi:
 
-- `phone`
-- `address`
-- `taxCode`
+- nhanh
+- pho bien
+- co xac thuc toan ven
+- tranh duoc tinh huong du lieu bi sua ma khong biet
 
-`email` duoc giu plaintext vi day la field hay dung de:
+Trong bai nay, no phu hop hon viec tu ghep AES-CBC voi MAC rieng.
 
-- unique constraint
-- tim kiem/kiem tra trung lap
-- auth flow hoac lien he khach hang
+## 6. Diem can nhan manh khi nop bai
 
-Neu muon ma hoa ca `email`, can them chien luoc khac nhu hash de lookup. Phan nay chua can, nen giai phap hien tai la don gian va phu hop demo.
+- Ma hoa duoc thuc hien o backend, khong day secret ra frontend.
+- Key duoc lay tu config/env, khong hardcode trong code nghiep vu.
+- Test integration da chung minh DB khong luu ban ro.
+- API van co status code va response de frontend demo binh thuong.
 
-## 6. EncryptionService dang lam gi
+## 7. Kiem tra nhanh trong DB
 
-`EncryptionService` khong luu secret cung trong code. No doc tu:
+Sau khi tao 1 customer, chay:
 
-```properties
-app.aes.secret
+```powershell
+docker exec securityapp-db mysql -uroot -proot securityapp -e "SELECT id,name,email,phone_encrypted,address_encrypted,tax_code_encrypted FROM customers;"
 ```
 
-Ben trong service:
+Can thay:
 
-1. Secret text duoc bam `SHA-256` de tao khoa AES 32-byte on dinh.
-2. Moi lan encrypt se tao IV ngau nhien 12 byte.
-3. Dung `AES/GCM/NoPadding` de vua ma hoa vua kiem tra toan ven.
-4. Ghep `IV + ciphertext`, sau do Base64 de de luu vao SQL.
+- `email` van doc duoc
+- 3 cot `_encrypted` la chuoi ma hoa
+- khong thay lai ban ro cua so dien thoai, dia chi, ma so thue
 
-Tai sao chon `AES/GCM`:
+## 8. Loi ich kien truc
 
-- Manh hon AES/CBC khi demo he thong API hien dai.
-- Co authentication tag, tranh bi sua ciphertext ma khong biet.
-- Java 17 ho tro rat tot.
+Stage 5 dat ra 1 khuon ro rang:
 
-## 7. Domain model duoc chot ra sao
+- controller lo HTTP
+- service lo nghiep vu va ma hoa
+- repository lo DB
+- DTO lo contract
 
-### Customer
+Khuon nay giup cac giai doan sau tiep tuc duoc ma khong lam roi code.
 
-Field chinh:
+## 9. Cach tom tat 30 giay
 
-- `id`
-- `name`
-- `email`
-- `phoneEncrypted`
-- `addressEncrypted`
-- `taxCodeEncrypted`
-- `createdAt`
-- `updatedAt`
-
-Luu y:
-
-- Ten field trong Java noi ro day la encrypted field.
-- DB dung ten cot `*_encrypted` de tranh hieu lam.
-
-### Ticket
-
-Da tao san cac thanh phan cho giai doan sau:
-
-- lien ket `customer`
-- `title`
-- `description`
-- `status`
-- `priority`
-- `createdById`
-- `assignedToId`
-
-Y tuong o day la de Giai doan 6 chi can them service/controller/DTO, khong phai quay lai ve domain model nua.
-
-### AuditLog
-
-Da tao san:
-
-- `action`
-- `entityType`
-- `entityId`
-- `actorUserId`
-- `actorEmail`
-- `success`
-- `details`
-- `createdAt`
-
-Giai doan 8 co the dung thang model nay de log:
-
-- login success / failed
-- create/update/delete customer
-- create/update/delete ticket
-
-## 8. Validation va xu ly loi
-
-`CustomerRequest` dung validation annotation:
-
-- `@NotBlank`
-- `@Email`
-- `@Size`
-
-`GlobalExceptionHandler` duoc them de:
-
-- tra loi validation gon gang
-- tra `404` khi customer khong ton tai
-- tra `409` khi email bi trung
-- khong dua stacktrace ky thuat ra client
-
-Mau loi se co dang gan nhu:
-
-```json
-{
-  "timestamp": "...",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Validation failed.",
-  "path": "/api/customers",
-  "details": {
-    "email": "Email format is invalid."
-  }
-}
-```
-
-## 9. Tai sao `seed.sql` gan nhu de trong
-
-Day la chu y quan trong:
-
-- ciphertext phu thuoc `APP_AES_SECRET`
-- moi lan encrypt dung IV ngau nhien
-
-Neu minh hardcode customer seed trong SQL, du lieu do chi giai ma dung khi secret giong het secret luc tao seed. Vi vay, cach an toan hon la:
-
-1. boot backend
-2. goi `POST /api/customers`
-3. de backend tu sinh ciphertext dung voi khoa dang chay
-
-Noi ngan gon: customer nhay cam nen seed bang API se dung hon seed bang SQL.
-
-## 10. Test can lam
-
-### Test API
-
-Tao customer:
-
-```http
-POST /api/customers
-Content-Type: application/json
-
-{
-  "name": "ACME Ltd",
-  "email": "info@acme.test",
-  "phone": "0909000999",
-  "address": "123 Demo Street",
-  "taxCode": "TAX-001"
-}
-```
-
-Lay danh sach:
-
-```http
-GET /api/customers
-```
-
-Cap nhat:
-
-```http
-PUT /api/customers/1
-```
-
-Xoa:
-
-```http
-DELETE /api/customers/1
-```
-
-### Test DB
-
-Sau khi tao customer, check SQL:
-
-```sql
-SELECT id, email, phone_encrypted, address_encrypted, tax_code_encrypted
-FROM customers;
-```
-
-Ban phai thay:
-
-- `email` doc duoc
-- 3 cot con lai la chuoi Base64 da ma hoa
-- khong co plaintext phone/address/tax code trong DB
-
-## 11. Test tu dong da them
-
-`CustomerControllerIntegrationTest` cover 2 y chinh:
-
-1. Tao customer thanh cong va DB luu ciphertext.
-2. Gui request sai validation se bi `400`.
-
-Test nay rat hop voi Giai doan 5 vi no kiem tra dung thu backend can demo: API + AES.
-
-## 12. Trade-off va ghi chu cho nhom
-
-- Hien tai `SecurityConfig` van cho phep tat ca request vi Stage 4 auth trong repo chua hoan thien. Stage 7 se khoa route lai theo role.
-- Email dang de plaintext de phuc vu unique va lookup. Neu mon hoc bat buoc ma hoa them email, can bo sung hash/index chien luoc.
-- `Ticket` va `AuditLog` moi chi dung o muc schema/domain. CRUD cua ticket va API audit log se lam o Giai doan 6 va 8.
-
-## 13. Neu ban can thuyet trinh nhanh
-
-Co the noi ngan gon nhu sau:
-
-> Em tach Customer API thanh controller-service-repository, ma hoa 3 field nhay cam bang AES/GCM truoc khi luu, chi tra plaintext da giai ma ra DTO, va chuan bi san domain model Ticket/AuditLog de nhom di tiep sang authorization va audit log.
+> Stage 5 cua em khong chi CRUD customer, ma la xay dung 1 luong luu tru an toan: frontend gui plaintext, backend ma hoa bang AES-GCM truoc khi persist, database chi luu ciphertext, va API chi tra du lieu da giai ma cho client.

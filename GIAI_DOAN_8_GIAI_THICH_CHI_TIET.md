@@ -1,13 +1,13 @@
 # Giai doan 8: Giai thich chi tiet code va y tuong
 
-Stage 8 cua Ban 2 khong chi la them bang `audit_logs`, ma la buoc chuyen backend tu CRUD app thanh mot he thong co the demo duoc tinh bao mat va truy vet hanh dong.
+Stage 8 la buoc bien backend tu mot CRUD app thanh he thong co the demo duoc tinh truy vet va bao mat van hanh.
 
-## 1. Muc tieu cua Stage 8
+## 1. Muc tieu cua giai doan 8
 
 - Ghi audit log cho auth va business action
 - Them API `GET /api/audit-logs`
 - Lam sach response loi
-- Ra soat lai backend theo huong OWASP API Security Top 10 co ban
+- Ra soat backend theo huong OWASP API Security co ban
 
 ## 2. Cac file chinh da lam
 
@@ -23,7 +23,6 @@ Ngoai ra, cac service nghiep vu cung duoc noi vao audit:
 
 - `AuthService`
 - `CustomerService`
-- `TicketService`
 
 ## 3. Cac action dang duoc log
 
@@ -32,10 +31,6 @@ Ngoai ra, cac service nghiep vu cung duoc noi vao audit:
 - `CREATE_CUSTOMER`
 - `UPDATE_CUSTOMER`
 - `DELETE_CUSTOMER`
-- `CREATE_TICKET`
-- `UPDATE_TICKET`
-- `UPDATE_TICKET_STATUS`
-- `DELETE_TICKET`
 
 Moi log co the luu:
 
@@ -48,7 +43,7 @@ Moi log co the luu:
 - `details`
 - `createdAt`
 
-## 4. Vi sao `AuditLogService` la trung tam cua Stage 8
+## 4. Vi sao `AuditLogService` la trung tam cua stage
 
 Tat ca audit logic duoc don vao 1 service rieng thay vi viet tan man o tung controller.
 
@@ -57,7 +52,7 @@ Loi ich:
 - de doi format log
 - de tim bug
 - service nghiep vu chi can goi 1 ham ro nghia
-- frontend va admin chi doc 1 API duy nhat `/api/audit-logs`
+- admin chi doc 1 API duy nhat `/api/audit-logs`
 
 ## 5. Diem ky thuat quan trong nhat: `REQUIRES_NEW`
 
@@ -78,93 +73,44 @@ Neu khong co `REQUIRES_NEW`, tinh huong login sai se co van de:
 3. log `LOGIN_FAILED` bi rollback theo
 4. ket qua la he thong khong de lai dau vet login fail
 
-Dung `REQUIRES_NEW` se mo transaction rieng cho audit log, nen du request chinh fail thi audit van duoc commit.
+`REQUIRES_NEW` tach giao dich ghi log ra rieng, nen log van duoc commit du transaction chinh fail.
 
-## 6. Lay actor tu dau
+## 6. `AuditLogController` duoc mo cho ai
 
-Voi business action, `AuditLogService` doc `SecurityContextHolder`.
+Route:
 
-Neu principal la `User` thi log duoc:
+- `GET /api/audit-logs`
 
-- `actorUserId`
-- `actorEmail`
-
-Neu chua dang nhap hoac la anonymous thi bo trong.
-
-Voi login success/failed, actor duoc ghi truc tiep tu `AuthService` vi luc do request dang o giai doan xac thuc.
-
-## 7. Hardening backend da lam gi
-
-### Khong lo password hash
-
-- `User.passwordHash` co `@JsonIgnore`
-- `AuthResponse` va `UserResponse` chi tra thong tin can thiet
-
-### Khong lo AES secret
-
-- key AES chi doc tu config
-- khong co endpoint nao tra secret
-- khong log secret ra audit
-
-### Khong log full token
-
-- audit login chi ghi email va ket qua thanh cong hay that bai
-- khong nhat token vao `details`
-
-### Khong tra stacktrace ky thuat
-
-`GlobalExceptionHandler` tra body JSON gon:
-
-- `timestamp`
-- `status`
-- `error`
-- `message`
-- `path`
-- `details` neu la validation
-
-Client se khong nhin thay stacktrace Java thuan.
-
-### Validation va malformed request
-
-Da cover:
-
-- `MethodArgumentNotValidException`
-- `ConstraintViolationException`
-- `HttpMessageNotReadableException`
-- `DataIntegrityViolationException`
-- `ApiException`
-- `Exception` tong
-
-No giup API dung on dinh hon va de quet ZAP/Swagger hon.
-
-## 8. Authorization cua audit log
-
-`/api/audit-logs/**` duoc khoa chi cho `ADMIN`.
+Chi `ADMIN` duoc xem.
 
 Ly do:
 
-- audit log chua thong tin nhay cam ve hanh vi he thong
-- khong nen de `USER` doc lich su login that bai cua nguoi khac
-- hop ly khi demo role authorization va phan quyen quan tri
+- audit log co the chua thong tin nhay cam ve van hanh
+- khong nen de role thuong doc tu do
+- dung de demo phan quyen ro rang trong Swagger/Postman/UI
 
-## 9. Test va bang chung
+## 7. Gia tri bao mat cua giai doan 8
 
-`AuditLogIntegrationTest` da cover:
+Stage nay giup he thong co bang chung cho:
 
-- login dung sinh `LOGIN_SUCCESS`
-- login sai sinh `LOGIN_FAILED`
-- tao customer sinh `CREATE_CUSTOMER`
-- tao ticket sinh `CREATE_TICKET`
-- patch status sinh `UPDATE_TICKET_STATUS`
-- admin doc `/api/audit-logs` duoc
+- ai da login thanh cong
+- ai da login that bai
+- ai da tao/sua/xoa customer
+- hanh dong xay ra luc nao
 
-Trong smoke test Docker ngay `2026-06-18`, sau khi:
+Day la phan giup de tai co tinh "security operations" thay vi chi dung ma hoa du lieu.
 
-- login admin
-- tao customer
-- tao ticket
-- cap nhat status
+## 8. Test cua giai doan 8 chung minh dieu gi
 
-API `/api/audit-logs` da tra ve du lieu audit that.
+`AuditLogIntegrationTest` cover:
 
-No chung minh Stage 8 khong chi dung trong unit/integration test, ma da chay duoc o stack deploy compose.
+1. login thanh cong
+2. login that bai
+3. create customer
+4. update customer
+5. delete customer
+6. admin doc duoc audit log va thay du cac action tren
+
+## 9. Cach tom tat khi thuyet trinh
+
+> Giai doan 8 cua em la them kha nang truy vet. He thong khong chi xac thuc va ma hoa, ma con ghi lai login success, login failed va business action tren customer. Em dung `REQUIRES_NEW` de log van duoc luu ngay ca khi giao dich chinh fail.

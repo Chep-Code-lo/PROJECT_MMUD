@@ -7,7 +7,6 @@
 --
 -- Suggested local reset order:
 -- DELETE FROM audit_logs;
--- DELETE FROM tickets;
 -- DELETE FROM customers;
 -- DELETE FROM users;
 

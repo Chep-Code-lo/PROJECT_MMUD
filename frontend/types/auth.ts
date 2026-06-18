@@ -1,3 +1,5 @@
+export type UserRole = "ADMIN" | "STAFF" | "USER";
+
 export type LoginRequest = {
   email: string;
   password: string;
@@ -13,10 +15,13 @@ export type User = {
   id: number;
   fullName: string;
   email: string;
-  role: "ADMIN" | "STAFF" | "USER";
+  role: UserRole;
 };
 
 export type LoginResponse = {
-  token: string;
+  accessToken?: string;
+  token?: string;
+  tokenType?: string;
+  role?: UserRole;
   user: User;
 };

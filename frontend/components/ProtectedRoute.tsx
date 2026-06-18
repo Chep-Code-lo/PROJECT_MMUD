@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/authService";
 import { tokenStorage } from "@/lib/tokenStorage";
-import type { User } from "@/types/auth";
 
 type Role = "ADMIN" | "STAFF" | "USER";
 
@@ -21,7 +20,6 @@ export default function ProtectedRoute({
 
   const [checking, setChecking] = useState(true);
   const [forbidden, setForbidden] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -41,7 +39,6 @@ export default function ProtectedRoute({
           return;
         }
 
-        setUser(currentUser);
         setChecking(false);
       } catch {
         tokenStorage.removeToken();

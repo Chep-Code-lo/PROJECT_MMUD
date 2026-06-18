@@ -14,7 +14,7 @@ export default function DashboardPage() {
             Small Company Security Dashboard
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <a href="/customers" className="border p-6 rounded-xl bg-white shadow">
               <h2 className="text-xl font-semibold mb-2">Customers</h2>
               <p>Quản lý khách hàng, dữ liệu nhạy cảm được AES ở backend.</p>
@@ -22,12 +22,7 @@ export default function DashboardPage() {
 
             <a href="/tickets" className="border p-6 rounded-xl bg-white shadow">
               <h2 className="text-xl font-semibold mb-2">Tickets</h2>
-              <p>Tạo và xử lý ticket hỗ trợ.</p>
-            </a>
-
-            <a href="/audit-logs" className="border p-6 rounded-xl bg-white shadow">
-              <h2 className="text-xl font-semibold mb-2">Audit Logs</h2>
-              <p>Admin xem lịch sử hành động quan trọng.</p>
+              <p>Tạo và xử lý ticket hỗ trợ với phân quyền truy cập.</p>
             </a>
           </div>
         </div>

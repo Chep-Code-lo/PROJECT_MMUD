@@ -53,16 +53,7 @@ export default function LoginPage() {
           required
         />
 
-        <div className="text-right mb-6">
-          <a
-            href="/forgot-password"
-            className="text-sm text-blue-600 underline hover:text-blue-800"
-          >
-            Quên mật khẩu?
-          </a>
-        </div>
-
-        <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mt-6">
           Đăng nhập
         </button>
 

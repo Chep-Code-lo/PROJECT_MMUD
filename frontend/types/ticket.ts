@@ -1,13 +1,16 @@
 export type TicketStatus = "OPEN" | "PROCESSING" | "RESOLVED";
+export type TicketPriority = "LOW" | "MEDIUM" | "HIGH";
 
 export type Ticket = {
   id: number;
   title: string;
   description: string;
   status: TicketStatus;
-  priority: string;
-  createdBy?: string;
-  assignedTo?: string;
+  priority: TicketPriority;
+  createdById?: number;
+  assignedToId?: number | null;
+  createdBy?: string | null;
+  assignedTo?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -15,5 +18,8 @@ export type Ticket = {
 export type TicketRequest = {
   title: string;
   description: string;
-  priority: string;
+  priority: TicketPriority;
+  status?: TicketStatus;
+  createdById: number;
+  assignedToId?: number | null;
 };

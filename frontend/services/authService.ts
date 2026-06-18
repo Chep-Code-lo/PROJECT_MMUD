@@ -10,8 +10,12 @@ export const authService = {
 
   login: async (data: LoginRequest) => {
     const res = await axiosClient.post<LoginResponse>("/api/auth/login", data);
+    const token = res.data.accessToken ?? res.data.token;
 
-    const token = res.data.token;
+    if (!token) {
+      throw new Error("Login response does not contain an access token");
+    }
+
     tokenStorage.setToken(token);
 
     return res.data;

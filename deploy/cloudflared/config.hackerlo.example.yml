@@ -1,0 +1,18 @@
+# Copy this file to deploy/cloudflared/config.hackerlo.local.yml
+# and replace the placeholder values on your own machine.
+#
+# This profile is dedicated to the shared public hostname:
+#   https://demo.hackerlo.online
+#
+# For a student-project demo, only one machine should run this tunnel
+# at a time if each machine keeps its own local database.
+
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: C:\Users\<your-user>\.cloudflared\REPLACE_WITH_TUNNEL_UUID.json
+
+ingress:
+  - hostname: demo.hackerlo.online
+    service: https://localhost
+    originRequest:
+      noTLSVerify: true
+  - service: http_status:404

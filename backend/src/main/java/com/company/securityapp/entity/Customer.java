@@ -37,6 +37,9 @@ public class Customer {
     @Column(name = "tax_code_encrypted", nullable = false, length = 512)
     private String taxCodeEncrypted;
 
+    @Column(name = "key_version")
+    private Integer keyVersion;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -91,6 +94,14 @@ public class Customer {
 
     public void setTaxCodeEncrypted(String taxCodeEncrypted) {
         this.taxCodeEncrypted = taxCodeEncrypted;
+    }
+
+    public Integer getKeyVersion() {
+        return keyVersion;
+    }
+
+    public void setKeyVersion(Integer keyVersion) {
+        this.keyVersion = keyVersion;
     }
 
     public Instant getCreatedAt() {

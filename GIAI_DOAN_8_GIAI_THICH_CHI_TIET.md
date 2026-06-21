@@ -1,15 +1,15 @@
-# Giai doan 8: Giai thich chi tiet code va y tuong
+# Giai đoạn 8: Giải thích chi tiết code và ý tưởng
 
-Stage 8 la buoc bien backend tu mot CRUD app thanh he thong co the demo duoc tinh truy vet va bao mat van hanh.
+Giai đoạn 8 là bước đưa hệ thống sang hướng `security operations`: không chỉ xác thực và mã hóa, mà còn có khả năng truy vết hành động để phục vụ kiểm tra, giám sát và điều tra sự cố.
 
-## 1. Muc tieu cua giai doan 8
+## 1. Mục tiêu của giai đoạn 8
 
-- Ghi audit log cho auth va business action
-- Them API `GET /api/audit-logs`
-- Lam sach response loi
-- Ra soat backend theo huong OWASP API Security co ban
+- ghi audit log cho authentication và business action
+- thêm API `GET /api/audit-logs`
+- làm sạch response lỗi
+- tăng khả năng chứng minh tính truy vết của hệ thống
 
-## 2. Cac file chinh da lam
+## 2. Các file chính của giai đoạn
 
 - `backend/src/main/java/com/company/securityapp/entity/AuditLog.java`
 - `backend/src/main/java/com/company/securityapp/repository/AuditLogRepository.java`
@@ -19,12 +19,14 @@ Stage 8 la buoc bien backend tu mot CRUD app thanh he thong co the demo duoc tin
 - `backend/src/main/java/com/company/securityapp/exception/GlobalExceptionHandler.java`
 - `backend/src/test/java/com/company/securityapp/AuditLogIntegrationTest.java`
 
-Ngoai ra, cac service nghiep vu cung duoc noi vao audit:
+Ngoài ra, các service nghiệp vụ được nối vào audit:
 
 - `AuthService`
 - `CustomerService`
 
-## 3. Cac action dang duoc log
+## 3. Các action đang được log
+
+Hiện tại hệ thống ghi các action:
 
 - `LOGIN_SUCCESS`
 - `LOGIN_FAILED`
@@ -32,7 +34,7 @@ Ngoai ra, cac service nghiep vu cung duoc noi vao audit:
 - `UPDATE_CUSTOMER`
 - `DELETE_CUSTOMER`
 
-Moi log co the luu:
+Mỗi log có thể chứa:
 
 - `action`
 - `entityType`
@@ -43,74 +45,95 @@ Moi log co the luu:
 - `details`
 - `createdAt`
 
-## 4. Vi sao `AuditLogService` la trung tam cua stage
+Điểm quan trọng là log phục vụ truy vết nhưng không làm lộ secret như full JWT hoặc AES secret.
 
-Tat ca audit logic duoc don vao 1 service rieng thay vi viet tan man o tung controller.
+## 4. Vì sao `AuditLogService` là trung tâm của stage này
 
-Loi ich:
+Toàn bộ logic audit được gom về một service riêng thay vì viết rải rác trong controller.
 
-- de doi format log
-- de tim bug
-- service nghiep vu chi can goi 1 ham ro nghia
-- admin chi doc 1 API duy nhat `/api/audit-logs`
+Lợi ích:
 
-## 5. Diem ky thuat quan trong nhat: `REQUIRES_NEW`
+- dễ kiểm soát format log
+- dễ sửa đổi và kiểm tra
+- service nghiệp vụ chỉ cần gọi một hàm rõ nghĩa
+- API đọc log chỉ cần đọc từ một nguồn thống nhất
 
-`AuditLogService` dung:
+Điều này làm cho phần audit có cấu trúc và dễ chứng minh hơn khi demo.
+
+## 5. Điểm kỹ thuật quan trọng nhất: `REQUIRES_NEW`
+
+`AuditLogService` dùng:
 
 ```text
 @Transactional(propagation = Propagation.REQUIRES_NEW)
 ```
 
-Cho cac ham ghi log.
+cho các hàm ghi log.
 
-Day la quyet dinh rat quan trong.
+Đây là quyết định rất quan trọng.
 
-Neu khong co `REQUIRES_NEW`, tinh huong login sai se co van de:
+Ví dụ với login sai:
 
-1. `AuthService.login(...)` nem exception vi sai password
-2. transaction chinh rollback
-3. log `LOGIN_FAILED` bi rollback theo
-4. ket qua la he thong khong de lai dau vet login fail
+1. `AuthService.login(...)` ném exception vì sai mật khẩu
+2. transaction chính bị rollback
+3. nếu audit dùng cùng transaction, `LOGIN_FAILED` cũng bị rollback
+4. kết quả là hệ thống mất dấu vết của lần đăng nhập thất bại
 
-`REQUIRES_NEW` tach giao dich ghi log ra rieng, nen log van duoc commit du transaction chinh fail.
+Khi dùng `REQUIRES_NEW`, giao dịch ghi log được tách riêng nên log vẫn được commit dù giao dịch chính thất bại.
 
-## 6. `AuditLogController` duoc mo cho ai
+Đây là điểm rất mạnh về mặt `Accountability`.
+
+## 6. `AuditLogController` được mở cho ai
 
 Route:
 
 - `GET /api/audit-logs`
 
-Chi `ADMIN` duoc xem.
+Chỉ `ADMIN` được xem.
 
-Ly do:
+Lý do:
 
-- audit log co the chua thong tin nhay cam ve van hanh
-- khong nen de role thuong doc tu do
-- dung de demo phan quyen ro rang trong Swagger/Postman/UI
+- audit log có thể chứa thông tin vận hành nhạy cảm
+- không nên cho role thường truy cập tự do
+- đây cũng là cách chứng minh thêm về authorization khi demo
 
-## 7. Gia tri bao mat cua giai doan 8
+## 7. Giá trị bảo mật của giai đoạn 8
 
-Stage nay giup he thong co bang chung cho:
+Giai đoạn này giúp hệ thống có bằng chứng cho các câu hỏi:
 
-- ai da login thanh cong
-- ai da login that bai
-- ai da tao/sua/xoa customer
-- hanh dong xay ra luc nao
+- ai đã login thành công
+- ai đã login thất bại
+- ai đã tạo, sửa, xóa customer
+- hành động xảy ra vào lúc nào
 
-Day la phan giup de tai co tinh "security operations" thay vi chi dung ma hoa du lieu.
+Vì vậy đồ án không dừng ở `auth + encryption`, mà có thêm lớp `truy vết và giám sát`.
 
-## 8. Test cua giai doan 8 chung minh dieu gi
+## 8. Liên hệ với frontend và runtime
 
-`AuditLogIntegrationTest` cover:
+Audit log hiện được dùng ở cả API và UI:
 
-1. login thanh cong
-2. login that bai
+- API: `/api/audit-logs`
+- UI local: `https://localhost/audit-logs`
+- UI public: `https://demo.hackerlo.online/audit-logs`
+
+Trong đó:
+
+- local là nơi test nội bộ
+- public domain dùng khi cần trình bày từ máy ngoài và `Cloudflare Tunnel` đang bật
+
+## 9. Test của giai đoạn 8 chứng minh điều gì
+
+`AuditLogIntegrationTest` đang cover:
+
+1. login thành công
+2. login thất bại
 3. create customer
 4. update customer
 5. delete customer
-6. admin doc duoc audit log va thay du cac action tren
+6. admin đọc được audit log và thấy đủ các action trên
 
-## 9. Cach tom tat khi thuyet trinh
+Đây là bằng chứng rất phù hợp cho phần `Accountability/Logging` trong báo cáo Security.
 
-> Giai doan 8 cua em la them kha nang truy vet. He thong khong chi xac thuc va ma hoa, ma con ghi lai login success, login failed va business action tren customer. Em dung `REQUIRES_NEW` de log van duoc luu ngay ca khi giao dich chinh fail.
+## 10. Cách tóm tắt khi thuyết trình
+
+> Giai đoạn 8 của em là bổ sung khả năng truy vết. Hệ thống không chỉ xác thực và mã hóa, mà còn ghi lại `LOGIN_SUCCESS`, `LOGIN_FAILED` và các hành động trên customer. Em dùng `REQUIRES_NEW` để log vẫn được lưu ngay cả khi giao dịch chính thất bại, nên hệ thống có giá trị hơn về mặt giám sát và điều tra sự cố.

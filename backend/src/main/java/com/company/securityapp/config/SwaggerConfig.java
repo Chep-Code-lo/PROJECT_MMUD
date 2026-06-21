@@ -24,7 +24,7 @@ public class SwaggerConfig {
                         .version("v1")
                         .description("Backend foundation for the applied cryptography project.")
                         .contact(new Contact().name("MMUD Team")))
-                .servers(List.of(new Server().url(baseUrl).description(appName + " local server")))
+                .servers(List.of(new Server().url(baseUrl).description(appName + " HTTPS server")))
                 .components(new Components().addSecuritySchemes(
                         "bearerAuth",
                         new SecurityScheme()

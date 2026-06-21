@@ -1,37 +1,140 @@
 <?xml version="1.0"?>
-<OWASPZAPReport programName="ZAP" version="2.17.0" generated="Thu, 18 Jun 2026 11:38:57" created="2026-06-18T11:38:57.513669062Z">
+<OWASPZAPReport programName="ZAP" version="2.17.0" generated="Sun, 21 Jun 2026 16:20:44" created="2026-06-21T16:20:44.791455475Z">
 	
-		<site name="http://host.docker.internal:8080" host="host.docker.internal" port="8080" ssl="false">
+		<site name="https://nginx" host="nginx" port="443" ssl="true">
 			<alerts>
 				
 					<alertitem>
-						<pluginid>10038</pluginid>
-						<alertRef>10038-1</alertRef>
-						<alert>Content Security Policy (CSP) Header Not Set</alert>
-						<name>Content Security Policy (CSP) Header Not Set</name>
+						<pluginid>10055</pluginid>
+						<alertRef>10055-4</alertRef>
+						<alert>CSP: Wildcard Directive</alert>
+						<name>CSP: Wildcard Directive</name>
 						<riskcode>2</riskcode>
 						<confidence>3</confidence>
 						<riskdesc>Medium (High)</riskdesc>
 						<confidencedesc>High</confidencedesc>
-						<desc>&lt;p&gt;Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks, including Cross Site Scripting (XSS) and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page &#x2014; covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.&lt;/p&gt;</desc>
+						<desc>&lt;p&gt;Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks. Including (but not limited to) Cross Site Scripting (XSS), and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page &#x2014; covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.&lt;/p&gt;</desc>
 						<instances>
 							
 								<instance>
-									<uri>http://host.docker.internal:8080/swagger-ui.html</uri>
-									<nodeName>http://host.docker.internal:8080/swagger-ui.html</nodeName>
+									<uri>https://nginx/swagger-ui.html</uri>
+									<nodeName>https://nginx/swagger-ui.html</nodeName>
 									<method>GET</method>
-									<param></param>
+									<param>Content-Security-Policy</param>
 									<attack></attack>
-									<evidence></evidence>
-									<otherinfo></otherinfo>
+									<evidence>default-src &apos;self&apos;; base-uri &apos;self&apos;; object-src &apos;none&apos;; frame-ancestors &apos;self&apos;; img-src &apos;self&apos; data: blob: https:; style-src &apos;self&apos; &apos;unsafe-inline&apos; https:; script-src &apos;self&apos; &apos;unsafe-inline&apos; &apos;unsafe-eval&apos; https:; connect-src &apos;self&apos; https: wss:; font-src &apos;self&apos; data: https:; worker-src &apos;self&apos; blob:; form-action &apos;self&apos;; upgrade-insecure-requests</evidence>
+									<otherinfo>The following directives either allow wildcard sources (or ancestors), are not defined, or are overly broadly defined:
+script-src, style-src, img-src, connect-src, font-src</otherinfo>
 								</instance>
 							
 						</instances>
 						<count>1</count>
 						<systemic>false</systemic>
-						<solution>&lt;p&gt;Ensure that your web server, application server, load balancer, etc. is configured to set the Content-Security-Policy header.&lt;/p&gt;</solution>
-						<otherinfo></otherinfo>
-						<reference>&lt;p&gt;https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP&lt;/p&gt;&lt;p&gt;https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html&lt;/p&gt;&lt;p&gt;https://www.w3.org/TR/CSP/&lt;/p&gt;&lt;p&gt;https://w3c.github.io/webappsec-csp/&lt;/p&gt;&lt;p&gt;https://web.dev/articles/csp&lt;/p&gt;&lt;p&gt;https://caniuse.com/#feat=contentsecuritypolicy&lt;/p&gt;&lt;p&gt;https://content-security-policy.com/&lt;/p&gt;</reference>
+						<solution>&lt;p&gt;Ensure that your web server, application server, load balancer, etc. is properly configured to set the Content-Security-Policy header.&lt;/p&gt;</solution>
+						<otherinfo>&lt;p&gt;The following directives either allow wildcard sources (or ancestors), are not defined, or are overly broadly defined:&lt;/p&gt;&lt;p&gt;script-src, style-src, img-src, connect-src, font-src&lt;/p&gt;</otherinfo>
+						<reference>&lt;p&gt;https://www.w3.org/TR/CSP/&lt;/p&gt;&lt;p&gt;https://caniuse.com/#search=content+security+policy&lt;/p&gt;&lt;p&gt;https://content-security-policy.com/&lt;/p&gt;&lt;p&gt;https://github.com/HtmlUnit/htmlunit-csp&lt;/p&gt;&lt;p&gt;https://web.dev/articles/csp#resource-options&lt;/p&gt;</reference>
+						<cweid>693</cweid>
+						<wascid>15</wascid>
+						<sourceid>1</sourceid>
+					</alertitem>
+				
+				
+					<alertitem>
+						<pluginid>10055</pluginid>
+						<alertRef>10055-10</alertRef>
+						<alert>CSP: script-src unsafe-eval</alert>
+						<name>CSP: script-src unsafe-eval</name>
+						<riskcode>2</riskcode>
+						<confidence>3</confidence>
+						<riskdesc>Medium (High)</riskdesc>
+						<confidencedesc>High</confidencedesc>
+						<desc>&lt;p&gt;Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks. Including (but not limited to) Cross Site Scripting (XSS), and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page &#x2014; covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.&lt;/p&gt;</desc>
+						<instances>
+							
+								<instance>
+									<uri>https://nginx/swagger-ui.html</uri>
+									<nodeName>https://nginx/swagger-ui.html</nodeName>
+									<method>GET</method>
+									<param>Content-Security-Policy</param>
+									<attack></attack>
+									<evidence>default-src &apos;self&apos;; base-uri &apos;self&apos;; object-src &apos;none&apos;; frame-ancestors &apos;self&apos;; img-src &apos;self&apos; data: blob: https:; style-src &apos;self&apos; &apos;unsafe-inline&apos; https:; script-src &apos;self&apos; &apos;unsafe-inline&apos; &apos;unsafe-eval&apos; https:; connect-src &apos;self&apos; https: wss:; font-src &apos;self&apos; data: https:; worker-src &apos;self&apos; blob:; form-action &apos;self&apos;; upgrade-insecure-requests</evidence>
+									<otherinfo>script-src includes unsafe-eval.</otherinfo>
+								</instance>
+							
+						</instances>
+						<count>1</count>
+						<systemic>false</systemic>
+						<solution>&lt;p&gt;Ensure that your web server, application server, load balancer, etc. is properly configured to set the Content-Security-Policy header.&lt;/p&gt;</solution>
+						<otherinfo>&lt;p&gt;script-src includes unsafe-eval.&lt;/p&gt;</otherinfo>
+						<reference>&lt;p&gt;https://www.w3.org/TR/CSP/&lt;/p&gt;&lt;p&gt;https://caniuse.com/#search=content+security+policy&lt;/p&gt;&lt;p&gt;https://content-security-policy.com/&lt;/p&gt;&lt;p&gt;https://github.com/HtmlUnit/htmlunit-csp&lt;/p&gt;&lt;p&gt;https://web.dev/articles/csp#resource-options&lt;/p&gt;</reference>
+						<cweid>693</cweid>
+						<wascid>15</wascid>
+						<sourceid>1</sourceid>
+					</alertitem>
+				
+				
+					<alertitem>
+						<pluginid>10055</pluginid>
+						<alertRef>10055-5</alertRef>
+						<alert>CSP: script-src unsafe-inline</alert>
+						<name>CSP: script-src unsafe-inline</name>
+						<riskcode>2</riskcode>
+						<confidence>3</confidence>
+						<riskdesc>Medium (High)</riskdesc>
+						<confidencedesc>High</confidencedesc>
+						<desc>&lt;p&gt;Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks. Including (but not limited to) Cross Site Scripting (XSS), and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page &#x2014; covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.&lt;/p&gt;</desc>
+						<instances>
+							
+								<instance>
+									<uri>https://nginx/swagger-ui.html</uri>
+									<nodeName>https://nginx/swagger-ui.html</nodeName>
+									<method>GET</method>
+									<param>Content-Security-Policy</param>
+									<attack></attack>
+									<evidence>default-src &apos;self&apos;; base-uri &apos;self&apos;; object-src &apos;none&apos;; frame-ancestors &apos;self&apos;; img-src &apos;self&apos; data: blob: https:; style-src &apos;self&apos; &apos;unsafe-inline&apos; https:; script-src &apos;self&apos; &apos;unsafe-inline&apos; &apos;unsafe-eval&apos; https:; connect-src &apos;self&apos; https: wss:; font-src &apos;self&apos; data: https:; worker-src &apos;self&apos; blob:; form-action &apos;self&apos;; upgrade-insecure-requests</evidence>
+									<otherinfo>script-src includes unsafe-inline.</otherinfo>
+								</instance>
+							
+						</instances>
+						<count>1</count>
+						<systemic>false</systemic>
+						<solution>&lt;p&gt;Ensure that your web server, application server, load balancer, etc. is properly configured to set the Content-Security-Policy header.&lt;/p&gt;</solution>
+						<otherinfo>&lt;p&gt;script-src includes unsafe-inline.&lt;/p&gt;</otherinfo>
+						<reference>&lt;p&gt;https://www.w3.org/TR/CSP/&lt;/p&gt;&lt;p&gt;https://caniuse.com/#search=content+security+policy&lt;/p&gt;&lt;p&gt;https://content-security-policy.com/&lt;/p&gt;&lt;p&gt;https://github.com/HtmlUnit/htmlunit-csp&lt;/p&gt;&lt;p&gt;https://web.dev/articles/csp#resource-options&lt;/p&gt;</reference>
+						<cweid>693</cweid>
+						<wascid>15</wascid>
+						<sourceid>1</sourceid>
+					</alertitem>
+				
+				
+					<alertitem>
+						<pluginid>10055</pluginid>
+						<alertRef>10055-6</alertRef>
+						<alert>CSP: style-src unsafe-inline</alert>
+						<name>CSP: style-src unsafe-inline</name>
+						<riskcode>2</riskcode>
+						<confidence>3</confidence>
+						<riskdesc>Medium (High)</riskdesc>
+						<confidencedesc>High</confidencedesc>
+						<desc>&lt;p&gt;Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks. Including (but not limited to) Cross Site Scripting (XSS), and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page &#x2014; covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.&lt;/p&gt;</desc>
+						<instances>
+							
+								<instance>
+									<uri>https://nginx/swagger-ui.html</uri>
+									<nodeName>https://nginx/swagger-ui.html</nodeName>
+									<method>GET</method>
+									<param>Content-Security-Policy</param>
+									<attack></attack>
+									<evidence>default-src &apos;self&apos;; base-uri &apos;self&apos;; object-src &apos;none&apos;; frame-ancestors &apos;self&apos;; img-src &apos;self&apos; data: blob: https:; style-src &apos;self&apos; &apos;unsafe-inline&apos; https:; script-src &apos;self&apos; &apos;unsafe-inline&apos; &apos;unsafe-eval&apos; https:; connect-src &apos;self&apos; https: wss:; font-src &apos;self&apos; data: https:; worker-src &apos;self&apos; blob:; form-action &apos;self&apos;; upgrade-insecure-requests</evidence>
+									<otherinfo>style-src includes unsafe-inline.</otherinfo>
+								</instance>
+							
+						</instances>
+						<count>1</count>
+						<systemic>false</systemic>
+						<solution>&lt;p&gt;Ensure that your web server, application server, load balancer, etc. is properly configured to set the Content-Security-Policy header.&lt;/p&gt;</solution>
+						<otherinfo>&lt;p&gt;style-src includes unsafe-inline.&lt;/p&gt;</otherinfo>
+						<reference>&lt;p&gt;https://www.w3.org/TR/CSP/&lt;/p&gt;&lt;p&gt;https://caniuse.com/#search=content+security+policy&lt;/p&gt;&lt;p&gt;https://content-security-policy.com/&lt;/p&gt;&lt;p&gt;https://github.com/HtmlUnit/htmlunit-csp&lt;/p&gt;&lt;p&gt;https://web.dev/articles/csp#resource-options&lt;/p&gt;</reference>
 						<cweid>693</cweid>
 						<wascid>15</wascid>
 						<sourceid>1</sourceid>
@@ -51,8 +154,8 @@
 						<instances>
 							
 								<instance>
-									<uri>http://host.docker.internal:8080/swagger-ui.html</uri>
-									<nodeName>http://host.docker.internal:8080/swagger-ui.html</nodeName>
+									<uri>https://nginx/swagger-ui.html</uri>
+									<nodeName>https://nginx/swagger-ui.html</nodeName>
 									<method>GET</method>
 									<param></param>
 									<attack></attack>

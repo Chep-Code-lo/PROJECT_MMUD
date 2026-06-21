@@ -1,17 +1,17 @@
-# Giai doan 9: Giai thich chi tiet code va y tuong
+# Giai đoạn 9: Giải thích chi tiết code và ý tưởng
 
-Stage 9 la buoc bien frontend tu scaffold thanh giao dien co the demo auth, authorization, customer va audit bang API that.
+Giai đoạn 9 là bước nối frontend thật vào backend thật. Mục tiêu là biến giao diện từ phần minh họa thành một lớp trình diễn đầy đủ cho `authentication`, `authorization`, `customer flow` và `audit flow`.
 
-## 1. Muc tieu cua giai doan 9
+## 1. Mục tiêu của giai đoạn 9
 
-- Frontend khong dung mock data nua
-- Login/Register goi backend that
-- Co protected route
-- Menu an/hien theo role
-- Xu ly `401` va `403`
-- Demo duoc customer flow va audit flow
+- frontend không dùng mock data nữa
+- login và register gọi backend thật
+- có `ProtectedRoute`
+- menu thay đổi theo role
+- xử lý `401` và `403`
+- demo được customer flow và audit flow bằng giao diện
 
-## 2. Cac file chinh da lam
+## 2. Các file chính của giai đoạn
 
 - `frontend/lib/axiosClient.ts`
 - `frontend/lib/tokenStorage.ts`
@@ -29,113 +29,132 @@ Stage 9 la buoc bien frontend tu scaffold thanh giao dien co the demo auth, auth
 - `frontend/app/customers/new/page.tsx`
 - `frontend/app/audit-logs/page.tsx`
 
-## 3. Kien truc frontend duoc tach the nao
+## 3. Kiến trúc frontend được tách như thế nào
 
 ### `axiosClient`
 
-Day la lop giao tiep HTTP dung chung.
+Đây là lớp giao tiếp HTTP dùng chung.
 
-No lam 3 viec:
+Hiện tại `axiosClient` làm 3 việc chính:
 
-- set `baseURL`
-- chen `Authorization: Bearer ...` neu co token
-- bat `401` de xoa token va day nguoi dung ve trang login
+- dùng `NEXT_PUBLIC_API_URL` nếu được cấu hình
+- nếu không có biến môi trường thì dùng same-origin, tức là frontend gọi trực tiếp `/api/...` qua `Nginx`
+- tự chèn `Authorization: Bearer <token>` nếu token tồn tại
 
-Mac dinh `NEXT_PUBLIC_API_URL` neu co, neu khong thi fallback ve:
-
-```text
-http://localhost:8080
-```
+Điểm này quan trọng vì runtime hiện tại không còn mặc định bắn thẳng vào `http://localhost:8080` nữa.
 
 ### `tokenStorage`
 
-Tach rieng logic luu token vao local storage de:
+Tách riêng logic lưu token trong `localStorage` để:
 
-- de doi cach luu sau nay
-- service auth va axios dung chung 1 noi
+- dễ thay đổi cách lưu sau này
+- `authService` và `axiosClient` dùng chung một nơi
 
 ### `services/*`
 
-Moi nghiep vu co 1 service:
+Mỗi nghiệp vụ có một service:
 
 - `authService`
 - `customerService`
 - `auditLogService`
 
-UI page khong goi `axios` truc tiep nua. No chi goi service.
+UI page không gọi `axios` trực tiếp, mà đi qua service để code rõ hơn và dễ kiểm soát hơn.
 
-## 4. `ProtectedRoute` dang lam gi
+## 4. `ProtectedRoute` đang làm gì
 
-`ProtectedRoute` la khoa bao ve o cap page.
+`ProtectedRoute` là lớp khóa ở cấp trang.
 
-Moi page protected se:
+Luồng hoạt động:
 
-1. Kiem tra token co ton tai khong
-2. Goi `me` de lay user hien tai
-3. So role hien tai voi `allowedRoles`
-4. Neu khong hop le thi day ve trang login hoac chan truy cap
+1. kiểm tra token có tồn tại không
+2. gọi `/api/auth/me` để lấy user hiện tại
+3. so role hiện tại với `allowedRoles`
+4. nếu không hợp lệ thì chuyển về login hoặc chặn truy cập
 
-Tac dung:
+Ý nghĩa:
 
-- tranh lo route tren UI
-- de thong diep loi ro hon
-- giu frontend va backend thong nhat ve role
+- tránh lộ route ở tầng UI
+- đồng bộ logic role giữa frontend và backend
+- giúp demo trực quan hơn khi bị chặn quyền
 
-## 5. Navbar va dashboard da doi vai tro gi
+## 5. `Navbar` và `Dashboard` đã đổi vai trò như thế nào
 
-`Navbar` khong hien cung 1 menu cho moi role nua.
+`Navbar` không còn hiển thị cùng một menu cho mọi role.
 
-- `ADMIN`, `STAFF`: thay `Customers`
-- `ADMIN`: thay them `Audit Logs`
-- moi user dang nhap: thay thong tin session va nut logout
+- `ADMIN`, `STAFF` nhìn thấy `Customers`
+- `ADMIN` nhìn thấy thêm `Audit Logs`
+- user đã đăng nhập nhìn thấy session hiện tại và nút logout
 
-`Dashboard` duoc chuyen thanh man hinh tong quan:
+`Dashboard` được dùng như màn hình tổng quan:
 
-- hien user hien tai
-- nhan manh scope bao mat cua du an
-- dieu huong nhanh den customer va audit theo role
+- hiển thị user hiện tại
+- nhắc lại scope bảo mật của dự án
+- điều hướng nhanh đến `Customers` và `Audit Logs` tùy role
 
-## 6. Customer flow tren UI
+## 6. Customer flow trên UI
 
-Luong chinh:
+Luồng chính:
 
-1. Dang nhap
-2. Vao `/customers`
-3. Goi `GET /api/customers`
-4. Vao form tao moi
-5. Goi `POST /api/customers`
-6. Sau khi thanh cong quay lai list
+1. đăng nhập
+2. vào `/customers`
+3. gọi `GET /api/customers`
+4. vào form tạo mới
+5. gọi `POST /api/customers`
+6. sau khi thành công quay lại danh sách
 
-Bang customer hien:
+Điểm quan trọng:
 
-- thong tin da duoc backend giai ma
-- nut xoa
-- trang thai loi neu khong du quyen hoac token het han
+- frontend chỉ nhìn thấy dữ liệu đã được backend giải mã
+- frontend không biết và không thấy các cột `_encrypted`
+- nếu token hết hạn hoặc không hợp lệ thì `axiosClient` xóa token và đẩy người dùng về `/login`
 
-## 7. Audit flow tren UI
+## 7. Audit flow trên UI
 
-Chi `ADMIN` thay route `/audit-logs`.
+Chỉ `ADMIN` mới nhìn thấy route:
 
-Page nay goi:
+- `/audit-logs`
+
+Page này gọi:
 
 - `GET /api/audit-logs`
 
-Muc tieu la de nguoi demo mo UI ra va chi ngay:
+Mục tiêu của route này là để khi demo, giảng viên có thể nhìn trực tiếp trên UI các sự kiện như:
 
 - login success
 - login failed
-- create/update/delete customer
+- create customer
+- update customer
+- delete customer
 
-## 8. Vi sao stage 9 quan trong
+## 8. Liên hệ với local và public domain
 
-Neu chi co backend thi de tai van dung, nhung luc demo se kho.
+Frontend hiện chạy được trên cả hai chế độ:
 
-Frontend that giup:
+- local: `https://localhost`
+- public domain: `https://demo.hackerlo.online`
 
-- cho thay role rule o tang giao dien
-- chung minh API contract da on dinh
-- giup nguoi cham thay ro login, customer, audit di het vong
+Điểm quan trọng là hành vi frontend không đổi giữa hai mode:
 
-## 9. Cach tom tat khi thuyet trinh
+- cùng giao diện
+- cùng flow login
+- cùng protected route
+- cùng gọi API qua origin hiện tại
 
-> Stage 9 cua em la bo mock data va noi frontend vao backend that. Em dung `axiosClient` de tu dong gan JWT, `ProtectedRoute` de khoa role o cap page, va rut giao dien ve dung cac flow can demo: auth, customer va audit.
+`demo.hackerlo.online` chỉ hoạt động khi `Cloudflare Tunnel` đang bật. Nếu public mode không có, cả nhóm vẫn có thể chạy và test đầy đủ qua `https://localhost`.
+
+## 9. Vì sao giai đoạn 9 quan trọng
+
+Nếu chỉ có backend thì đề tài vẫn đúng, nhưng lúc demo sẽ khó thể hiện luồng bảo mật.
+
+Frontend thật giúp:
+
+- nhìn thấy rõ login và logout
+- nhìn thấy rõ menu đổi theo role
+- nhìn thấy rõ `401` và `403` theo hành vi người dùng
+- chứng minh API contract đã đủ ổn định để dùng thật
+
+Nói cách khác, giai đoạn 9 biến các security control thành trải nghiệm có thể thuyết trình.
+
+## 10. Cách tóm tắt khi thuyết trình
+
+> Giai đoạn 9 của em là bỏ mock data và nối frontend vào backend thật. Em dùng `axiosClient` để tự gắn JWT, `ProtectedRoute` để khóa trang theo role, và giữ giao diện tập trung đúng các flow cần demo: đăng nhập, customer và audit log. Vì vậy các control bảo mật không chỉ nằm ở backend mà còn nhìn thấy được rõ trên UI.

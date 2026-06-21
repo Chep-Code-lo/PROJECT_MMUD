@@ -1,21 +1,29 @@
-# Postman docs
+# Tài liệu Postman và Newman
 
-Thu muc nay chua collection va environment de test nhanh auth, customer, audit log va admin summary.
+Thư mục này chứa collection và environment để test nhanh `auth`, `customer`, `audit log` và `admin summary`.
 
-## File chinh
+## 1. File chính
 
 - `securityapp.postman_collection.json`
 - `securityapp.local.postman_environment.json`
+- `securityapp.demo.hackerlo_environment.json`
 
-## Cach import
+## 2. Chọn environment
 
-1. Import collection.
-2. Import environment.
-3. Chon environment `Security App Local`.
+| Environment | Base URL | Dùng khi nào |
+|---|---|---|
+| `Security App Local` | `https://localhost` | Test nội bộ trên máy đang chạy dự án |
+| `Security App Public Domain` | `https://demo.hackerlo.online` | Test từ máy ngoài khi `Cloudflare Tunnel` đang bật |
 
-## Bien moi truong quan trong
+## 3. Cách import
 
-- `baseUrl`: mac dinh `http://localhost:8080`
+1. Import collection `securityapp.postman_collection.json`.
+2. Import một hoặc cả hai environment.
+3. Chọn environment phù hợp trước khi chạy request.
+
+## 4. Biến môi trường quan trọng
+
+- `baseUrl`
 - `adminEmail`, `staffEmail`, `userEmail`
 - `adminPassword`, `staffPassword`, `userPassword`
 - `token`
@@ -23,8 +31,9 @@ Thu muc nay chua collection va environment de test nhanh auth, customer, audit l
 - `staffToken`
 - `userToken`
 - `customerId`
+- `customerEmail`
 
-## Thu tu chay de demo nhanh
+## 5. Thứ tự chạy để demo nhanh
 
 1. `Auth / Login as Admin`
 2. `Auth / Get Current User`
@@ -39,20 +48,43 @@ Thu muc nay chua collection va environment de test nhanh auth, customer, audit l
 11. `Security Checks / Auth Me without Token (Expect 401)`
 12. `Audit / List Audit Logs`
 
-## Luu y quan trong
+## 6. Lưu ý quan trọng
 
-- Request login se tu dong luu `token` vao environment.
-- `Login as Admin` se luu them `adminToken`.
-- `Login as Staff` se luu `staffToken`.
-- `Login as User` se luu `userToken`.
-- Request create customer se tu dong luu `customerId`.
-- Body tao customer dung Postman dynamic variable `{{$timestamp}}` de giam trung lap khi chay lai nhieu lan.
-- Collection da duoc rut gon de tap trung vao auth, customer CRUD va security checks.
+- Request login sẽ tự động lưu `token` vào environment.
+- `Login as Admin` sẽ lưu thêm `adminToken`.
+- `Login as Staff` sẽ lưu `staffToken`.
+- `Login as User` sẽ lưu `userToken`.
+- Request create customer sẽ tự động lưu `customerId`.
+- Body tạo customer dùng Postman dynamic variable `{{$timestamp}}` để giảm trùng lặp khi chạy lại nhiều lần.
+- Collection đã được rút gọn để tập trung vào `auth`, `customer CRUD` và `security checks`.
 
-## Chay bang Newman
+## 7. Chạy bằng Newman
 
-```bash
+### Chạy local
+
+```powershell
+npx --yes newman run docs/postman/securityapp.postman_collection.json -e docs/postman/securityapp.local.postman_environment.json --insecure --reporters cli
+```
+
+Nếu sau này local đổi sang cert đã được máy tin cậy, có thể bỏ `--insecure`:
+
+```powershell
 npx --yes newman run docs/postman/securityapp.postman_collection.json -e docs/postman/securityapp.local.postman_environment.json --reporters cli
 ```
 
-Collection da duoc verify thanh cong bang Newman trong repo nay.
+### Chạy public domain
+
+```powershell
+npx --yes newman run docs/postman/securityapp.postman_collection.json -e docs/postman/securityapp.demo.hackerlo_environment.json --reporters cli
+```
+
+Ghi chú:
+
+- Environment public domain chỉ chạy được khi `https://demo.hackerlo.online` đang được publish qua `Cloudflare Tunnel`.
+- Collection đã được verify thành công bằng Newman trong repo này.
+
+## 8. Kết quả rà ngày `2026-06-21`
+
+- Local: `15 requests`, `22 assertions`, `0 failed`
+- Public domain: `15 requests`, `22 assertions`, `0 failed`
+- Bộ request đã cover lại các nhóm `auth`, `admin summary`, `customer CRUD`, `audit log`, `401` và `403`

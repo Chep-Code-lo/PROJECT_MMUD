@@ -1,8 +1,10 @@
 import axios from "axios";
 import { tokenStorage } from "./tokenStorage";
 
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
 const axiosClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080",
+  ...(configuredApiUrl ? { baseURL: configuredApiUrl } : {}),
   headers: {
     "Content-Type": "application/json",
   },

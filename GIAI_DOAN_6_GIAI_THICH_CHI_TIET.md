@@ -1,18 +1,17 @@
-# Giai doan 6: Giai thich chi tiet code va y tuong
+# Giai đoạn 6: Giải thích chi tiết code và ý tưởng
 
-File nay giai thich phan viec da duoc chot sau khi scope du an duoc lam gon lai.
-Trong phien ban hien tai, giai doan 6 tap trung vao viec lam chac REST contract cua `Customer API` va chuan bi du lieu de cac stage bao mat di tiep.
+Giai đoạn 6 tập trung vào việc làm chắc `REST contract` của `Customer API`. Với một ứng dụng mạng dạng `cloud/API-based`, contract API phải rõ ràng, status code phải đúng và response không được làm lộ chi tiết lưu trữ nội bộ.
 
-## 1. Muc tieu cua giai doan 6
+## 1. Mục tiêu của giai đoạn 6
 
-Giai doan 6 co 4 muc tieu ky thuat:
+Giai đoạn 6 có 4 mục tiêu kỹ thuật:
 
-1. Chot CRUD customer theo dung HTTP method va status code.
-2. Lam sach validation va thong diep loi.
-3. Giup frontend co contract on dinh de goi that.
-4. Dat nen cho authorization, audit log va Swagger/Postman.
+1. chốt CRUD customer theo đúng HTTP method và status code
+2. làm sạch validation và thông điệp lỗi
+3. giữ contract API ổn định cho frontend, Swagger và Postman
+4. chuẩn bị nền cho authorization, audit log và security testing
 
-## 2. Cac file chinh can doc
+## 2. Các file chính cần đọc
 
 - `backend/src/main/java/com/company/securityapp/dto/CustomerRequest.java`
 - `backend/src/main/java/com/company/securityapp/dto/CustomerResponse.java`
@@ -22,9 +21,9 @@ Giai doan 6 co 4 muc tieu ky thuat:
 - `backend/src/main/java/com/company/securityapp/exception/GlobalExceptionHandler.java`
 - `backend/src/test/java/com/company/securityapp/CustomerControllerIntegrationTest.java`
 
-## 3. Contract REST da duoc chot nhu the nao
+## 3. Contract REST đã được chốt như thế nào
 
-API hien tai gom:
+API hiện tại gồm:
 
 - `GET /api/customers`
 - `GET /api/customers/{id}`
@@ -32,92 +31,118 @@ API hien tai gom:
 - `PUT /api/customers/{id}`
 - `DELETE /api/customers/{id}`
 
-Status code duoc quy uoc ro:
+Status code được quy ước rõ:
 
-- `200` cho get/update thanh cong
-- `201` cho create
-- `204` cho delete
+- `200` cho `GET` và `PUT` thành công
+- `201` cho `POST`
+- `204` cho `DELETE`
 - `400` cho validation sai
-- `404` cho customer khong ton tai
-- `409` cho email bi trung
+- `404` cho customer không tồn tại
+- `409` cho email bị trùng
 
-Dieu nay rat quan trong cho Swagger, Postman va frontend.
+Điều này quan trọng vì toàn bộ frontend, Swagger, Postman/Newman và checklist test đều dựa vào contract này.
 
-## 4. Vi sao tach `CustomerRequest` va `CustomerResponse`
+## 4. Vì sao phải tách `CustomerRequest` và `CustomerResponse`
 
-Neu dung entity lam request/response truc tiep se co 3 van de:
+Nếu dùng entity làm request/response trực tiếp sẽ có các vấn đề:
 
-1. De lo field persistence noi bo.
-2. Kho doi contract neu DB doi.
-3. Frontend phai biet qua nhieu ve cau truc luu tru.
+1. dễ lộ field lưu trữ nội bộ như `_encrypted`
+2. khó thay đổi schema mà không ảnh hưởng frontend
+3. frontend bị phụ thuộc quá nhiều vào cấu trúc persistence
 
-DTO giup backend giu quyen kiem soat contract API.
+DTO giúp backend giữ quyền kiểm soát contract API và che đi cách dữ liệu đang được mã hóa phía sau.
 
-## 5. Validation duoc dat o dau
+## 5. Validation được đặt ở đâu
 
-Validation dat ngay tren `CustomerRequest`.
+Validation được đặt trên `CustomerRequest`.
 
-Ly do:
+Lý do:
 
-- request vao sai thi chan som
-- service khong phai check lai nhung loi co hoc
-- Swagger/OpenAPI doc duoc schema ro hon
+- request sai bị chặn sớm
+- service không phải gánh các lỗi dữ liệu cơ bản
+- `Swagger/OpenAPI` đọc được schema rõ hơn
 
-Nhung logic nghiep vu van dat o service, vi du:
+Các logic nghiệp vụ vẫn thuộc về service, ví dụ:
 
-- chuan hoa email
-- check trung email
-- ma hoa field nhay cam
+- chuẩn hóa email
+- kiểm tra trùng email
+- mã hóa dữ liệu nhạy cảm
+- ghi audit action
 
-## 6. `CustomerService` giai quyet nghiep vu gi
+## 6. `CustomerService` xử lý nghiệp vụ gì
 
-Service nay lam nhung viec chinh:
+`CustomerService` là nơi liên kết giữa:
 
-- tim customer theo id
-- check duplicate email
-- chuan hoa text
-- ma hoa/giai ma field nhay cam
-- ghi business audit action
+- lớp HTTP
+- lớp lưu trữ
+- lớp mã hóa
+- lớp audit
 
-No la noi lien ket giua:
+Những việc service đang làm:
 
-- HTTP layer
-- persistence layer
-- encryption layer
-- audit layer
+- tìm customer theo id
+- chuẩn hóa `name` và `email`
+- kiểm tra duplicate email
+- mã hóa `phone`, `address`, `taxCode`
+- giải mã khi trả response
+- ghi `CREATE_CUSTOMER`, `UPDATE_CUSTOMER`, `DELETE_CUSTOMER`
 
-## 7. Vi sao thong diep loi phai ro rang
+Điểm quan trọng là service đang xử lý theo ngữ cảnh bảo mật ứng dụng mạng, không chỉ là CRUD thuần túy.
 
-Mon hoc khong chi cham "co chay hay khong", ma con cham cach API duoc thiet ke.
+## 7. Vì sao thông điệp lỗi phải rõ nhưng vẫn an toàn
 
-Vi vay:
+Ở bài này, API không chỉ cần “chạy được” mà còn cần thể hiện được tính đúng đắn về bảo mật.
 
-- validation sai phai tra body de doc
-- khong ton tai phai tra `404`
-- trung email phai tra `409`
+Vì vậy:
 
-`GlobalExceptionHandler` giup thong nhat format loi cho toan bo backend.
+- validation sai phải trả `400`
+- không tìm thấy dữ liệu phải trả `404`
+- trùng email phải trả `409`
+- lỗi server không được làm lộ stack trace hoặc chi tiết mã hóa
 
-## 8. Giai doan 6 dong vai tro gi trong toan he thong
+`GlobalExceptionHandler` giúp thống nhất format lỗi trên toàn bộ backend.
 
-Sau giai doan nay:
+Ví dụ về mặt security:
 
-- frontend co endpoint that de goi
-- authorization co tai nguyen de khoa role
-- audit log co nghiep vu de theo doi
-- Swagger/Postman co endpoint thuc de tai lieu hoa
+- khi ciphertext bị tamper, hệ thống không trả chi tiết cryptographic failure ra ngoài
+- client chỉ nhận lỗi server tổng quát
 
-No la diem chuyen tu "co ma hoa" sang "co API that de demo".
+## 8. Giai đoạn 6 đóng vai trò gì trong toàn hệ thống
 
-## 9. Test can chung minh
+Sau giai đoạn này:
 
-Khi review giai doan nay, can chung minh duoc:
+- frontend có endpoint thật để gọi
+- `Swagger` có contract đúng để hiển thị
+- `Postman/Newman` có status code đúng để assert
+- authorization ở giai đoạn sau có tài nguyên thật để khóa role
+- audit log có hành động thật để ghi
 
-1. Create customer thanh cong.
-2. Validation sai tra `400`.
-3. Du lieu nhay cam trong DB la ciphertext.
-4. Contract response khong lo cot `_encrypted`.
+Nói ngắn gọn, đây là giai đoạn biến phần lưu trữ mã hóa thành một `REST API` có thể kiểm thử và chứng minh được.
 
-## 10. Cach tom tat khi thuyet trinh
+## 9. Liên hệ với runtime hiện tại
 
-> Giai doan 6 cua em la buoc chot Customer API thanh 1 REST API dung nghia: co DTO rieng, validation ro, status code ro, response sach, va nghiep vu duoc don vao service de cac giai doan authorization, audit va frontend co the dung chung.
+Ở môi trường chạy hiện tại, `Customer API` được đi qua `Nginx HTTPS edge`, không public raw backend ra ngoài.
+
+Các địa chỉ truy cập:
+
+- local: `https://localhost/api/customers`
+- public domain: `https://demo.hackerlo.online/api/customers`
+
+Trong đó:
+
+- `localhost` là mode fallback để cả nhóm tự test
+- `demo.hackerlo.online` là mode public khi `Cloudflare Tunnel` đang bật
+
+## 10. Test cần chứng minh gì
+
+Khi review giai đoạn 6, cần chứng minh được:
+
+1. tạo customer thành công và trả `201`
+2. validation sai trả `400`
+3. response không lộ các cột `_encrypted`
+4. dữ liệu trong DB là ciphertext
+5. dữ liệu bị tamper sẽ không được backend chấp nhận
+
+## 11. Cách tóm tắt khi thuyết trình
+
+> Giai đoạn 6 của em là bước chốt `Customer API` thành một REST API đúng nghĩa: có DTO riêng, validation rõ, status code rõ, response sạch và không lộ chi tiết lưu trữ. Đây là nền để frontend, Swagger, Postman và các giai đoạn authorization, audit hoạt động đúng với cùng một contract.

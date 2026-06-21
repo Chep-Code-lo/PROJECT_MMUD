@@ -1,38 +1,37 @@
-# Giai doan 5: Giai thich chi tiet code va y tuong
+# Giai đoạn 5: Giải thích chi tiết code và ý tưởng
 
-File nay dat o thu muc goc de de nop, de mo nhanh va de dung luc thuyet trinh.
-No tap trung vao nen tang du lieu va ma hoa cua backend.
+File này giải thích phần nền tảng dữ liệu và mã hóa của dự án. Ở giai đoạn 5, trọng tâm không phải là làm một API CRUD chung chung, mà là xây dựng luồng xử lý dữ liệu nhạy cảm cho ứng dụng mạng dạng `cloud/API-based` dành cho dịch vụ công ty nhỏ.
 
-## 1. Muc tieu cua giai doan 5
+## 1. Mục tiêu của giai đoạn 5
 
-Giai doan 5 trong phien ban hien tai co 3 muc tieu chinh:
+Giai đoạn 5 có 3 mục tiêu kỹ thuật chính:
 
-1. Chot schema va domain model cho `Customer` va `AuditLog`.
-2. Hoan thanh `Customer API` theo kieu RESTful CRUD.
-3. Ma hoa du lieu nhay cam bang `AES-GCM` truoc khi luu vao database.
+1. Chốt schema và domain model cho `Customer` và `AuditLog`.
+2. Hoàn thành `Customer API` làm nền cho các giai đoạn bảo mật tiếp theo.
+3. Mã hóa dữ liệu nhạy cảm của customer trước khi lưu database.
 
-Noi ngan gon:
+Ý tưởng cốt lõi:
 
-- Client gui plaintext.
-- Backend ma hoa truoc khi persist.
-- Database chi thay ciphertext.
-- API tra plaintext da giai ma ra cho frontend.
+- client gửi dữ liệu ở dạng plaintext
+- backend là nơi thực hiện mã hóa
+- database chỉ lưu ciphertext
+- backend giải mã lại khi cần trả dữ liệu hợp lệ cho frontend
 
-## 2. Cac file chinh da lam
+## 2. Các file chính của giai đoạn
 
 ### Database
 
 - `database/schema.sql`
 - `database/seed.sql`
 
-### Entity / Repository
+### Entity và repository
 
 - `backend/src/main/java/com/company/securityapp/entity/Customer.java`
 - `backend/src/main/java/com/company/securityapp/entity/AuditLog.java`
 - `backend/src/main/java/com/company/securityapp/repository/CustomerRepository.java`
 - `backend/src/main/java/com/company/securityapp/repository/AuditLogRepository.java`
 
-### Service / Controller / DTO
+### Service, controller và DTO
 
 - `backend/src/main/java/com/company/securityapp/service/EncryptionService.java`
 - `backend/src/main/java/com/company/securityapp/service/CustomerService.java`
@@ -40,112 +39,115 @@ Noi ngan gon:
 - `backend/src/main/java/com/company/securityapp/dto/CustomerRequest.java`
 - `backend/src/main/java/com/company/securityapp/dto/CustomerResponse.java`
 
-### Xu ly loi va test
+### Xử lý lỗi và test
 
 - `backend/src/main/java/com/company/securityapp/exception/ApiException.java`
 - `backend/src/main/java/com/company/securityapp/exception/GlobalExceptionHandler.java`
 - `backend/src/test/java/com/company/securityapp/CustomerControllerIntegrationTest.java`
 
-## 3. Y tuong kien truc
+## 3. Ngữ cảnh bảo mật của `Customer`
 
-Backend duoc tach thanh 4 lop ro rang:
+Trong đề tài này, `Customer` không chỉ là một bản ghi thông thường. Đây là đối tượng chứa dữ liệu doanh nghiệp và dữ liệu nhạy cảm của khách hàng.
 
-### Controller
-
-Controller chi lam viec HTTP:
-
-- nhan request
-- map endpoint
-- goi service
-- tra response
-
-No khong xu ly AES hay nghiep vu phuc tap.
-
-### Service
-
-Service la noi xu ly nghiep vu that:
-
-- validate logic
-- chuan hoa du lieu
-- goi ma hoa/giai ma
-- goi repository
-- sinh audit log business
-
-### Repository
-
-Repository chi phu trach truy cap database.
-
-### DTO
-
-DTO tach request/response ra khoi entity de:
-
-- tranh lo field khong muon expose
-- giu contract API on dinh
-- de thay doi persistence ma khong vo frontend
-
-## 4. Thiet ke du lieu customer
-
-Customer luu:
+Các trường nghiệp vụ:
 
 - `name`
 - `email`
+- `phone`
+- `address`
+- `taxCode`
+
+Trong đó:
+
+- `email` được giữ ở dạng plaintext để phục vụ tìm kiếm và kiểm tra trùng
+- `phone`, `address`, `taxCode` được xem là dữ liệu nhạy cảm và phải mã hóa trước khi lưu
+
+Trong database, backend lưu các cột:
+
 - `phone_encrypted`
 - `address_encrypted`
 - `tax_code_encrypted`
-- `createdAt`
-- `updatedAt`
+- `key_version`
 
-Y do chinh:
+Điều này giúp giảm thiểu rủi ro khi database bị lộ hoặc khi dữ liệu bị truy cập trái phép ở tầng lưu trữ.
 
-- `email` la field nghiep vu co the tim kiem va check unique nen de plaintext.
-- `phone`, `address`, `taxCode` la du lieu nhay cam nen phai ma hoa.
-- DB khong duoc luu lai ban ro cua 3 field tren.
+## 4. Kiến trúc code được tách như thế nào
 
-## 5. Vi sao ma hoa trong service thay vi controller
+### Controller
 
-`EncryptionService` duoc goi trong `CustomerService`, khong nam trong controller.
+Controller chỉ xử lý lớp HTTP:
 
-Ly do:
+- nhận request
+- map endpoint
+- gọi service
+- trả response
 
-- controller phai nhe
-- moi luong ghi customer deu di qua 1 diem chung
-- tranh truong hop mot endpoint quen ma hoa
-- de test va refactor sau nay
+Controller không chứa logic mã hóa.
 
-Luong create customer:
+### Service
 
-1. `CustomerController` nhan `CustomerRequest`.
-2. `CustomerService` chuan hoa text va email.
-3. Goi `EncryptionService.encrypt(...)` cho 3 field nhay cam.
-4. Luu entity vao DB.
-5. Map entity thanh `CustomerResponse`.
-6. Response tra ra plaintext da duoc giai ma.
+Service là nơi xử lý nghiệp vụ thật:
 
-## 6. `EncryptionService` dang lam gi
+- chuẩn hóa dữ liệu
+- kiểm tra logic business
+- gọi mã hóa và giải mã
+- gọi repository
+- ghi audit action khi cần
 
-Service nay tap trung vao 2 ham chinh:
+### Repository
 
-- `encrypt(...)`
-- `decrypt(...)`
+Repository chỉ phụ trách truy cập database.
 
-Y tuong ky thuat:
+### DTO
 
-- dung secret key doi xung
-- dung `AES/GCM/NoPadding`
-- moi lan ma hoa sinh `IV` rieng
-- ghep `IV + ciphertext + auth tag` thanh chuoi luu DB
+DTO tách request và response ra khỏi entity để:
 
-Tai sao `GCM` quan trong:
+- không lộ các cột `_encrypted`
+- giữ contract API ổn định
+- cho phép thay đổi cách lưu trữ mà không làm vỡ frontend
 
-- co tinh bao mat
-- co xac thuc toan ven
-- phu hop cho du lieu ung dung luu trong DB
+## 5. Vì sao mã hóa được đặt ở `CustomerService`
 
-## 7. Request/response duoc tach the nao
+`EncryptionService` không được gọi từ controller mà được gọi từ `CustomerService`.
+
+Lý do:
+
+- controller phải giữ nhẹ
+- mọi luồng ghi customer đều đi qua cùng một nơi
+- giảm rủi ro có endpoint quên mã hóa
+- dễ test và dễ mở rộng sau này
+
+Luồng tạo customer:
+
+1. `CustomerController` nhận `CustomerRequest`
+2. `CustomerService` chuẩn hóa `email`, `name` và dữ liệu đầu vào
+3. `CustomerService` gọi `EncryptionService.encryptCustomerField(...)`
+4. entity được lưu vào DB ở dạng ciphertext
+5. khi trả ra ngoài, backend giải mã rồi map thành `CustomerResponse`
+
+## 6. `EncryptionService` đang làm gì
+
+Phiên bản hiện tại không chỉ dùng `AES-GCM` đơn giản mà đã được nâng lên theo hướng an toàn hơn:
+
+- dùng `AES/GCM/NoPadding`
+- sinh `IV` ngẫu nhiên cho mỗi lần mã hóa
+- dùng `HKDF-SHA256` để dẫn xuất key theo phiên bản
+- gắn `AAD` theo ngữ cảnh `customer + field + version`
+- lưu `key_version` để backend biết cách giải mã đúng dữ liệu
+
+Ý nghĩa bảo mật:
+
+- `Confidentiality`: DB không thấy plaintext
+- `Integrity`: nếu sửa ciphertext hoặc tag, giải mã sẽ thất bại
+- `Maintainability`: có thể xoay vòng key theo phiên bản
+
+Ngoài luồng mới, service vẫn giữ khả năng đọc dữ liệu cũ để tương thích với `legacy key version`.
+
+## 7. Request và response được tách như thế nào
 
 ### `CustomerRequest`
 
-Request chi chua du lieu client duoc phep gui:
+Request chỉ chứa dữ liệu client được phép gửi:
 
 - `name`
 - `email`
@@ -155,7 +157,7 @@ Request chi chua du lieu client duoc phep gui:
 
 ### `CustomerResponse`
 
-Response tra:
+Response trả ra:
 
 - `id`
 - `name`
@@ -166,46 +168,40 @@ Response tra:
 - `createdAt`
 - `updatedAt`
 
-Dieu quan trong la response khong tra ve cac cot `_encrypted`.
+Điểm quan trọng là response không bao giờ trả về:
 
-## 8. Validation va xu ly loi
+- `phone_encrypted`
+- `address_encrypted`
+- `tax_code_encrypted`
+- `key_version`
 
-Validation duoc dat ngay o DTO bang annotation:
+## 8. Ý nghĩa của giai đoạn 5 đối với hệ thống
 
-- `@NotBlank`
-- `@Email`
-- `@Size`
+Sau giai đoạn này, hệ thống đã có:
 
-Neu request sai, `GlobalExceptionHandler` tra ve body loi ro rang.
+- một mô hình `Customer` phù hợp với bài toán dữ liệu nhạy cảm
+- một API có thể dùng để demo luồng dữ liệu thật
+- một cơ chế mã hóa phục vụ đúng trọng tâm môn Security
+- nền tảng để các giai đoạn sau gắn thêm `JWT`, authorization, audit log và bằng chứng kiểm thử
 
-Tac dung:
+Ở runtime hiện tại, luồng customer này được truy cập qua:
 
-- frontend de xu ly
-- Postman/Swagger de test
-- nguoi cham bai de nhin status code cho chuan
+- `https://localhost/api/customers`
+- `https://demo.hackerlo.online/api/customers`
 
-## 9. Test cua giai doan 5 chung minh dieu gi
+Trong đó `demo.hackerlo.online` chỉ hoạt động khi `Cloudflare Tunnel` đang bật.
 
-`CustomerControllerIntegrationTest` cover 2 diem rat quan trong:
+## 9. Test của giai đoạn 5 chứng minh điều gì
 
-1. Tao customer thanh cong thi response van la plaintext hop le.
-2. Ban ghi trong DB khong giong plaintext ban dau.
+`CustomerControllerIntegrationTest` đang chứng minh các điểm quan trọng:
 
-Day la bang chung thuc te cho yeu cau "ma hoa du lieu nhay cam truoc khi luu".
+1. tạo customer thành công thì response vẫn là plaintext hợp lệ
+2. dữ liệu trong DB không còn giống plaintext ban đầu
+3. dữ liệu legacy chưa có `key_version` vẫn đọc được
+4. dữ liệu bị tamper sẽ gây lỗi giải mã thay vì trả về dữ liệu giả
 
-## 10. Gia tri cua giai doan 5 doi voi toan he thong
+Đây là bằng chứng trực tiếp cho yêu cầu “mã hóa dữ liệu nhạy cảm trước khi lưu DB”.
 
-Sau giai doan nay, he thong da co:
+## 10. Cách tóm tắt khi thuyết trình
 
-- 1 API CRUD co the demo that
-- 1 mau xu ly service/repository/DTO ro rang
-- 1 co che AES-GCM phuc vu dung trong tam mon hoc
-- 1 bang audit de giai doan sau gan vao truy vet hanh dong
-
-No la lop nen quan trong nhat cho huong mat ma ung dung cua de tai.
-
-## 11. Cach tom tat khi thuyet trinh
-
-Co the noi gon nhu sau:
-
-> Em tach Customer API thanh controller-service-repository, dung DTO de giu contract API sach, ma hoa `phone`, `address`, `taxCode` bang AES-GCM truoc khi luu DB, va chi tra plaintext da giai ma ra ngoai. Nguoi dung nhin thay du lieu dung, nhung database chi luu ciphertext.
+> Giai đoạn 5 của em là giai đoạn đặt nền cho bảo mật dữ liệu. Em thiết kế `Customer` theo hướng chỉ giữ `email` ở dạng plaintext để tra cứu, còn `phone`, `address`, `taxCode` được mã hóa bằng `AES-GCM` kết hợp `HKDF`, `AAD` và `key_version` trước khi lưu DB. Backend là nơi thực hiện mã hóa và giải mã, nên người dùng vẫn nhìn thấy dữ liệu đúng, còn database chỉ lưu ciphertext.

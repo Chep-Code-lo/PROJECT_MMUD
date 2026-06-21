@@ -1,17 +1,16 @@
-# Giai doan 7: Giai thich chi tiet code va y tuong
+# Giai đoạn 7: Giải thích chi tiết code và ý tưởng
 
-Stage 7 la buoc chot authentication va role authorization that cho backend.
-Trong repo nay, de khoa route dung nghia thi phai hoan thien JWT truoc, nen giai doan nay duoc trien khai theo dung thu tu ky thuat.
+Giai đoạn 7 là bước hoàn thiện `authentication` và `role authorization` thật cho backend. Đây là phần biến hệ thống từ một API có dữ liệu sang một ứng dụng mạng có kiểm soát truy cập đúng nghĩa.
 
-## 1. Muc tieu cua giai doan 7
+## 1. Mục tiêu của giai đoạn 7
 
-- Chot 3 role: `ADMIN`, `STAFF`, `USER`
-- Phan biet ro `401` va `403`
-- Phat va validate `JWT`
-- Khong cho role thuong cham vao route quan tri
-- Van de Swagger public de demo va test
+- chốt 3 role: `ADMIN`, `STAFF`, `USER`
+- phân biệt rõ `401` và `403`
+- phát và kiểm tra `JWT`
+- không cho role thường truy cập route quản trị
+- vẫn giữ `Swagger` và `health` ở trạng thái public để demo và test
 
-## 2. Cac file chinh da lam
+## 2. Các file chính của giai đoạn
 
 - `backend/src/main/java/com/company/securityapp/config/SecurityConfig.java`
 - `backend/src/main/java/com/company/securityapp/entity/User.java`
@@ -20,116 +19,136 @@ Trong repo nay, de khoa route dung nghia thi phai hoan thien JWT truoc, nen giai
 - `backend/src/main/java/com/company/securityapp/security/CustomUserDetailsService.java`
 - `backend/src/main/java/com/company/securityapp/security/JwtService.java`
 - `backend/src/main/java/com/company/securityapp/security/JwtAuthenticationFilter.java`
+- `backend/src/main/java/com/company/securityapp/security/ModernPasswordEncoder.java`
 - `backend/src/main/java/com/company/securityapp/service/AuthService.java`
 - `backend/src/main/java/com/company/securityapp/controller/AuthController.java`
 - `backend/src/main/java/com/company/securityapp/config/DemoUserInitializer.java`
 - `backend/src/test/java/com/company/securityapp/AuthSecurityIntegrationTest.java`
 
-## 3. Role matrix cuoi cung
+## 3. Role matrix hiện tại
 
-| Route | Quyen |
+| Route | Quyền |
 |---|---|
 | `/api/auth/register`, `/api/auth/login` | Public |
 | `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs/**`, `/api/health` | Public |
-| `/api/auth/me` | Chi can da xac thuc |
+| `/api/auth/me` | Chỉ cần đã xác thực |
 | `/api/admin/**` | `ADMIN` |
 | `/api/audit-logs/**` | `ADMIN` |
 | `/api/customers/**` | `ADMIN`, `STAFF` |
 
-## 4. Vi sao phai hoan thien auth that truoc khi khoa role
+Role matrix này là nền cho toàn bộ test case `401/403` trong Swagger, Postman và UI.
 
-Neu auth chi la stub thi role authorization khong co gia tri that, vi:
+## 4. Vì sao phải hoàn thiện auth thật trước khi khóa role
 
-- khong co token that de validate
-- khong co principal that trong security context
-- khong co user/role that trong database
+Nếu auth chỉ là stub thì role authorization không có giá trị thực tế, vì:
 
-Nen implementation di theo thu tu hop ly:
+- không có token thật để validate
+- không có principal thật trong `SecurityContext`
+- không có user và role thật trong database
 
-1. Tao `User` entity that.
-2. Hash password bang bcrypt.
-3. Tao `register/login/me`.
-4. Phat JWT.
-5. Dua user vao `SecurityContext`.
-6. Sau do moi ap role rule.
+Vì vậy thứ tự triển khai hợp lý là:
 
-## 5. `User` entity duoc thiet ke the nao
+1. tạo `User` entity thật
+2. hoàn thiện register và login
+3. hash password đúng chuẩn
+4. phát `JWT`
+5. nạp principal vào `SecurityContext`
+6. sau đó mới áp role rule
 
-`User` implement `UserDetails`.
+## 5. Password được xử lý như thế nào ở phiên bản hiện tại
 
-Y nghia:
+Phiên bản hiện tại không còn dùng `bcrypt` như cơ chế chính.
 
-- entity database co the di thang vao Spring Security
-- `getAuthorities()` tra ve `ROLE_ADMIN`, `ROLE_STAFF`, `ROLE_USER`
-- khong can tao adapter class vong vo
+`ModernPasswordEncoder` đang làm 3 việc:
 
-`passwordHash` duoc dat `@JsonIgnore` de tranh lo hash ra response.
+- hash mới bằng `Argon2id`
+- vẫn verify được hash `bcrypt` cũ
+- tự nâng cấp hash cũ sang `Argon2id` khi user login thành công
 
-## 6. JWT flow hoat dong ra sao
+Ý nghĩa:
+
+- `Argon2id` là hướng mới và an toàn hơn cho password storage
+- hệ thống không làm gãy dữ liệu user cũ nếu trước đây từng dùng `bcrypt`
+
+Đây là điểm rất phù hợp để giải thích với giảng viên khi bị hỏi “chuẩn hiện tại em dùng là gì”.
+
+## 6. JWT flow hoạt động ra sao
 
 ### `AuthService`
 
-- `register`: tao user moi, role mac dinh `USER`, hash password bang bcrypt
-- `login`: authenticate, tao JWT, tra `AuthResponse`
-- `me`: doc principal hien tai de tra ve user dang dang nhap
+- `register`: tạo user mới, role mặc định `USER`, hash password bằng `Argon2id`
+- `login`: authenticate, nâng cấp hash nếu cần, tạo `JWT`, trả `AuthResponse`
+- `me`: đọc principal hiện tại để trả user đang đăng nhập
 
 ### `JwtService`
 
-Service nay:
+Service này chịu trách nhiệm:
 
-- tao token
-- doc email tu token
-- kiem tra han
-- validate token voi `UserDetails`
+- tạo token
+- đọc email từ token
+- kiểm tra hạn
+- validate token với `UserDetails`
 
 ### `JwtAuthenticationFilter`
 
-Filter nay:
+Filter này thực hiện:
 
-1. Doc header `Authorization`
-2. Cat bo prefix `Bearer `
-3. Validate token
-4. Load user tu DB
-5. Dat `Authentication` vao `SecurityContext`
+1. đọc header `Authorization`
+2. cắt prefix `Bearer `
+3. validate token
+4. load user từ DB
+5. đặt `Authentication` vào `SecurityContext`
 
-## 7. `401` va `403` duoc tach the nao
+## 7. `401` và `403` được tách như thế nào
 
 Trong `SecurityConfig`:
 
-- `AuthenticationEntryPoint` xu ly `401`
-- `AccessDeniedHandler` xu ly `403`
+- `AuthenticationEntryPoint` xử lý `401`
+- `AccessDeniedHandler` xử lý `403`
 
-Y nghia:
+Ý nghĩa:
 
-- khong co token hoac token sai => `401`
-- co token hop le nhung role khong du => `403`
+- không có token hoặc token sai => `401`
+- có token hợp lệ nhưng role không đủ => `403`
 
-Day la diem nguoi cham bai rat de hoi.
+Đây là một trong những điểm người chấm rất hay hỏi vì nó thể hiện sự khác nhau giữa `authentication` và `authorization`.
 
-## 8. Demo user duoc sinh de lam gi
+## 8. Demo user được tạo để làm gì
 
-`DemoUserInitializer` tao san:
+`DemoUserInitializer` tạo sẵn:
 
 - `admin@securityapp.local`
 - `staff@securityapp.local`
 - `user@securityapp.local`
 
-Tac dung:
+Tác dụng:
 
-- demo nhanh khong phai seed tay
-- Postman va Swagger co account on dinh de test
-- giam cong chuan bi moi lan chay lai he thong
+- demo nhanh không cần seed tay
+- `Swagger`, `Postman` và UI có account ổn định để test
+- giảm công chuẩn bị mỗi lần chạy lại stack
 
-## 9. Test cua giai doan 7 chung minh dieu gi
+## 9. Liên hệ với runtime hiện tại
 
-`AuthSecurityIntegrationTest` cover:
+Các entrypoint đang dùng để demo auth:
 
-- register/login/me flow chay that
-- token sai hoac thieu token bi `401`
-- `STAFF` vao duoc customer API
-- `USER` bi chan khoi customer API
-- `ADMIN` vao duoc summary
+- local: `https://localhost/login`, `https://localhost/swagger-ui.html`
+- public domain: `https://demo.hackerlo.online/login`, `https://demo.hackerlo.online/swagger-ui.html`
 
-## 10. Cach tom tat khi thuyet trinh
+Trong đó:
 
-> Giai doan 7 cua em khong chi viet role rule, ma hoan thien luon JWT auth de role rule co gia tri that. He thong phan biet ro `401` va `403`, co 3 role `ADMIN`, `STAFF`, `USER`, va chi mo dung nhung route can thiet cho tung nhom nguoi dung.
+- `localhost` là mode chính cho test nội bộ
+- `demo.hackerlo.online` là mode công khai khi `Cloudflare Tunnel` đang bật
+
+## 10. Test của giai đoạn 7 chứng minh điều gì
+
+`AuthSecurityIntegrationTest` đang cover các điểm chính:
+
+- register, login và `me` flow chạy thật
+- thiếu token hoặc token sai bị `401`
+- `USER` bị chặn khỏi customer API và admin summary
+- `STAFF` vào được customer API
+- hash `bcrypt` legacy được nâng cấp sang `Argon2id` sau login thành công
+
+## 11. Cách tóm tắt khi thuyết trình
+
+> Giai đoạn 7 của em không chỉ viết role rule, mà hoàn thiện luôn auth thật bằng JWT để role rule có giá trị thực tế. Hệ thống có 3 role `ADMIN`, `STAFF`, `USER`, phân biệt rõ `401` và `403`, password hash mới dùng `Argon2id` và vẫn hỗ trợ `bcrypt` legacy để tương thích dữ liệu cũ.

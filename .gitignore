@@ -14,6 +14,15 @@ out/
 .env.local
 .env.*.local
 
+# Local TLS certificates
+deploy/ssl/*.pem
+
+# Cloudflare Tunnel local files
+deploy/cloudflared/*.json
+deploy/cloudflared/config.local.yml
+deploy/cloudflared/*.local.yml
+deploy/cloudflared/*.log
+
 # IDE
 .idea/
 .vscode/

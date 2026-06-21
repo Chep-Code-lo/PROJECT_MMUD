@@ -1,0 +1,16 @@
+# Copy this file to deploy/cloudflared/config.local.yml
+# and replace the placeholder values on your own machine.
+#
+# This file is intentionally kept separate from the team's localhost flow.
+# The shared repo can stay on https://localhost while your machine exposes
+# a public hostname through Cloudflare Tunnel.
+
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: C:\Users\<your-user>\.cloudflared\REPLACE_WITH_TUNNEL_UUID.json
+
+ingress:
+  - hostname: demo.example.com
+    service: https://localhost
+    originRequest:
+      noTLSVerify: true
+  - service: http_status:404

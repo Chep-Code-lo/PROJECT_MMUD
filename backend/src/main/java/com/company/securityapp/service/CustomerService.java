@@ -97,9 +97,19 @@ public class CustomerService {
     private void applyRequest(Customer customer, CustomerRequest request, String normalizedEmail) {
         customer.setName(normalizeText(request.name()));
         customer.setEmail(normalizedEmail);
-        customer.setPhoneEncrypted(encryptionService.encrypt(normalizeText(request.phone())));
-        customer.setAddressEncrypted(encryptionService.encrypt(normalizeText(request.address())));
-        customer.setTaxCodeEncrypted(encryptionService.encrypt(normalizeText(request.taxCode())));
+        customer.setKeyVersion(encryptionService.getCurrentKeyVersion());
+        customer.setPhoneEncrypted(encryptionService.encryptCustomerField(
+                normalizeText(request.phone()),
+                normalizedEmail,
+                "phone"));
+        customer.setAddressEncrypted(encryptionService.encryptCustomerField(
+                normalizeText(request.address()),
+                normalizedEmail,
+                "address"));
+        customer.setTaxCodeEncrypted(encryptionService.encryptCustomerField(
+                normalizeText(request.taxCode()),
+                normalizedEmail,
+                "taxCode"));
     }
 
     private CustomerResponse toResponse(Customer customer) {
@@ -107,9 +117,21 @@ public class CustomerService {
                 customer.getId(),
                 customer.getName(),
                 customer.getEmail(),
-                encryptionService.decrypt(customer.getPhoneEncrypted()),
-                encryptionService.decrypt(customer.getAddressEncrypted()),
-                encryptionService.decrypt(customer.getTaxCodeEncrypted()),
+                encryptionService.decryptCustomerField(
+                        customer.getPhoneEncrypted(),
+                        customer.getEmail(),
+                        "phone",
+                        customer.getKeyVersion()),
+                encryptionService.decryptCustomerField(
+                        customer.getAddressEncrypted(),
+                        customer.getEmail(),
+                        "address",
+                        customer.getKeyVersion()),
+                encryptionService.decryptCustomerField(
+                        customer.getTaxCodeEncrypted(),
+                        customer.getEmail(),
+                        "taxCode",
+                        customer.getKeyVersion()),
                 customer.getCreatedAt(),
                 customer.getUpdatedAt());
     }

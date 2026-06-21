@@ -58,6 +58,7 @@ public class AuthService {
         return toUserResponse(userRepository.save(user));
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         String normalizedEmail = normalizeEmail(request.email());
 
@@ -71,6 +72,11 @@ public class AuthService {
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid email or password."));
+
+        if (passwordEncoder.upgradeEncoding(user.getPasswordHash())) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+            user = userRepository.save(user);
+        }
 
         String token = jwtService.generateToken(user);
         auditLogService.logAuthenticationSuccess(user);

@@ -21,8 +21,8 @@ services:
     build:
       context: ./backend
     container_name: securityapp-backend
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:mysql://database:3306/securityapp?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -32,8 +32,8 @@ services:
       APP_AES_SECRET: change-this-32-char-aes-secret-key
       APP_DEMO_USERS_ENABLED: "true"
       APP_DEMO_USERS_PASSWORD: Password@123
-      APP_API_BASE_URL: http://localhost:8080
-      APP_CORS_ALLOWED_ORIGINS: http://localhost:3000
+      APP_API_BASE_URL: https://localhost
+      APP_CORS_ALLOWED_ORIGINS: https://localhost,https://127.0.0.1
     depends_on:
       database:
         condition: service_healthy
@@ -42,11 +42,22 @@ services:
     build:
       context: ./frontend
     container_name: securityapp-frontend
-    ports:
-      - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+    expose:
+      - "3000"
     depends_on:
+      - backend
+
+  nginx:
+    build:
+      context: ./deploy/nginx
+    container_name: securityapp-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
       - backend
 
 volumes:

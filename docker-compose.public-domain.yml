@@ -1,0 +1,5 @@
+services:
+  backend:
+    environment:
+      APP_API_BASE_URL: https://demo.hackerlo.online
+      APP_CORS_ALLOWED_ORIGINS: https://demo.hackerlo.online,https://localhost,https://127.0.0.1

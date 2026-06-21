@@ -3,7 +3,7 @@ env:
   - excludePaths: []
     name: baseline
     urls:
-    - http://host.docker.internal:8080/swagger-ui.html
+    - https://nginx/swagger-ui.html
   parameters:
     failOnError: false
     progressToStdout: false
@@ -14,7 +14,7 @@ jobs:
   type: passiveScan-config
 - parameters:
     maxDuration: 1
-    url: http://host.docker.internal:8080/swagger-ui.html
+    url: https://nginx/swagger-ui.html
   type: spider
 - parameters:
     maxDuration: 0
@@ -28,20 +28,20 @@ jobs:
     reportDescription: ''
     reportDir: /zap/wrk/
     reportFile: zap-baseline-report.html
-    reportTitle: ZAP Scanning Report
+    reportTitle: ZAP Scanning Report (HTTPS Edge)
     template: traditional-html
   type: report
 - parameters:
     reportDescription: ''
     reportDir: /zap/wrk/
     reportFile: zap-baseline-report.xml
-    reportTitle: ZAP Scanning Report
+    reportTitle: ZAP Scanning Report (HTTPS Edge)
     template: traditional-xml
   type: report
 - parameters:
     reportDescription: ''
     reportDir: /zap/wrk/
     reportFile: zap-baseline-report.json
-    reportTitle: ZAP Scanning Report
+    reportTitle: ZAP Scanning Report (HTTPS Edge)
     template: traditional-json
   type: report

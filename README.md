@@ -38,12 +38,26 @@ Lưu ý:
 ### Bắt buộc cho cả 2 chế độ
 
 - Đã bật `Docker Desktop`
-- Máy còn trống các port `80`, `443`, `3307`
+- Máy còn trống các port mặc định `80`, `443`, `3307`
 - Đang đứng ở thư mục project:
 
 ```powershell
 cd E:\PROJECT_MMUD
 ```
+
+Nếu máy không bind được `80/443` do bị chặn hoặc bị chiếm port, có thể đổi sang port khác bằng file `.env` ở thư mục gốc. Ví dụ:
+
+```powershell
+@"
+LOCAL_HTTP_PORT=8080
+LOCAL_HTTPS_PORT=8443
+LOCAL_DB_PORT=3307
+LOCAL_BASE_URL=https://localhost:8443
+LOCAL_ALLOWED_ORIGINS=https://localhost:8443,https://127.0.0.1:8443
+"@ | Set-Content .env
+```
+
+Sau đó chạy bình thường bằng `docker compose up -d --build` và mở `https://localhost:8443`.
 
 ### Chỉ cần nếu muốn chạy public domain
 
@@ -71,6 +85,8 @@ deploy\cloudflared\config.hackerlo.local.yml
 docker compose up -d --build
 docker compose ps
 ```
+
+Nếu đang dùng port thay thế qua `.env`, hãy mở đúng URL theo `LOCAL_BASE_URL`.
 
 Kỳ vọng:
 

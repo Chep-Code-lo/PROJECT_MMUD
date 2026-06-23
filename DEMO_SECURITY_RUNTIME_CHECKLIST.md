@@ -46,7 +46,7 @@ docker compose ps
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.public-domain.yml up -d --build
-powershell -ExecutionPolicy Bypass -File .\deploy\cloudflared\start-hackerlo-tunnel.ps1
+& .\deploy\cloudflared\start-hackerlo-tunnel.ps1
 ```
 
 ### Kiểm tra nhanh

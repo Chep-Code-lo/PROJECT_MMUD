@@ -23,6 +23,12 @@ services:
     container_name: securityapp-backend
     expose:
       - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:mysql://database:3306/securityapp?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -44,6 +50,12 @@ services:
     container_name: securityapp-frontend
     expose:
       - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
     depends_on:
       - backend
 
@@ -57,8 +69,10 @@ services:
     volumes:
       - ./deploy/ssl:/etc/nginx/ssl
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
 
 volumes:
   mysql_data:

@@ -157,8 +157,8 @@ docker compose ps
 ### 5.3. Bật tunnel
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\deploy\cloudflared\start-hackerlo-tunnel.ps1
-powershell -ExecutionPolicy Bypass -File .\deploy\cloudflared\status-hackerlo-tunnel.ps1
+& .\deploy\cloudflared\start-hackerlo-tunnel.ps1
+& .\deploy\cloudflared\status-hackerlo-tunnel.ps1
 ```
 
 ### 5.4. URL public cần dùng
@@ -193,7 +193,7 @@ Lưu ý:
 ### 5.6. Tắt public domain
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\deploy\cloudflared\stop-hackerlo-tunnel.ps1
+& .\deploy\cloudflared\stop-hackerlo-tunnel.ps1
 ```
 
 Sau khi tắt tunnel:

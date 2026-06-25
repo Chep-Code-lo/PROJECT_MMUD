@@ -385,13 +385,25 @@
     },
     {
       "name": "Webhook Invalid HMAC",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const eventId = `evt_invalid_${Date.now()}`;",
+              "const timestamp = Math.floor(Date.now() / 1000).toString();",
+              "pm.request.headers.upsert({ key: 'X-Event-Id', value: eventId });",
+              "pm.request.headers.upsert({ key: 'X-Timestamp', value: timestamp });",
+              "pm.request.headers.upsert({ key: 'X-Signature', value: 'bad-signature' });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "X-Event-Id", "value": "evt_invalid_signature" },
-          { "key": "X-Timestamp", "value": "1735689600" },
-          { "key": "X-Signature", "value": "bad-signature" }
+          { "key": "Content-Type", "value": "application/json" }
         ],
         "body": {
           "mode": "raw",

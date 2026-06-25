@@ -7,6 +7,5 @@ public record CourseSummaryResponse(
         String title,
         String summary,
         BigDecimal price,
-        boolean published,
         String instructorName) {
 }

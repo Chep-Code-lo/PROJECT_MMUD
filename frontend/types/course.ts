@@ -3,7 +3,6 @@ export type CourseSummary = {
   title: string;
   summary: string;
   price: number;
-  published: boolean;
   instructorName: string;
 };
 
@@ -21,7 +20,6 @@ export type CourseDetail = {
   summary: string;
   description: string;
   price: number;
-  published: boolean;
   instructorName: string;
   enrolled: boolean;
   lessons: LessonPreview[];

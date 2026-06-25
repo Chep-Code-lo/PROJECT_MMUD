@@ -1,83 +1,54 @@
-# Demo 02: JWT và Bearer Token
+# Demo 02: JWT, Bearer Token, Refresh Token và Logout
 
 ## 1. Mục tiêu
 
-Demo này dùng để chứng minh:
+Demo này nhằm chứng minh:
 
-- Sau khi đăng nhập, backend phát hành access token dạng JWT
-- API protected chỉ chấp nhận request có Bearer token hợp lệ
-- Nếu token bị sửa payload hoặc sai chữ ký thì backend từ chối
-- Nếu token hết hạn thì backend cũng từ chối
-- Refresh token có thể dùng để xin access token mới
+1. Sau khi đăng nhập, backend phát hành `accessToken` dạng JWT.
+2. API protected chỉ chấp nhận `Authorization: Bearer <token>`.
+3. Nếu token bị sửa payload, sai chữ ký hoặc hết hạn thì backend sẽ từ chối.
+4. Refresh token dùng để xin access token mới.
+5. Logout thực chất là thu hồi refresh token ở phía server.
 
 ## 2. Chuẩn bị
 
 ### 2.1. Khởi động hệ thống
 
 ```powershell
+cd E:\PROJECT_MMUD
 docker compose up --build -d
 ```
 
-### 2.2. Tài khoản sử dụng
+### 2.2. Tài khoản nên dùng
 
 - `student1@example.com / Password123!`
 
-### 2.3. Thực hiện demo này ở đâu
+### 2.3. Thực hiện ở đâu
 
-Demo 02 nên dùng **2 nơi**:
+Demo này nên dùng:
 
-#### Nơi 1: Swagger để gọi API
-
-Mở trên máy host:
+- `Swagger` để đăng nhập, gọi `me`, `refresh`, `logout`:
 
 ```text
 https://localhost/swagger-ui.html
 ```
 
-Tại đây bạn sẽ:
+- `PowerShell` để:
+  - giải mã payload JWT ngay trên máy local
+  - chỉnh thời gian hết hạn trong `.env`
+  - hoặc thử token đã bị sửa payload
 
-- gọi `POST /api/auth/login`;
-- gọi `GET /api/auth/me`;
-- gọi `POST /api/auth/refresh`;
-- dán Bearer token vào nút `Authorize`.
+## 3. Các bước thực hiện chi tiết
 
-#### Nơi 2: PowerShell nếu muốn demo token hết hạn nhanh
+### Bước 1: Đăng nhập để lấy JWT
 
-Bạn chỉ cần PowerShell khi muốn:
+Trên Swagger, vào `Auth API`, mở:
 
-- sửa `.env`;
-- khởi động lại Docker;
-- hoặc chạy test tự động để minh họa token bị sửa payload.
-
-#### Có cần dùng frontend không
-
-Không. Demo JWT nên làm trực tiếp bằng Swagger hoặc Postman để giảng viên nhìn rõ:
-
-- token được trả về thế nào;
-- token được gửi qua header ra sao;
-- backend trả mã trạng thái gì khi token sai.
-
-## 3. Các bước thực hiện
-
-### Bước 1: Mở Swagger
-
-Truy cập:
-
-```text
-https://localhost/swagger-ui.html
+```http
+POST /api/auth/login
 ```
 
-Sau đó:
-
-1. Tìm nhóm `Auth API`
-2. Mở endpoint `POST /api/auth/login`
-3. Bấm `Try it out`
-
-Nếu trình duyệt cảnh báo certificate tự ký, hãy chọn tiếp tục vì đây là môi trường demo local.
-
-### Bước 2: Đăng nhập để lấy JWT
-
-Tại `POST /api/auth/login`, nhập body:
+Body:
 
 ```json
 {
@@ -86,16 +57,10 @@ Tại `POST /api/auth/login`, nhập body:
 }
 ```
 
-Thao tác:
-
-1. Dán JSON vào request body
-2. Bấm `Execute`
-3. Quan sát response
-
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Response có:
+- HTTP `200 OK`
+- response có:
   - `accessToken`
   - `refreshToken`
   - `tokenType`
@@ -104,107 +69,145 @@ Kết quả mong đợi:
   - `role`
   - `scope`
 
-Điểm cần nói khi demo:
+### Bước 2: Giải mã payload JWT ngay trên máy local
 
-- `accessToken` chính là JWT dùng cho các request protected
-- `refreshToken` dùng để xin token mới khi access token hết hạn
+Sau khi có `accessToken`, mở PowerShell và thay `<ACCESS_TOKEN>` bằng token thật:
 
-### Bước 3: Dùng Bearer token để gọi API bảo vệ
-
-Sao chép giá trị `accessToken`, sau đó:
-
-1. Bấm nút `Authorize` ở góc trên của Swagger
-2. Nhập:
-
-```text
-Bearer <accessToken>
+```powershell
+$token = "<ACCESS_TOKEN>"
+$payloadPart = $token.Split(".")[1]
+$padding = "=" * ((4 - $payloadPart.Length % 4) % 4)
+$payloadJson = [System.Text.Encoding]::UTF8.GetString(
+  [Convert]::FromBase64String(($payloadPart + $padding).Replace("-", "+").Replace("_", "/"))
+)
+$payloadJson
 ```
 
-3. Bấm `Authorize`
-4. Đóng hộp thoại
-
-Tiếp theo:
-
-1. Mở endpoint `GET /api/auth/me`
-2. Bấm `Try it out`
-3. Bấm `Execute`
-
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Response hiển thị đúng thông tin người dùng hiện tại
-
-Ý nghĩa:
-
-- Client chỉ cần gửi `Authorization: Bearer <token>`
-- Backend sẽ kiểm tra chữ ký, thời gian sống và quyền trước khi cho truy cập
-
-### Bước 4: Thử gọi API mà không có token
-
-Để mô tả tình huống không có Bearer token:
-
-1. Bấm lại `Authorize`
-2. Chọn `Logout` hoặc xóa giá trị Bearer token
-3. Đóng hộp thoại
-4. Gọi lại `GET /api/auth/me`
-
-Kết quả mong đợi:
-
-- Trả `401 Unauthorized`
+- payload hiển thị được các claim như:
+  - `sub`
+  - `email`
+  - `role`
+  - `scope`
+  - `token_type`
+  - `iat`
+  - `exp`
 
 Điểm cần nói:
 
-- Đây là bằng chứng API protected không cho truy cập ẩn danh
+- `sub` là user id
+- `iat` là thời điểm phát hành token
+- `exp` là thời điểm hết hạn token
 
-### Bước 5: Thử token bị sửa payload
+### Bước 3: Dùng Bearer token để gọi API bảo vệ
 
-Phần này nên làm bằng một token demo local, không dùng token của môi trường thật.
-
-#### Cách làm thủ công
-
-1. Đăng nhập lại để lấy một `accessToken` mới
-2. Sao chép token đó
-3. Mở công cụ xem JWT hoặc trình chỉnh sửa JWT
-4. Giải mã phần payload
-5. Sửa một trường dễ thấy, ví dụ:
-   - đổi `email`
-   - hoặc đổi `role`
-6. Giữ nguyên phần chữ ký cũ
-7. Ghép lại thành token mới đã bị sửa payload
-
-Quay lại Swagger:
+Trong Swagger:
 
 1. Bấm `Authorize`
 2. Nhập:
 
 ```text
-Bearer <tamperedToken>
+Bearer <access-token>
 ```
 
-3. Gọi lại `GET /api/auth/me`
+3. Bấm `Authorize`
+4. Đóng hộp thoại
+
+Sau đó gọi:
+
+```http
+GET /api/auth/me
+```
 
 Kết quả mong đợi:
 
-- Trả `401 Unauthorized`
-- Backend phát hiện chữ ký không còn hợp lệ
+- HTTP `200 OK`
+- response trả đúng thông tin của `student1@example.com`
 
-#### Cách minh họa nhanh bằng test tự động
+### Bước 4: Gọi API khi không có token
 
-Mở PowerShell:
+Trong Swagger:
+
+1. Bấm lại `Authorize`
+2. Chọn `Logout`
+3. Gọi lại:
+
+```http
+GET /api/auth/me
+```
+
+Kết quả mong đợi:
+
+- HTTP `401 Unauthorized`
+- message:
+
+```text
+Authentication is required.
+```
+
+### Bước 5: Thử token sai định dạng Bearer
+
+Phần này nên làm bằng PowerShell vì Swagger luôn tự thêm đúng tiền tố `Bearer`.
+
+```powershell
+curl.exe -k -i https://localhost/api/auth/me -H "Authorization: <ACCESS_TOKEN>"
+```
+
+Kết quả mong đợi:
+
+- HTTP `401 Unauthorized`
+- message:
+
+```text
+Authorization header must use Bearer token format.
+```
+
+### Bước 6: Thử token bị sửa payload
+
+Đây là phần rất quan trọng của demo JWT.
+
+Mở PowerShell và chạy:
+
+```powershell
+$login = curl.exe -k -s https://localhost/api/auth/login `
+  -H "Content-Type: application/json" `
+  -d '{"email":"student1@example.com","password":"Password123!"}' | ConvertFrom-Json
+
+$parts = $login.accessToken.Split(".")
+$payloadPart = $parts[1]
+$padding = "=" * ((4 - $payloadPart.Length % 4) % 4)
+$payloadJson = [System.Text.Encoding]::UTF8.GetString(
+  [Convert]::FromBase64String(($payloadPart + $padding).Replace("-", "+").Replace("_", "/"))
+)
+$payload = $payloadJson | ConvertFrom-Json
+$payload.role = "ADMIN"
+$newPayloadJson = $payload | ConvertTo-Json -Compress
+$newPayload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($newPayloadJson)).TrimEnd("=").Replace("+", "-").Replace("/", "_")
+$tamperedToken = "$($parts[0]).$newPayload.$($parts[2])"
+
+curl.exe -k -i https://localhost/api/auth/me -H "Authorization: Bearer $tamperedToken"
+```
+
+Kết quả mong đợi:
+
+- HTTP `401 Unauthorized`
+- message:
+
+```text
+JWT signature is invalid.
+```
+
+Nếu muốn minh họa lại bằng integration test:
 
 ```powershell
 cd E:\PROJECT_MMUD\backend
 mvn -Dtest=AuthSecurityIntegrationTest#tamperedJwtPayloadIsRejected test
 ```
 
-Kết quả mong đợi:
+### Bước 7: Thử refresh token
 
-- Test chạy thành công
-- Chứng minh hệ thống từ chối JWT bị sửa payload
-
-### Bước 6: Thử refresh token
-
-Quay lại Swagger, mở:
+Trên Swagger, mở:
 
 ```http
 POST /api/auth/refresh
@@ -214,61 +217,17 @@ Body:
 
 ```json
 {
-  "refreshToken": "<refreshToken lấy từ bước đăng nhập>"
+  "refreshToken": "<refresh-token vừa lấy được>"
 }
 ```
 
-Thao tác:
-
-1. Bấm `Try it out`
-2. Dán `refreshToken`
-3. Bấm `Execute`
-
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Response trả:
-  - `accessToken` mới
-  - `refreshToken` mới
+- HTTP `200 OK`
+- response trả `accessToken` mới
+- response trả `refreshToken` mới
 
-Tiếp tục kiểm tra:
-
-1. Copy `accessToken` mới
-2. Bấm `Authorize`
-3. Nhập `Bearer <accessToken-moi>`
-4. Gọi lại `GET /api/auth/me`
-
-Kết quả mong đợi:
-
-- Vẫn trả `200 OK`
-
-### Bước 7: Thử token hết hạn
-
-Phần này cần làm trên PowerShell vì phải chỉnh cấu hình môi trường.
-
-#### 7.1. Giảm thời gian sống của access token
-
-Mở file `.env`, chỉnh:
-
-```text
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1
-```
-
-#### 7.2. Khởi động lại hệ thống
-
-```powershell
-cd E:\PROJECT_MMUD
-docker compose down
-docker compose up --build -d
-```
-
-#### 7.3. Đăng nhập lại trên Swagger
-
-Lấy `accessToken` mới bằng `POST /api/auth/login`.
-
-#### 7.4. Chờ token hết hạn
-
-Chờ khoảng 70 đến 90 giây, sau đó gọi:
+Sau đó dùng `accessToken` mới gọi lại:
 
 ```http
 GET /api/auth/me
@@ -276,55 +235,136 @@ GET /api/auth/me
 
 Kết quả mong đợi:
 
-- Trả `401 Unauthorized`
+- vẫn trả `200 OK`
 
-Sau khi demo xong, nên đổi lại `.env` về:
+### Bước 8: Thử logout và dùng lại refresh token cũ
+
+Đầu tiên, `Authorize` bằng `accessToken` mới ở bước 7. Sau đó gọi:
+
+```http
+POST /api/auth/logout
+```
+
+Body:
+
+```json
+{
+  "refreshToken": "<refresh-token mới ở bước 7>"
+}
+```
+
+Kết quả mong đợi:
+
+- HTTP `200 OK`
+- message:
+
+```text
+Refresh token revoked successfully.
+```
+
+Tiếp theo thử dùng lại chính refresh token đó tại:
+
+```http
+POST /api/auth/refresh
+```
+
+Kết quả mong đợi:
+
+- HTTP `401 Unauthorized`
+- message:
+
+```text
+Refresh token has been revoked.
+```
+
+### Bước 9: Demo token hết hạn
+
+Hiện tại project chưa có test riêng cho token hết hạn, nên phần này nên demo thủ công.
+
+Mở `.env`, chỉnh:
+
+```text
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1
+```
+
+Khởi động lại stack:
+
+```powershell
+cd E:\PROJECT_MMUD
+docker compose down
+docker compose up --build -d
+```
+
+Sau đó:
+
+1. đăng nhập lại để lấy access token mới
+2. chờ khoảng `70` đến `90` giây
+3. gọi lại:
+
+```http
+GET /api/auth/me
+```
+
+Kết quả mong đợi:
+
+- HTTP `401 Unauthorized`
+- message:
+
+```text
+JWT access token has expired.
+```
+
+Sau khi demo xong, nhớ đổi lại:
 
 ```text
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=15
 ```
 
-rồi khởi động lại Docker để hệ thống quay về cấu hình bình thường.
+rồi khởi động lại Docker.
 
-## 4. Cách trình bày ngắn gọn trước giảng viên
+## 4. Kết quả mong đợi
 
-Bạn có thể trình bày theo đúng thứ tự này:
+Sau khi làm xong Demo 02, bạn cần chứng minh được:
 
-1. Mở Swagger tại `https://localhost/swagger-ui.html`
-2. Đăng nhập để lấy `accessToken`
-3. Dùng `Authorize` để gọi `GET /api/auth/me`
-4. Xóa Bearer token và gọi lại để chứng minh API trả `401`
-5. Sửa payload token rồi gọi lại để chứng minh chữ ký không còn hợp lệ
-6. Dùng `refreshToken` để xin `accessToken` mới
-7. Nếu cần, giảm thời gian sống token xuống 1 phút để demo hết hạn
+1. `accessToken` chứa đầy đủ claim phục vụ xác thực và phân quyền.
+2. API protected chỉ chấp nhận đúng Bearer token hợp lệ.
+3. Token bị sửa payload sẽ bị từ chối vì chữ ký không còn hợp lệ.
+4. Refresh token có thể quay vòng để xin token mới.
+5. Refresh token đã logout thì không dùng lại được.
 
-Nếu giảng viên hỏi “demo này thực hiện ở đâu”, câu trả lời chuẩn là:
+## 5. Câu nên nói khi trình bày
 
-- **Swagger để gọi API**
-- **PowerShell khi cần chỉnh thời gian hết hạn hoặc chạy test tự động**
+- JWT giúp backend xác thực request theo mô hình stateless.
+- Payload của JWT chỉ có ý nghĩa khi chữ ký còn hợp lệ.
+- Nếu ai đó tự ý sửa payload nhưng không có secret phía server thì token sẽ bị bác bỏ.
+- Access token nên sống ngắn để giảm rủi ro nếu bị lộ.
+- Refresh token tồn tại lâu hơn nhưng vẫn có thể bị thu hồi khi logout hoặc reset password.
 
-## 5. Giải thích ngắn gọn để trình bày
+## 6. Ảnh nên chụp cho báo cáo
 
-- JWT được dùng để xác thực request trong mô hình stateless
-- Payload chỉ có giá trị khi chữ ký còn hợp lệ
-- Nếu kẻ tấn công sửa nội dung token nhưng không có secret của server, token sẽ bị từ chối
-- Access token sống ngắn để giảm rủi ro lộ lọt
-- Refresh token giúp xin access token mới mà không cần đăng nhập lại ngay
+- Ảnh `POST /api/auth/login` trả `accessToken`.
+- Ảnh PowerShell giải mã payload JWT.
+- Ảnh `GET /api/auth/me` trả `200 OK`.
+- Ảnh gọi `GET /api/auth/me` khi không có token và nhận `401`.
+- Ảnh token bị sửa payload và bị từ chối.
+- Ảnh `POST /api/auth/refresh` trả token mới.
+- Ảnh `POST /api/auth/logout` thu hồi refresh token.
+- Nếu demo phần hết hạn, thêm ảnh `JWT access token has expired.`
 
-## 6. Minh chứng nên chụp cho báo cáo
+## 7. Cách reset sau demo
 
-- Ảnh `POST /api/auth/login` trả về `accessToken`
-- Ảnh `GET /api/auth/me` trả `200`
-- Ảnh gọi `GET /api/auth/me` khi không có token và nhận `401`
-- Ảnh token bị sửa payload và bị từ chối
-- Ảnh `POST /api/auth/refresh` trả token mới
-- Nếu có, ảnh token hết hạn bị từ chối
+Nếu bạn đã đổi thời gian hết hạn token trong `.env`, hãy đổi lại cấu hình mặc định rồi khởi động lại stack:
 
-## 7. Kết luận
+```powershell
+docker compose down
+docker compose up --build -d
+```
 
-Demo này chứng minh hệ thống đã triển khai xác thực Bearer token đúng bản chất:
+## 8. Kết luận
 
-- Có phát hành JWT
-- Có kiểm tra chữ ký
-- Có từ chối token sai hoặc hết hạn
-- Có cơ chế refresh token để minh họa khái niệm OAuth2 cơ bản
+Demo này chứng minh hệ thống đã triển khai JWT đúng trọng tâm môn Mật mã ứng dụng:
+
+- có phát hành access token
+- có kiểm tra chữ ký và thời gian sống
+- có cơ chế refresh token
+- có thu hồi refresh token khi logout

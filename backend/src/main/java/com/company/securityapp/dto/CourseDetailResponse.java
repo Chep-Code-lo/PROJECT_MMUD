@@ -9,7 +9,6 @@ public record CourseDetailResponse(
         String summary,
         String description,
         BigDecimal price,
-        boolean published,
         String instructorName,
         boolean enrolled,
         List<LessonPreviewResponse> lessons) {

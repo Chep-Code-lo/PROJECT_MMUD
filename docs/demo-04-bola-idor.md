@@ -2,14 +2,14 @@
 
 ## 1. Mục tiêu
 
-Demo này dùng để chứng minh:
+Demo này nhằm chứng minh:
 
-- Sinh viên chỉ xem được dữ liệu thuộc về chính mình
-- Nếu đổi `id` trên URL để truy cập tài nguyên của người khác thì backend sẽ chặn
-- Việc chặn diễn ra ở phía server, không phụ thuộc vào việc ẩn nút trên giao diện
-- Hệ thống có ghi audit log khi phát hiện truy cập trái phép
+1. Sinh viên chỉ được xem tài nguyên thuộc về chính mình.
+2. Nếu đổi `id` trên URL để truy cập dữ liệu của người khác thì backend sẽ chặn ở phía server.
+3. Hệ thống trả `403 Forbidden` và ghi audit log khi phát hiện truy cập trái phép.
+4. Admin có luồng quản trị riêng, không dùng các endpoint student-only để đọc dữ liệu cá nhân của học viên.
 
-## 2. Endpoint phù hợp để minh họa
+## 2. Các endpoint phù hợp để minh họa
 
 - `GET /api/certificates/{certificateId}`
 - `GET /api/enrollments/{enrollmentId}`
@@ -18,55 +18,49 @@ Demo này dùng để chứng minh:
 
 Trong buổi demo, nên ưu tiên endpoint chứng chỉ vì:
 
-- dễ lấy `certificateId`;
-- dễ giải thích “đổi ID trên URL”;
-- dễ chụp minh chứng.
+- dễ lấy `certificateId`
+- dễ giải thích kiểu tấn công đổi ID trên URL
+- response rất rõ ràng giữa `200` và `403`
 
 ## 3. Chuẩn bị
 
 ### 3.1. Khởi động hệ thống
 
 ```powershell
+cd E:\PROJECT_MMUD
 docker compose up --build -d
 ```
 
-### 3.2. Tài khoản dùng để minh họa
+### 3.2. Tài khoản nên dùng
 
 - `student1@example.com / Password123!`
 - `student2@example.com / Password123!`
 - `admin@example.com / Admin123!`
 
-### 3.3. Dữ liệu seed thuận tiện cho demo
+### 3.3. Dữ liệu seed phục vụ demo
 
-- `student1` đã có certificate của khóa `Java Security Basics`
-- `student2` không sở hữu certificate đó
+- `student1` đã có chứng chỉ của khóa `Java Security Basics`
+- `student2` không sở hữu chứng chỉ đó
+- admin có quyền xem audit log và hồ sơ học viên qua khu vực quản trị
 
-### 3.4. Thực hiện demo này ở đâu
+### 3.4. Thực hiện ở đâu
 
-Demo 04 nên dùng **Postman** là chính. Lý do:
+Demo này nên làm bằng `Postman` vì cần giữ nhiều token cùng lúc.
 
-- cần giữ đồng thời token của `student1`, `student2`, `admin`;
-- cần đổi qua lại nhiều token;
-- collection của project đã có sẵn các request gần như đủ cho demo này.
-
-File collection:
+Collection dùng sẵn:
 
 ```text
 postman/online-course-security.postman_collection.json
 ```
 
-Bạn vẫn có thể làm bằng Swagger, nhưng sẽ phải đổi token liên tục trong nút `Authorize`, khá rối khi demo trước giảng viên.
-
 ## 4. Chuẩn bị Postman
 
-### Bước 1: Mở Postman
+### Bước 1: Tắt kiểm tra SSL self-signed
 
-Nếu Postman đang bật kiểm tra SSL nghiêm ngặt, hãy vào:
+Trong Postman:
 
-1. `Settings`
-2. Tắt `SSL certificate verification`
-
-vì hệ thống local đang dùng certificate tự ký.
+1. vào `Settings`
+2. tắt `SSL certificate verification`
 
 ### Bước 2: Import collection
 
@@ -78,26 +72,32 @@ postman/online-course-security.postman_collection.json
 
 ### Bước 3: Kiểm tra biến collection
 
-Biến quan trọng:
+Biến quan trọng nhất:
 
-- `baseUrl = https://localhost`
+```text
+baseUrl = https://localhost
+```
 
-Các biến token và `victimCertificateId` sẽ được collection tự cập nhật trong lúc chạy.
+Nếu muốn test qua domain public khi tunnel đang bật, có thể tạm đổi thành:
 
-## 5. Kịch bản demo khuyến nghị
+```text
+baseUrl = https://hackerlo.online
+```
+
+## 5. Kịch bản demo chính: Student 2 cố lấy certificate của Student 1
 
 ### Bước 1: Đăng nhập Student 1
 
-Trong Postman, chạy request:
+Chạy request:
 
 - `Login Student 1`
 
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Collection tự lưu `accessToken` của Student 1
+- HTTP `200 OK`
+- collection lưu `accessToken` của student 1
 
-### Bước 2: Lấy chứng chỉ của Student 1
+### Bước 2: Lấy certificate của Student 1
 
 Chạy request:
 
@@ -105,13 +105,13 @@ Chạy request:
 
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Response trả danh sách chứng chỉ của Student 1
-- Collection tự lưu `victimCertificateId`
+- HTTP `200 OK`
+- response trả danh sách chứng chỉ của student 1
+- collection lưu `victimCertificateId`
 
-Ý cần nói:
+Ý nghĩa:
 
-- Đây là tài nguyên hợp lệ mà Student 1 sở hữu
+- đây là đối tượng mà student 1 thực sự sở hữu
 
 ### Bước 3: Đăng nhập Student 2
 
@@ -121,124 +121,154 @@ Chạy request:
 
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Collection tự lưu `student2AccessToken`
+- HTTP `200 OK`
+- collection lưu `student2AccessToken`
 
-### Bước 4: Student 2 cố đọc chứng chỉ của Student 1
+### Bước 4: Thực hiện hành vi BOLA / IDOR
 
 Chạy request:
 
 - `BOLA Attack Attempt`
 
-Request này sẽ:
+Request này dùng token của `student2` nhưng cố truy cập:
 
-- dùng token của `student2`;
-- nhưng cố truy cập `certificateId` thuộc về `student1`.
+```http
+GET /api/certificates/{victimCertificateId}
+```
+
+trong đó `victimCertificateId` là chứng chỉ của `student1`.
 
 Kết quả mong đợi:
 
-- Trả `403 Forbidden`
-- Student 2 không nhận được dữ liệu chứng chỉ của Student 1
+- HTTP `403 Forbidden`
+- message:
 
-Điểm cần nói khi demo:
+```text
+Only the owning student can access this certificate.
+```
 
-- Đây là minh họa điển hình của BOLA/IDOR
-- Nếu backend chỉ dựa vào `certificateId` trên URL mà không kiểm tra ownership, lỗi sẽ xảy ra
+Điểm cần nói:
 
-### Bước 5: Đăng nhập admin để xem audit log
+- đây là mô phỏng chuẩn của lỗi BOLA / IDOR
+- nếu backend không kiểm tra ownership thì student 2 sẽ xem được dữ liệu của student 1
+
+### Bước 5: Đăng nhập admin và xem audit log
 
 Chạy:
 
 - `Login Admin`
-
-Sau đó chạy:
-
 - `Admin Audit Logs`
 
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Tìm thấy bản ghi liên quan tới:
-  - `ACCESS_DENIED`
-  - `Certificate`
-  - người dùng không đủ quyền
+- HTTP `200 OK`
+- tìm thấy bản ghi có:
+  - `action = ACCESS_DENIED`
+  - `targetType = Certificate`
 
-## 6. Cách làm thủ công nếu không dùng collection
+## 6. Kịch bản phụ nên biết để trả lời khi giảng viên hỏi thêm
 
-Nếu bạn muốn trình bày mà không import collection, có thể làm thủ công như sau:
+### 6.1. Với hồ sơ cá nhân của student
 
-1. Tạo request `POST https://localhost/api/auth/login` cho `student1`
-2. Tạo request `GET https://localhost/api/certificates/me` với token của `student1`
-3. Ghi lại `certificateId`
-4. Tạo request `POST https://localhost/api/auth/login` cho `student2`
-5. Tạo request `GET https://localhost/api/certificates/{certificateId}` với token của `student2`
-6. Quan sát `403`
-7. Đăng nhập `admin`
-8. Gọi `GET https://localhost/api/admin/audit-logs`
-
-## 7. Biến thể có thể demo thêm
-
-### 7.1. Với enrollment
-
-Bạn có thể tạo request:
-
-```http
-GET /api/enrollments/{enrollmentId}
-```
-
-Rồi dùng token của người khác để thử truy cập.
-
-### 7.2. Với profile
-
-Bạn có thể tạo request:
+Student chỉ được dùng:
 
 ```http
 GET /api/users/{userId}/profile
 ```
 
-Rồi đổi `userId` sang của tài khoản khác.
+với đúng `userId` của chính mình.
 
-### 7.3. Với bài học
+Nếu đổi sang `userId` của người khác, backend phải trả:
 
-Bạn có thể thử:
+- HTTP `403 Forbidden`
+
+### 6.2. Với enrollment
+
+Student chỉ được dùng:
+
+```http
+GET /api/enrollments/{enrollmentId}
+```
+
+với đúng enrollment của chính mình.
+
+### 6.3. Với lesson
+
+Student chưa được ghi danh hoặc chưa được mở khóa bài học sẽ bị chặn tại:
 
 ```http
 GET /api/courses/{courseId}/lessons/{lessonId}
 ```
 
-với tài khoản chưa được ghi danh hoặc không có quyền phù hợp.
+Kết quả mong đợi:
 
-## 8. Cách trình bày ngắn gọn trước giảng viên
+- HTTP `403 Forbidden`
+- message:
 
-Bạn nên trình bày đúng thứ tự:
+```text
+Course lessons are only available to the enrolled student.
+```
 
-1. Mở Postman
-2. Chạy `Login Student 1`
-3. Chạy `Get My Certificate` để lấy `certificateId`
-4. Chạy `Login Student 2`
-5. Chạy `BOLA Attack Attempt`
-6. Chỉ ra response `403 Forbidden`
-7. Chạy `Login Admin`
-8. Chạy `Admin Audit Logs` để chỉ ra bản ghi `ACCESS_DENIED`
+### 6.4. Với admin
 
-Nếu giảng viên hỏi “demo này làm ở đâu”, câu trả lời chuẩn là:
+Admin có endpoint riêng để xem hồ sơ học viên:
 
-- **Khuyến nghị làm bằng Postman**
-- **Có thể dùng Swagger nhưng sẽ bất tiện vì phải đổi token liên tục**
+```http
+GET /api/admin/users/{userId}
+```
 
-## 9. Giải thích ngắn gọn để trình bày
+Nhưng admin không dùng được các endpoint student-only như:
 
-- BOLA/IDOR xảy ra khi backend không kiểm tra quyền sở hữu đối tượng
-- Ẩn nút trên frontend không phải biện pháp bảo mật đầy đủ
-- Cách phòng thủ đúng là kiểm tra ownership ở phía server
-- Khi phát hiện truy cập trái phép, hệ thống nên trả `403` và ghi log
+- `GET /api/certificates/me`
+- `GET /api/users/{userId}/profile`
+- `GET /api/certificates/{certificateId}`
 
-## 10. Minh chứng nên chụp cho báo cáo
+Đây là điểm rất hay để giải thích việc tách biệt vai trò và bề mặt API.
 
-- Ảnh request `Get My Certificate` của `student1`
-- Ảnh request `BOLA Attack Attempt` của `student2` nhận `403`
-- Ảnh `Admin Audit Logs` hiển thị `ACCESS_DENIED`
+## 7. Cách làm thủ công nếu không dùng Postman collection
 
-## 11. Kết luận
+Nếu không dùng collection, có thể làm lần lượt:
 
-Demo này là một phần rất quan trọng của đồ án vì nó chứng minh hệ thống không chỉ xác thực người dùng mà còn kiểm tra quyền trên từng tài nguyên cụ thể, qua đó chặn được BOLA/IDOR.
+1. đăng nhập `student1`
+2. gọi `GET /api/certificates/me`
+3. ghi lại `certificateId`
+4. đăng nhập `student2`
+5. gọi `GET /api/certificates/{certificateId}` bằng token của student 2
+6. quan sát `403 Forbidden`
+7. đăng nhập `admin`
+8. gọi `GET /api/admin/audit-logs`
+
+## 8. Kết quả mong đợi
+
+Sau khi làm xong Demo 04, bạn phải chứng minh được:
+
+1. `student1` xem được certificate của chính mình.
+2. `student2` bị chặn khi đổi `certificateId` của `student1`.
+3. admin xem được audit log của hành vi bị chặn.
+4. việc chặn diễn ra ở backend chứ không phải chỉ trên giao diện.
+
+## 9. Câu nên nói khi trình bày
+
+- BOLA xảy ra khi backend xác thực người dùng rồi nhưng không kiểm tra quyền trên từng đối tượng.
+- Ẩn nút ở frontend không đủ để chống BOLA.
+- Cách phòng thủ đúng là kiểm tra ownership ở phía server cho từng tài nguyên.
+- Khi phát hiện truy cập trái phép, hệ thống nên trả `403` và ghi audit log.
+
+## 10. Ảnh nên chụp cho báo cáo
+
+- Ảnh `Get My Certificate` của `student1`.
+- Ảnh `BOLA Attack Attempt` của `student2` trả `403 Forbidden`.
+- Ảnh `Admin Audit Logs` có `ACCESS_DENIED`.
+- Nếu có thời gian, thêm ảnh admin xem hồ sơ học viên bằng `GET /api/admin/users/{userId}`.
+
+## 11. Cách reset sau demo
+
+Demo này gần như không làm thay đổi dữ liệu seed, nên thường không cần reset.
+
+## 12. Kết luận
+
+Đây là một trong những demo quan trọng nhất của đồ án vì nó thể hiện rõ tư tưởng bảo mật API:
+
+- xác thực thôi là chưa đủ
+- phải kiểm tra quyền trên từng đối tượng
+- audit log giúp chứng minh hệ thống không chỉ chặn mà còn giám sát được hành vi tấn công

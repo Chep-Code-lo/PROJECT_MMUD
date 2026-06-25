@@ -16,7 +16,7 @@ Hình ảnh minh họa giao diện frontend NextJS của hệ thống khi đư�
 Hình 2. Giao diện Swagger UI hỗ trợ kiểm thử các RESTful API của hệ thống.
 
 **Mô tả gợi ý**  
-Swagger UI được cấu hình tại `https://localhost/swagger-ui.html` trên cùng cổng HTTPS với ứng dụng, nhờ đó việc bấm `Execute` sẽ không bị lệch cổng khi kiểm thử. Reverse proxy chỉ cho phép mở tài liệu này với các hostname local như `localhost`, `127.0.0.1` hoặc `host.docker.internal`, nên người dùng bên ngoài không thể truy cập bằng IP hoặc domain public của máy chủ.
+Swagger UI được cấu hình tại `https://localhost/swagger-ui.html` trên cùng cổng HTTPS với ứng dụng, nhờ đó việc bấm `Execute` sẽ không bị lệch cổng khi kiểm thử. Khi cần demo từ xa, tài liệu này cũng có thể truy cập qua domain public đã cấu hình tunnel, nhưng trong lúc kiểm thử kỹ thuật vẫn nên ưu tiên mở bằng `localhost` để ổn định hơn.
 
 ## Hình 3. Đăng nhập thành công và nhận JWT
 

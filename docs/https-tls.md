@@ -60,7 +60,7 @@ docker compose up --build -d
 
 - API và giao diện người dùng đi qua HTTPS bình thường
 - Swagger tránh lỗi lệch cổng khi thử trực tiếp trên UI
-- Tài liệu API vẫn không bị lộ ra hostname/IP public
+- nếu bật tunnel/domain public thì frontend và Swagger cũng có thể được expose công khai theo đúng cấu hình reverse proxy hiện tại
 
 ## 6. Cách chứng minh HTTP bị ép sang HTTPS
 
@@ -84,16 +84,31 @@ Swagger/OpenAPI dùng cùng cổng `443` tại:
 - `https://localhost/v3/api-docs`
 - `https://host.docker.internal/swagger-ui.html` nếu truy cập từ container trên cùng máy host
 
-Nếu bạn bật Cloudflare Tunnel hoặc reverse proxy public, Swagger cũng có thể mở qua domain public. Tuy nhiên khi kiểm thử nội bộ vẫn nên ưu tiên hostname local để tránh nhiễu từ mạng ngoài. Có thể tự kiểm tra nhanh bằng:
+Nếu bạn bật Cloudflare Tunnel hoặc reverse proxy public, Swagger cũng có thể mở qua domain public. Tuy nhiên khi kiểm thử nội bộ vẫn nên ưu tiên hostname local để tránh nhiễu từ mạng ngoài.
+
+Có thể tự kiểm tra local và public như sau:
 
 ```powershell
-curl.exe -k -I https://localhost/swagger-ui.html -H "Host: demo-public.example"
-curl.exe -k -I https://localhost/v3/api-docs -H "Host: demo-public.example"
+curl.exe -k -I https://localhost/swagger-ui.html
+curl.exe -k -I https://localhost/v3/api-docs
 ```
 
 Kỳ vọng:
 
-- trả `404`
+- local phản hồi bình thường
+
+Nếu đang bật public domain thật, có thể kiểm tra thêm:
+
+```powershell
+curl.exe -I https://hackerlo.online/swagger-ui.html
+curl.exe -I https://hackerlo.online/v3/api-docs
+```
+
+Kỳ vọng:
+
+- domain public phản hồi qua HTTPS
+- `swagger-ui.html` có thể trả `302` sang `/swagger-ui/index.html` hoặc `200`
+- `v3/api-docs` trả `200`
 
 ## 8. Khi triển khai Internet
 

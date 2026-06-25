@@ -75,7 +75,6 @@ public class CourseService {
                 course.getTitle(),
                 course.getSummary(),
                 course.getPrice(),
-                course.isPublished(),
                 course.getInstructor().getFullName());
     }
 
@@ -96,7 +95,6 @@ public class CourseService {
                 course.getSummary(),
                 course.getDescription(),
                 course.getPrice(),
-                course.isPublished(),
                 course.getInstructor().getFullName(),
                 enrolled,
                 lessons);

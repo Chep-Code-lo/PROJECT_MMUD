@@ -201,11 +201,13 @@ Về mặt thực tiễn, đề tài có thể được dùng như một mô hì
 
 ### 1.11. Bố cục báo cáo
 
-Báo cáo được tổ chức thành ba chương:
+Báo cáo được tổ chức thành năm chương:
 
 - Chương 1 trình bày tổng quan đề tài, bối cảnh, mục tiêu, phạm vi và phương pháp thực hiện.
 - Chương 2 trình bày cơ sở lý thuyết và các công nghệ bảo mật làm nền tảng cho đề tài.
 - Chương 3 trình bày quá trình phân tích, thiết kế, hiện thực và kiểm thử hệ thống.
+- Chương 4 trình bày quá trình thực nghiệm, demo tấn công/phòng thủ và đánh giá mức độ đáp ứng các tiêu chí bảo mật.
+- Chương 5 tổng kết kết quả đạt được, nêu hạn chế, hướng phát triển và kết luận chung của đề tài.
 
 ### 1.12. Kết luận chương
 
@@ -1384,3 +1386,704 @@ Nếu tiếp tục mở rộng, hệ thống có thể phát triển theo các h
 ### 3.21. Kết luận chương
 
 Chương 3 đã trình bày toàn bộ quá trình khảo sát, phân tích yêu cầu, thiết kế kiến trúc, thiết kế dữ liệu, thiết kế API và tích hợp các kỹ thuật mật mã vào hệ thống khóa học online. Các kỹ thuật như JWT, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS, rate limiting, RBAC, ownership check và audit log không chỉ được mô tả ở mức lý thuyết mà đã được cài đặt vào mã nguồn, kiểm thử và trình diễn bằng các kịch bản cụ thể. Điều này cho thấy đề tài đáp ứng tốt mục tiêu của môn Mật mã ứng dụng: hiểu đúng kỹ thuật, dùng đúng ngữ cảnh và chứng minh được hiệu quả bảo vệ trong một hệ thống thực tế thu gọn.
+
+## Chương 4. Thực nghiệm, demo và đánh giá hệ thống
+
+### 4.1. Mục tiêu của chương thực nghiệm
+
+Nếu Chương 3 tập trung vào thiết kế và triển khai, thì Chương 4 có mục tiêu chứng minh rằng các cơ chế đã cài đặt thực sự hoạt động đúng trong môi trường chạy thật. Nói cách khác, chương này trả lời ba câu hỏi:
+
+1. Hệ thống có chạy được ổn định trên môi trường local qua HTTPS hay không?
+2. Các kỹ thuật mật mã và bảo mật đã nêu có tạo ra hiệu quả bảo vệ cụ thể hay không?
+3. Khi thực hiện các hành vi tấn công mô phỏng, hệ thống phản ứng như thế nào?
+
+Đây là chương đặc biệt quan trọng đối với đồ án theo hướng Mật mã ứng dụng, vì chỉ mô tả thuật toán hay chỉ trình bày mã nguồn là chưa đủ. Một kỹ thuật chỉ thật sự có giá trị khi người thực hiện có thể:
+
+- chứng minh đầu vào và đầu ra;
+- chứng minh trạng thái trước và sau bảo vệ;
+- chứng minh hệ thống từ chối đúng các tình huống sai lệch;
+- chứng minh rằng lớp bảo vệ được gắn với nghiệp vụ thật chứ không phải ví dụ rời rạc.
+
+### 4.2. Môi trường và điều kiện thực nghiệm
+
+Toàn bộ phần thực nghiệm trong đồ án được thực hiện trên stack Docker của dự án. Các thành phần chính gồm:
+
+| Thành phần | Mô tả |
+| --- | --- |
+| `frontend` | Ứng dụng NextJS phục vụ giao diện demo |
+| `backend` | Ứng dụng Spring Boot cung cấp RESTful API |
+| `database` | MySQL lưu trữ dữ liệu người dùng, khóa học, enrollment, certificate, refresh token, webhook event và audit log |
+| `nginx` | Reverse proxy chịu trách nhiệm terminate TLS và chuyển hướng HTTP sang HTTPS |
+
+Các cổng và địa chỉ truy cập chính trong quá trình thực nghiệm:
+
+| Mục | Địa chỉ |
+| --- | --- |
+| Frontend local | `https://localhost` |
+| Health check | `https://localhost/api/health` |
+| Swagger UI | `https://localhost/swagger-ui.html` |
+| OpenAPI JSON | `https://localhost/v3/api-docs` |
+| MySQL từ máy host | `localhost:3307` |
+
+Trong trường hợp cần demo từ xa, hệ thống còn hỗ trợ truy cập qua domain public đã cấu hình tunnel, ví dụ:
+
+- `https://hackerlo.online`
+- `https://hackerlo.online/swagger-ui.html`
+
+Tuy nhiên trong suốt quá trình thực nghiệm kỹ thuật, nhóm ưu tiên dùng `https://localhost` để giảm sai số do DNS, certificate công khai, mạng ngoài hoặc trạng thái tunnel.
+
+### 4.3. Dữ liệu mẫu và công cụ phục vụ thực nghiệm
+
+#### 4.3.1. Tài khoản mẫu
+
+Các tài khoản seed được dùng thường xuyên trong chương này gồm:
+
+| Email | Vai trò | Mật khẩu | Mục đích sử dụng |
+| --- | --- | --- | --- |
+| `student1@example.com` | `STUDENT` | `Password123!` | Demo đăng nhập, chứng chỉ, bài học, webhook |
+| `student2@example.com` | `STUDENT` | `Password123!` | Demo BOLA/IDOR và so sánh quyền |
+| `admin@example.com` | `ADMIN` | `Admin123!` | Demo audit log và quản trị enrollment |
+
+Ngoài ra, ở một số kịch bản như `forgot password` và `reset password`, nhóm tạo thêm tài khoản phụ để tránh làm thay đổi trạng thái của dữ liệu seed chính.
+
+#### 4.3.2. Công cụ sử dụng
+
+| Công cụ | Vai trò trong thực nghiệm |
+| --- | --- |
+| `Swagger UI` | Gọi trực tiếp REST API, hiển thị request/response và status code |
+| `Postman` | Thực hiện các kịch bản giữ nhiều token cùng lúc, đặc biệt là BOLA và webhook |
+| `PowerShell` | Gửi request hàng loạt, giải mã JWT, truy vấn database, chạy script demo |
+| `MySQL trong Docker` | Kiểm tra dữ liệu thực lưu trong cơ sở dữ liệu |
+| `OWASP ZAP` | Quét baseline và kiểm tra bề mặt web/API qua HTTPS |
+
+#### 4.3.3. Điều kiện chuẩn bị trước khi demo
+
+Trước khi bắt đầu thực nghiệm, cần khởi động stack:
+
+```powershell
+cd E:\PROJECT_MMUD
+docker compose up --build -d
+```
+
+Sau đó kiểm tra nhanh:
+
+```powershell
+curl.exe -k https://localhost/api/health
+```
+
+Khi kết quả trả về `200 OK` hoặc trạng thái `UP`, có thể tiếp tục các bài thực nghiệm tiếp theo.
+
+### 4.4. Kịch bản 1: Kiểm chứng băm mật khẩu bằng bcrypt
+
+#### 4.4.1. Mục tiêu
+
+Kịch bản này nhằm chứng minh ba điểm:
+
+- mật khẩu không được lưu dưới dạng rõ;
+- backend vẫn xác thực đúng bằng mật khẩu gốc;
+- người quan sát database không thể đọc ngược ra mật khẩu.
+
+#### 4.4.2. Cách thực hiện
+
+Nhóm thực hiện theo chuỗi bước sau:
+
+1. Đăng nhập bằng `student1@example.com / Password123!` qua Swagger.
+2. Ghi nhận response đăng nhập thành công.
+3. Mở PowerShell và truy vấn bảng `users`.
+4. Đối chiếu cột `password_hash` với mật khẩu gốc.
+5. Thử đăng nhập lại bằng mật khẩu đúng.
+6. Thử đăng nhập bằng mật khẩu sai để nhận `401`.
+
+Lệnh truy vấn điển hình:
+
+```powershell
+docker exec securityapp-db mysql -uroot -pchange-me-root-password securityapp -e "SELECT id,email,password_hash,role FROM users;"
+```
+
+#### 4.4.3. Kết quả quan sát được
+
+Kết quả thực tế cho thấy:
+
+- trường `password_hash` là chuỗi bcrypt bắt đầu bằng `$2...`;
+- cột này không chứa `Password123!`;
+- đăng nhập đúng trả `200 OK`;
+- đăng nhập sai trả `401 Unauthorized`;
+- audit log ghi nhận `LOGIN_SUCCESS` và `LOGIN_FAILED`.
+
+#### 4.4.4. Nhận xét
+
+Kịch bản này chứng minh hệ thống đã dùng đúng cơ chế mật mã cho mật khẩu. Đây là điểm rất quan trọng, vì trong thực hành bảo mật:
+
+- mật khẩu phải được băm chứ không được mã hóa;
+- bcrypt phù hợp hơn các hash nhanh như MD5 hoặc SHA-1 khi lưu password;
+- việc dùng `matches()` cho phép xác thực mà không cần giải mã bất cứ thứ gì.
+
+Hình minh họa phù hợp cho kịch bản này là:
+
+- Hình 3
+- Hình 5
+- Hình 21 hoặc Hình 22 nếu muốn bổ sung audit log
+
+### 4.5. Kịch bản 2: Kiểm chứng JWT, Bearer Token, refresh token và logout
+
+#### 4.5.1. Mục tiêu
+
+Kịch bản này dùng để xác nhận:
+
+- access token thật sự là JWT và chứa các claim cần thiết;
+- backend chỉ chấp nhận đúng Bearer token;
+- token bị sửa payload sẽ bị từ chối;
+- token hết hạn sẽ bị từ chối;
+- refresh token có thể dùng để quay vòng phiên;
+- refresh token bị revoke sau logout thì không dùng lại được.
+
+#### 4.5.2. Các bước thực nghiệm chính
+
+Kịch bản được chia thành các bài nhỏ:
+
+1. Đăng nhập qua `POST /api/auth/login`.
+2. Dùng `accessToken` gọi `GET /api/auth/me`.
+3. Xóa token và gọi lại endpoint protected để nhận `401`.
+4. Sửa payload token để kiểm tra chữ ký sai.
+5. Gọi `POST /api/auth/refresh` để lấy cặp token mới.
+6. Gọi `POST /api/auth/logout` để thu hồi refresh token.
+7. Gọi lại `POST /api/auth/refresh` với refresh token cũ để nhận từ chối.
+
+#### 4.5.3. Kết quả quan sát được
+
+Nhóm quan sát thấy:
+
+- login trả `accessToken`, `refreshToken`, `role`, `scope`;
+- `GET /api/auth/me` với token hợp lệ trả `200 OK`;
+- thiếu token hoặc token sai định dạng trả `401`;
+- token bị sửa payload trả `401 Unauthorized` với thông báo chữ ký không hợp lệ;
+- refresh token hợp lệ trả cặp token mới;
+- refresh token đã logout trả `401` với trạng thái đã bị revoke;
+- nếu giảm thời gian sống token trong `.env` xuống `1 phút`, token sẽ bị từ chối sau khi hết hạn.
+
+#### 4.5.4. Giá trị của kịch bản
+
+Về mặt học thuật, đây là kịch bản giúp phân biệt rõ:
+
+- JWT không phải cơ chế “mã hóa nội dung bí mật”;
+- chữ ký mới là yếu tố đảm bảo tính toàn vẹn;
+- access token và refresh token có vòng đời khác nhau;
+- logout trong mô hình stateless thường không phải “xóa session”, mà là revoke refresh token phía server.
+
+Các hình nên dùng:
+
+- Hình 3
+- Hình 4
+- Hình 18
+- Hình 19
+
+### 4.6. Kịch bản 3: Kiểm chứng luồng quên mật khẩu và đặt lại mật khẩu
+
+#### 4.6.1. Mục tiêu
+
+Kịch bản này chứng minh rằng hệ thống không chỉ có đăng nhập, mà còn quản lý được vòng đời xác thực tài khoản một cách an toàn. Các điểm cần kiểm chứng gồm:
+
+- người dùng có thể yêu cầu reset password;
+- hệ thống sinh reset token;
+- trong chế độ demo local, `demoResetToken` được trả ra để dễ kiểm thử;
+- sau khi đổi mật khẩu, refresh token cũ bị revoke;
+- response quên mật khẩu không làm lộ email có tồn tại hay không.
+
+#### 4.6.2. Cách thực hiện
+
+Nhóm dùng một tài khoản phụ vừa đăng ký hoặc một tài khoản riêng để tránh phá seed data chính. Các bước:
+
+1. Tạo tài khoản mới bằng `POST /api/auth/register`.
+2. Gọi `POST /api/auth/forgot-password`.
+3. Ghi nhận `demoResetToken`.
+4. Gọi `POST /api/auth/reset-password`.
+5. Đăng nhập lại bằng mật khẩu cũ.
+6. Đăng nhập lại bằng mật khẩu mới.
+7. Dùng refresh token cũ gọi `POST /api/auth/refresh`.
+8. Gửi thêm yêu cầu quên mật khẩu với email không tồn tại để so sánh response.
+
+#### 4.6.3. Kết quả quan sát được
+
+Kết quả cho thấy:
+
+- endpoint `forgot-password` trả `200 OK` và có `demoResetToken` trong local demo mode;
+- endpoint `reset-password` trả `200 OK` khi token hợp lệ;
+- mật khẩu cũ không còn sử dụng được;
+- mật khẩu mới sử dụng bình thường;
+- refresh token cũ bị từ chối với thông báo đã bị revoke;
+- email tồn tại và email không tồn tại đều nhận response có thông điệp giống nhau.
+
+#### 4.6.4. Nhận xét
+
+Kịch bản này có ý nghĩa quan trọng vì nó cho thấy hệ thống không chỉ an toàn ở thời điểm đăng nhập, mà còn an toàn khi khôi phục tài khoản. Đây là phần thường bị bỏ qua trong đồ án, nhưng lại rất cần thiết khi trình bày về vòng đời quản lý danh tính.
+
+Hình minh họa nên dùng:
+
+- Hình 27
+- Hình 28
+- Hình 22 nếu muốn minh họa thêm các event liên quan tới password reset trong audit log
+
+### 4.7. Kịch bản 4: Kiểm chứng mã hóa AES-GCM cho dữ liệu nhạy cảm
+
+#### 4.7.1. Mục tiêu
+
+Kịch bản này nhằm chứng minh:
+
+- dữ liệu nhạy cảm vẫn đọc được qua API khi người dùng hợp lệ;
+- cùng dữ liệu đó trong database lại ở dạng ciphertext;
+- chỉnh sửa ciphertext sẽ làm giải mã thất bại.
+
+#### 4.7.2. Các dữ liệu được kiểm chứng
+
+Trong dự án hiện tại, các trường được dùng để demo gồm:
+
+- `phone_number_encrypted`
+- `billing_address_encrypted`
+- `payment_reference_encrypted`
+- `certificate_code_encrypted`
+
+#### 4.7.3. Cách thực hiện
+
+Các bước chính:
+
+1. Đăng nhập `student1` và authorize trên Swagger.
+2. Gọi `GET /api/auth/me`.
+3. Gọi `GET /api/certificates/me`.
+4. Mở PowerShell và truy vấn bảng `users`, `enrollments`, `certificates`.
+5. So sánh dữ liệu trả về từ API với dữ liệu lưu trong database.
+6. Chạy `EncryptionServiceTest` để kiểm chứng tampering fail.
+
+#### 4.7.4. Kết quả quan sát được
+
+Kết quả cho thấy:
+
+- phía API, các trường `phoneNumber`, `billingAddress`, `certificateCode` hiển thị ở dạng có nghĩa;
+- phía database, các cột tương ứng lưu chuỗi ciphertext không đọc được;
+- test `aesGcmRoundTripWorksAndTamperingFails` chạy thành công, chứng minh sửa ciphertext sẽ dẫn tới lỗi giải mã.
+
+#### 4.7.5. Đánh giá
+
+Kịch bản này giúp phân biệt rất rõ:
+
+- dữ liệu cần đọc lại dùng AES-GCM;
+- mật khẩu không dùng AES-GCM mà dùng bcrypt;
+- tính toàn vẹn của AES-GCM là một giá trị thực tế chứ không chỉ là khái niệm lý thuyết.
+
+Hình gợi ý:
+
+- Hình 6
+- Hình 16
+- Hình 17
+
+### 4.8. Kịch bản 5: Chống BOLA/IDOR và kiểm soát quyền trên tài nguyên
+
+#### 4.8.1. Mục tiêu
+
+Kịch bản này là minh chứng trọng tâm cho bảo mật API vì:
+
+- chỉ xác thực thôi là chưa đủ;
+- phải kiểm tra quyền trên từng object;
+- việc chặn phải diễn ra ở backend.
+
+#### 4.8.2. Tình huống thực nghiệm chính
+
+Nhóm dùng chứng chỉ của `student1` làm tài nguyên mục tiêu và thực hiện:
+
+1. `student1` gọi `GET /api/certificates/me` để lấy `certificateId`.
+2. `student2` dùng token của mình để gọi `GET /api/certificates/{certificateId}`.
+3. `admin` mở `GET /api/admin/audit-logs` để xác nhận hành vi bị chặn đã được ghi nhận.
+
+Ngoài kịch bản chính, nhóm còn kiểm tra:
+
+- `GET /api/enrollments/{enrollmentId}`
+- `GET /api/users/{userId}/profile`
+- `GET /api/courses/{courseId}/lessons/{lessonId}` khi chưa có enrollment `ACTIVE`
+
+#### 4.8.3. Kết quả quan sát được
+
+Kết quả thực tế:
+
+- chủ sở hữu certificate xem được dữ liệu của mình;
+- `student2` bị trả `403 Forbidden` khi đổi `certificateId`;
+- lesson bị khóa trả `403` cho người chưa đủ điều kiện;
+- audit log có `ACCESS_DENIED`.
+
+#### 4.8.4. Đánh giá
+
+Đây là một trong những phần có giá trị nhất của đồ án vì nó gắn trực tiếp với `OWASP API1: Broken Object Level Authorization`. Về mặt trình bày, đây cũng là kịch bản dễ thuyết phục giảng viên nhất do:
+
+- có thao tác tấn công cụ thể;
+- có kết quả chặn cụ thể;
+- có log giám sát cụ thể.
+
+Hình gợi ý:
+
+- Hình 7
+- Hình 8
+- Hình 9
+- Hình 10
+- Hình 15
+- Hình 20
+
+### 4.9. Kịch bản 6: Webhook thanh toán giả lập với HMAC-SHA256
+
+#### 4.9.1. Mục tiêu
+
+Kịch bản này minh họa rất rõ tinh thần của môn học vì đưa HMAC vào một tình huống gần với thực tế. Những điểm cần chứng minh:
+
+- webhook hợp lệ mới kích hoạt enrollment;
+- webhook sai chữ ký bị từ chối;
+- webhook replay bị từ chối;
+- timestamp giúp giảm nguy cơ phát lại gói tin cũ.
+
+#### 4.9.2. Cách thực hiện
+
+Chuỗi thao tác chuẩn:
+
+1. `student1` thực hiện `checkout` để tạo enrollment `PENDING`.
+2. Postman gửi `Webhook Valid HMAC`.
+3. Hệ thống kiểm tra `X-Signature`, `X-Timestamp`, `X-Event-Id`.
+4. Kiểm tra lại `GET /api/enrollments/me` và `GET /api/certificates/me`.
+5. Gửi `Webhook Invalid HMAC`.
+6. Gửi lại cùng `eventId` để mô phỏng replay.
+
+#### 4.9.3. Kết quả quan sát được
+
+Khi gửi webhook hợp lệ:
+
+- enrollment được chuyển sang `ACTIVE`;
+- certificate được phát hành;
+- audit log ghi `WEBHOOK_ACCEPTED`.
+
+Khi gửi webhook sai:
+
+- backend trả `401 Unauthorized`;
+- audit log ghi `WEBHOOK_REJECTED`.
+
+Khi gửi lại cùng `eventId`:
+
+- backend trả `409 Conflict`;
+- hệ thống chặn replay thành công.
+
+#### 4.9.4. Đánh giá
+
+Kịch bản này cho thấy HMAC-SHA256 không chỉ là một khái niệm “xác thực thông điệp” trừu tượng, mà đã được biến thành một điều kiện bảo vệ nghiệp vụ. Nếu không có HMAC, bất cứ ai cũng có thể tự gọi webhook và mở khóa khóa học trái phép.
+
+Hình gợi ý:
+
+- Hình 11
+- Hình 12
+- Hình 13
+- Hình 14
+
+### 4.10. Kịch bản 7: Rate limiting và ghi nhận hành vi bất thường
+
+#### 4.10.1. Mục tiêu
+
+Kịch bản này nhằm chứng minh hệ thống có khả năng giảm brute-force và spam API bằng cách:
+
+- đếm số request trong cửa sổ thời gian;
+- chặn khi vượt ngưỡng;
+- ghi log phục vụ giám sát.
+
+#### 4.10.2. Cách thực hiện
+
+Nhóm dùng PowerShell gửi liên tiếp nhiều request sai mật khẩu tới:
+
+```http
+POST /api/auth/login
+```
+
+Sau đó dùng admin mở audit log để kiểm tra log tương ứng.
+
+#### 4.10.3. Kết quả quan sát được
+
+Kết quả có mẫu rất rõ:
+
+- vài request đầu trả `401 Unauthorized`;
+- sau khi vượt ngưỡng, hệ thống trả `429 Too Many Requests`;
+- audit log có `RATE_LIMIT_EXCEEDED`.
+
+#### 4.10.4. Đánh giá
+
+Mặc dù cơ chế hiện tại mới dùng bộ nhớ trong tiến trình, nhưng đối với mục tiêu đồ án, đây là giải pháp phù hợp vì:
+
+- dễ hiểu;
+- dễ chứng minh;
+- dễ demo;
+- cho thấy rõ ý nghĩa của phòng thủ trước tấn công tự động.
+
+Hình gợi ý:
+
+- Hình 22
+- Hình 23
+
+### 4.11. Kịch bản 8: HTTPS/TLS, Swagger/OpenAPI và quét OWASP ZAP
+
+#### 4.11.1. Mục tiêu
+
+Kịch bản này kết hợp ba lớp thực nghiệm:
+
+- chứng minh HTTP bị ép sang HTTPS;
+- chứng minh Swagger/OpenAPI có thể dùng để test hệ thống protected;
+- chứng minh hệ thống đã được quét baseline bằng OWASP ZAP.
+
+#### 4.11.2. Kết quả kiểm tra HTTPS/TLS
+
+Khi chạy:
+
+```powershell
+curl.exe -I http://localhost/api/health
+curl.exe -k https://localhost/api/health
+```
+
+nhóm quan sát thấy:
+
+- request HTTP trả `301 Moved Permanently`;
+- request HTTPS trả `200 OK`.
+
+Điều này cho thấy reverse proxy đã cưỡng bức sử dụng kênh truyền an toàn.
+
+#### 4.11.3. Kết quả kiểm tra Swagger/OpenAPI
+
+Khi mở:
+
+- `https://localhost/swagger-ui.html`
+- `https://localhost/v3/api-docs`
+
+Swagger phản hồi ổn định và có thể nhập Bearer token để kiểm thử endpoint protected. Đây là ưu điểm lớn khi trình bày demo vì:
+
+- không bị lệch cổng;
+- nhìn thấy trực tiếp request/response;
+- dễ giải thích hơn so với việc chỉ dùng frontend.
+
+#### 4.11.4. Kết quả quét OWASP ZAP
+
+Artifact baseline scan hiện có cho thấy:
+
+- `FAIL = 0`
+- `WARN = 2`
+- `PASS = 59`
+
+Hai cảnh báo còn lại chủ yếu gắn với:
+
+- đặc thù của Swagger UI;
+- nội dung `Content-Security-Policy` ở mức cảnh báo chứ không phải thất bại nghiêm trọng.
+
+#### 4.11.5. Đánh giá
+
+Kịch bản này hoàn thiện bức tranh bảo mật của đồ án ở tầng triển khai:
+
+- TLS bảo vệ dữ liệu khi truyền;
+- Swagger hỗ trợ kiểm thử có kiểm soát;
+- ZAP cung cấp thêm một bằng chứng khách quan từ công cụ DAST phổ biến.
+
+Hình gợi ý:
+
+- Hình 2
+- Hình 24
+- Hình 25
+- Hình 26
+
+### 4.12. Đối chiếu với các tiêu chí chấp nhận của đề tài
+
+Để đánh giá tổng hợp, Bảng 4.1 đối chiếu trực tiếp trạng thái hệ thống với các yêu cầu cốt lõi đã đặt ra.
+
+| Tiêu chí | Trạng thái | Minh chứng |
+| --- | --- | --- |
+| Backend Spring Boot chạy được | Đạt | Truy cập `https://localhost/api/health` |
+| Frontend NextJS chạy được | Đạt | Truy cập `https://localhost` |
+| Đăng ký và đăng nhập hoạt động | Đạt | Swagger, Postman, integration test |
+| Mật khẩu lưu dạng bcrypt | Đạt | Query bảng `users`, Demo 01 |
+| JWT dùng được cho protected API | Đạt | `GET /api/auth/me`, Demo 02 |
+| Token sai hoặc hết hạn bị từ chối | Đạt | Demo 02, integration test |
+| Có role tách biệt `STUDENT` và `ADMIN` | Đạt | `SecurityConfig`, Demo RBAC |
+| Student không xem được dữ liệu của student khác | Đạt | Demo BOLA/IDOR |
+| Có mã hóa AES-GCM cho dữ liệu nhạy cảm | Đạt | Query DB, `EncryptionServiceTest` |
+| Có webhook HMAC-SHA256 | Đạt | Demo 05 |
+| Webhook sai chữ ký bị từ chối | Đạt | `Webhook Invalid HMAC` |
+| Webhook replay bị từ chối | Đạt | `409 Conflict` |
+| Có audit log | Đạt | `GET /api/admin/audit-logs` |
+| Admin xem được audit log | Đạt | Demo admin |
+| Có rate limit cho login/webhook/admin | Đạt | `429 Too Many Requests` |
+| Có Swagger/OpenAPI | Đạt | `swagger-ui.html`, `v3/api-docs` |
+| Swagger hỗ trợ Bearer JWT | Đạt | Nút `Authorize` và thử endpoint protected |
+| Có Docker và Docker Compose | Đạt | `docker-compose.yml` và stack đang chạy |
+| Có `.env.example` | Đạt | Kiểm tra source |
+| Có tài liệu Postman và ZAP | Đạt | `docs/postman-testing.md`, `docs/owasp-zap-testing.md` |
+
+#### 4.12.1. Nhận xét từ bảng đối chiếu
+
+Hầu hết các tiêu chí quan trọng nhất của đồ án đã được đáp ứng đúng trọng tâm:
+
+- tập trung vào mật mã ứng dụng;
+- tập trung vào bảo mật API;
+- có thể demo bằng công cụ phổ biến;
+- có thể kiểm chứng bằng mã nguồn, database, log và bài thực nghiệm.
+
+### 4.13. Đánh giá tổng hợp về giá trị học thuật và thực hành
+
+Từ các kịch bản thực nghiệm ở trên, có thể rút ra một số đánh giá tổng hợp như sau.
+
+Thứ nhất, đề tài đạt giá trị học thuật tốt vì đã làm rõ được sự khác nhau về vai trò giữa các cơ chế mật mã:
+
+- `bcrypt` bảo vệ mật khẩu;
+- `AES-GCM` bảo vệ dữ liệu cần đọc lại;
+- `HMAC-SHA256` xác minh webhook;
+- `JWT` dùng cho xác thực request;
+- `TLS` bảo vệ dữ liệu khi truyền.
+
+Thứ hai, đề tài đạt giá trị thực hành tốt vì mỗi kỹ thuật đều có vị trí cụ thể trong luồng nghiệp vụ:
+
+- đăng ký và đăng nhập;
+- quên mật khẩu;
+- ghi danh và thanh toán giả lập;
+- xem bài học;
+- xem chứng chỉ;
+- quản trị enrollment;
+- giám sát audit log.
+
+Thứ ba, đề tài có khả năng trình bày tốt trước giảng viên vì các kịch bản đều:
+
+- có bước thực hiện rõ ràng;
+- có response mong đợi rõ ràng;
+- có thể chụp minh chứng;
+- có thể lặp lại tương đối dễ dàng trên local.
+
+### 4.14. Kết luận chương
+
+Chương 4 đã chuyển các nội dung thiết kế ở Chương 3 thành bằng chứng thực nghiệm cụ thể. Qua các kịch bản về bcrypt, JWT, reset password, AES-GCM, BOLA/IDOR, HMAC webhook, rate limiting, TLS và OWASP ZAP, có thể thấy hệ thống không chỉ “có cài đặt” mà còn “có thể chứng minh” tính đúng đắn của các lớp bảo vệ. Đây là điểm then chốt giúp đồ án phù hợp với yêu cầu của môn Mật mã ứng dụng: kỹ thuật phải gắn với tình huống thực tế, quan sát được bằng công cụ và đánh giá được bằng kết quả cụ thể.
+
+## Chương 5. Kết luận và kiến nghị
+
+### 5.1. Tóm tắt kết quả toàn đề tài
+
+Đề tài “Bảo mật hệ thống RESTful API cho dịch vụ khóa học online nhỏ” đã xây dựng được một hệ thống hoàn chỉnh ở mức demo kỹ thuật, trong đó trọng tâm không nằm ở số lượng nghiệp vụ mà nằm ở chất lượng bảo vệ bảo mật. Từ một source code có sẵn nền tảng kỹ thuật, nhóm đã tái cấu trúc lại domain theo hướng khóa học online tối giản và tích hợp các kỹ thuật mật mã ứng dụng một cách có chủ đích.
+
+Các kết quả nổi bật có thể tóm tắt như sau:
+
+- triển khai backend Spring Boot và frontend NextJS chạy qua HTTPS;
+- bảo vệ xác thực bằng JWT access token và refresh token;
+- bổ sung logout, quên mật khẩu và đặt lại mật khẩu;
+- băm mật khẩu bằng bcrypt;
+- mã hóa dữ liệu nhạy cảm bằng AES-GCM;
+- xác thực webhook thanh toán mô phỏng bằng HMAC-SHA256;
+- chặn BOLA/IDOR bằng kiểm tra ownership phía server;
+- áp dụng rate limiting cho các endpoint nhạy cảm;
+- ghi audit log cho các sự kiện bảo mật;
+- hỗ trợ kiểm thử bằng Swagger, Postman, script PowerShell và OWASP ZAP.
+
+### 5.2. Đóng góp chính của đề tài
+
+#### 5.2.1. Đóng góp về mặt kỹ thuật
+
+Đề tài đã hiện thực hóa được một mô hình bảo mật API nhiều lớp nhưng vẫn giữ code và nghiệp vụ ở mức đủ đơn giản để phục vụ học tập. Điểm mạnh ở đây không phải là độ lớn của hệ thống, mà là việc mỗi lớp bảo vệ đều được gắn đúng vị trí:
+
+- bcrypt tại lớp lưu mật khẩu;
+- JWT tại lớp xác thực request;
+- AES-GCM tại lớp dữ liệu lưu trữ;
+- HMAC tại lớp giao tiếp webhook;
+- TLS tại lớp truyền thông;
+- RBAC và ownership check tại lớp phân quyền;
+- rate limit và audit log tại lớp giám sát và phòng thủ bổ sung.
+
+#### 5.2.2. Đóng góp về mặt học thuật
+
+Đề tài giúp làm rõ một số ngộ nhận phổ biến khi học mật mã ứng dụng:
+
+- không phải dữ liệu nhạy cảm nào cũng dùng cùng một kỹ thuật bảo vệ;
+- không thể dùng “mã hóa” thay cho “băm mật khẩu”;
+- JWT không tự động an toàn nếu backend không kiểm tra đầy đủ;
+- chỉ xác thực thành công chưa có nghĩa là được quyền truy cập mọi tài nguyên;
+- webhook là một bề mặt tấn công thực sự và cần có cơ chế xác minh nguồn gửi.
+
+#### 5.2.3. Đóng góp về mặt trình bày đồ án
+
+Đề tài có lợi thế lớn ở khía cạnh demo và báo cáo:
+
+- mỗi kỹ thuật đều có endpoint hoặc tình huống demo riêng;
+- có thể dùng cả Swagger, Postman và PowerShell;
+- có tài liệu ảnh, caption, runbook và hướng dẫn kiểm thử;
+- phù hợp để trình bày trước giảng viên theo mạch “tấn công - phòng thủ - bằng chứng”.
+
+### 5.3. Ý nghĩa của đề tài đối với môn Mật mã ứng dụng
+
+Môn Mật mã ứng dụng không chỉ dừng ở việc biết tên thuật toán, mà yêu cầu người học hiểu:
+
+- khi nào dùng thuật toán nào;
+- dữ liệu nào cần băm, dữ liệu nào cần mã hóa;
+- dữ liệu nào cần ký hoặc xác thực toàn vẹn;
+- các khóa bí mật cần được quản lý như thế nào;
+- những sai lầm phổ biến khi đưa thuật toán vào hệ thống thật là gì.
+
+Đề tài này góp phần trả lời trực tiếp các câu hỏi trên thông qua một ứng dụng thu gọn nhưng đủ thực tiễn. Cụ thể:
+
+- bcrypt được dùng để lưu mật khẩu, không phải để lưu dữ liệu hồ sơ;
+- AES-GCM được dùng cho số điện thoại, địa chỉ, mã chứng chỉ và payment reference;
+- HMAC-SHA256 được dùng để xác minh webhook;
+- JWT dùng để mang claim xác thực và phân quyền;
+- `JWT_SECRET`, `ENCRYPTION_KEY`, `HMAC_WEBHOOK_SECRET` được tách ra biến môi trường thay vì hard-code.
+
+Vì vậy, đề tài phù hợp với mục tiêu đào tạo của học phần: biết chọn kỹ thuật đúng bài toán và biết chứng minh hiệu quả bảo vệ của kỹ thuật đó.
+
+### 5.4. Hạn chế của đề tài
+
+Mặc dù đã đạt mục tiêu chính, đề tài vẫn còn một số hạn chế cần nhìn nhận thẳng thắn.
+
+Thứ nhất, rate limiting hiện được xây dựng theo kiểu lưu bộ đếm trong bộ nhớ tiến trình, phù hợp để demo local nhưng chưa tối ưu cho hệ thống phân tán nhiều instance.
+
+Thứ hai, certificate local đang dùng self-signed certificate. Điều này đủ cho thực nghiệm và kiểm thử, nhưng không đại diện cho cấu hình production với chứng chỉ công khai hợp lệ.
+
+Thứ ba, frontend được tối giản để phục vụ demo bảo mật, nên chưa áp dụng các chiến lược lưu token tối ưu nhất cho triển khai thực tế quy mô lớn.
+
+Thứ tư, chế độ `PASSWORD_RESET_DEMO_MODE` giúp việc kiểm thử dễ hơn nhưng không phù hợp khi triển khai production, vì reset token không nên trả trực tiếp qua API cho người dùng.
+
+Thứ năm, webhook hiện là webhook mô phỏng; hệ thống chưa tích hợp cổng thanh toán thật, chưa xử lý các trường hợp đối soát phức tạp và chưa có pipeline chống gian lận hoàn chỉnh.
+
+Thứ sáu, đề tài chưa triển khai các cơ chế nâng cao như:
+
+- key rotation tự động;
+- secret manager hoặc KMS;
+- giám sát thời gian thực, SIEM hoặc cảnh báo tập trung;
+- kiểm thử bảo mật chuyên sâu hơn ở quy mô production.
+
+### 5.5. Hướng phát triển trong tương lai
+
+Nếu tiếp tục mở rộng đề tài sau môn học, nhóm đề xuất các hướng sau:
+
+1. Chuyển rate limiting sang Redis để dùng được cho nhiều instance backend.
+2. Chuyển cơ chế lưu token của frontend sang mô hình an toàn hơn, ví dụ HTTP-only cookie kết hợp CSRF protection phù hợp ngữ cảnh.
+3. Tích hợp cơ chế key rotation cho JWT secret và encryption key.
+4. Tích hợp cổng thanh toán thật hoặc ít nhất là sandbox payment gateway.
+5. Bổ sung dashboard giám sát audit log và cảnh báo bất thường.
+6. Bổ sung CI/CD kèm SAST, dependency scanning và DAST tự động.
+7. Mở rộng vai trò nghiệp vụ nếu cần, ví dụ tách `INSTRUCTOR` riêng ở mức đầy đủ hơn, nhưng vẫn phải giữ nguyên định hướng bảo mật là trung tâm.
+
+### 5.6. Kiến nghị khi sử dụng đề tài để báo cáo hoặc demo
+
+Để trình bày đề tài hiệu quả trước giảng viên, nhóm rút ra một số kiến nghị:
+
+- không nên bắt đầu bằng giao diện người dùng quá lâu, mà nên sớm chuyển sang Swagger/Postman để đi thẳng vào phần bảo mật;
+- nên dùng `localhost` làm môi trường demo chính để ổn định;
+- nên giữ sẵn ba công cụ mở trước là PowerShell, Swagger và Postman;
+- nên ưu tiên các kịch bản có tác động thị giác rõ như:
+  - login nhận JWT;
+  - query database thấy bcrypt hash và ciphertext;
+  - BOLA trả `403`;
+  - webhook replay trả `409`;
+  - rate limit trả `429`;
+- nên chụp sẵn hình theo danh sách trong `docs/report-image-captions.md` để rút ngắn thời gian hoàn thiện báo cáo viết.
+
+### 5.7. Kết luận chung
+
+Tổng thể, đề tài đã đạt được mục tiêu đề ra: xây dựng một hệ thống RESTful API cho dịch vụ khóa học online nhỏ, trong đó các kỹ thuật mật mã và bảo mật API được đặt ở vị trí trung tâm thay vì chỉ là phần bổ sung. Hệ thống không chạy theo hướng “nhiều chức năng nghiệp vụ”, mà tập trung làm rõ những vấn đề cốt lõi của Mật mã ứng dụng:
+
+- bảo vệ mật khẩu;
+- bảo vệ token;
+- bảo vệ dữ liệu nhạy cảm;
+- bảo vệ webhook;
+- bảo vệ quyền truy cập tài nguyên;
+- bảo vệ kênh truyền;
+- và giám sát hành vi bất thường.
+
+Điểm quan trọng nhất là toàn bộ các nội dung này không chỉ dừng ở mô tả lý thuyết. Chúng đã được hiện thực thành mã nguồn, được đóng gói bằng Docker, được kiểm thử bằng nhiều công cụ và có thể trình diễn trực tiếp. Do đó, đề tài có thể xem là một mô hình học tập và thực hành có giá trị cho sinh viên An toàn thông tin trong giai đoạn đầu tiếp cận Mật mã ứng dụng, bảo mật API và tư duy phòng thủ hệ thống web hiện đại.

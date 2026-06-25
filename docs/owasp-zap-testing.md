@@ -4,130 +4,148 @@
 
 Tài liệu này hướng dẫn kiểm thử bảo mật cơ bản bằng OWASP ZAP cho hệ thống hiện tại, tập trung vào:
 
-- kiểm tra bề mặt web qua HTTPS;
-- quan sát security headers;
-- xác nhận cơ chế chuyển hướng HTTP sang HTTPS;
-- kiểm tra phản hồi `401`, `403`, `404`, `429`;
-- quét giao diện Swagger/OpenAPI qua HTTPS để đối chiếu tài liệu API và các header bảo mật.
+- quét bề mặt web qua HTTPS
+- quan sát response header và security header
+- xác nhận cơ chế chuyển hướng HTTP sang HTTPS
+- quét Swagger / OpenAPI qua HTTPS
+- đọc alert và đối chiếu với các biện pháp bảo mật đã triển khai
 
 ## 2. Chuẩn bị trước khi quét
 
 ### 2.1. Khởi động hệ thống
 
 ```powershell
+cd E:\PROJECT_MMUD
 docker compose up --build -d
 ```
 
-### 2.2. Các địa chỉ cần dùng
+### 2.2. Các địa chỉ nên dùng
 
-- Frontend: `https://localhost`
-- API health: `https://localhost/api/health`
-- Swagger: `https://localhost/swagger-ui.html`
-- OpenAPI JSON: `https://localhost/v3/api-docs`
+- Frontend local: `https://localhost`
+- API health local: `https://localhost/api/health`
+- Swagger local: `https://localhost/swagger-ui.html`
+- OpenAPI JSON local: `https://localhost/v3/api-docs`
 
-### 2.3. Lưu ý về Swagger
+Nếu chạy ZAP trong container trên cùng máy host, nên dùng:
 
-Swagger hiện có thể truy cập qua `https://localhost/swagger-ui.html` và qua domain public khi tunnel đang bật. Tuy nhiên để quét an toàn và ổn định hơn, nên ưu tiên:
+- `https://host.docker.internal/swagger-ui.html`
 
-- `localhost` khi quét trực tiếp trên máy host;
-- `host.docker.internal` khi quét bằng container trên cùng máy host;
-- domain public chỉ dùng khi cần kiểm tra đúng bề mặt public đang mở.
+Nếu bạn đang bật tunnel/domain public và muốn quét đúng bề mặt public:
 
-## 3. Cài đặt và mở OWASP ZAP
+- `https://hackerlo.online`
+- `https://hackerlo.online/swagger-ui.html`
 
-Nếu chưa có ZAP:
+## 3. Hai cách chạy OWASP ZAP
 
-1. Tải OWASP ZAP Desktop từ trang chính thức.
-2. Cài đặt theo mặc định.
-3. Mở ứng dụng.
+## 3.1. Cách 1: ZAP Desktop
 
-Khi ZAP khởi động:
+Phù hợp khi bạn muốn thao tác bằng giao diện.
 
-1. Chọn tạo session mới.
-2. Có thể dùng chế độ mặc định, không cần cấu hình nâng cao cho bài demo này.
+Các bước:
 
-## 4. Kiểm thử nhanh giao diện frontend
+1. cài OWASP ZAP Desktop
+2. mở ứng dụng
+3. chọn tạo session mới
+4. dùng `Quick Start` hoặc `Automated Scan`
 
-### 4.1. Quét tự động
+## 3.2. Cách 2: ZAP bằng Docker
 
-Trong ZAP:
+Project đã có sẵn file cấu hình:
 
-1. Mở tab `Quick Start`.
-2. Chọn `Automated Scan`.
-3. Nhập URL:
+```text
+docs/security/zap.yaml
+```
+
+Lệnh chạy:
+
+```powershell
+docker run --rm -v "${PWD}\docs\security:/zap/wrk" ghcr.io/zaproxy/zaproxy:stable zap.sh -cmd -autorun /zap/wrk/zap.yaml
+```
+
+Kết quả report sẽ được sinh trong:
+
+- `docs/security/zap-baseline-report.html`
+- `docs/security/zap-baseline-report.json`
+- `docs/security/zap-baseline-report.xml`
+
+## 4. Kiểm thử bằng ZAP Desktop
+
+### Bước 1: Quét frontend local
+
+Trong `Quick Start`, nhập:
 
 ```text
 https://localhost
 ```
 
-4. Bấm `Attack`.
+Sau đó bấm `Attack`.
 
-### 4.2. Kết quả cần quan sát
+### Bước 2: Quét Swagger local
 
-Sau khi quét, xem tab `Alerts` và kiểm tra:
-
-- trang có truy cập được qua HTTPS;
-- không xuất hiện lỗi nghiêm trọng kiểu lộ stack trace;
-- hệ thống có các header bảo mật cơ bản;
-- nếu tunnel public đang bật, cần kiểm tra Swagger public có còn đúng cấu hình bảo mật hay không.
-
-## 5. Kiểm thử Swagger/OpenAPI trên máy host
-
-### 5.1. Quét Swagger
-
-Trong `Quick Start` hoặc `Manual Explore`, dùng URL:
+Tiếp tục quét:
 
 ```text
 https://localhost/swagger-ui.html
 ```
 
-Hoặc nếu quét bằng container trên cùng máy host:
+Nếu ZAP chạy trong container thì đổi sang:
 
 ```text
 https://host.docker.internal/swagger-ui.html
 ```
 
-### 5.2. Mục tiêu của bước này
+### Bước 3: Tùy chọn quét domain public
 
-Bước này dùng để:
-
-- xác nhận Swagger vẫn hoạt động cho người vận hành trên máy chủ;
-- quan sát response header của bề mặt tài liệu API;
-- phục vụ kiểm thử mô tả API bằng công cụ quét.
-
-## 6. Kiểm tra thủ công các hành vi bảo mật quan trọng
-
-Ngoài quét tự động, nên dùng ZAP như một proxy quan sát request/response. Các điểm nên kiểm tra:
-
-### 6.1. HTTP có bị ép sang HTTPS hay không
-
-Mở trình duyệt hoặc gửi request tới:
+Chỉ thực hiện khi tunnel/domain public đang bật thật:
 
 ```text
-http://localhost/api/health
+https://hackerlo.online
+https://hackerlo.online/swagger-ui.html
+```
+
+Mục tiêu của bước này là kiểm tra đúng bề mặt public đang được expose ra Internet.
+
+## 5. Những gì cần quan sát trong ZAP
+
+Sau khi quét, vào tab `Alerts` và chú ý các nhóm sau:
+
+- phản hồi HTTPS có hoạt động ổn định không
+- có lộ stack trace hay lỗi cấu hình nặng không
+- có security header cơ bản hay không
+- các đường dẫn như Swagger/OpenAPI có phản hồi đúng như mong đợi không
+
+## 6. Các kiểm tra thủ công nên kết hợp thêm
+
+ZAP baseline không thay thế được các bài test xác thực nâng cao. Vì vậy nên kết hợp thêm một số kiểm tra thủ công:
+
+### 6.1. HTTP sang HTTPS
+
+```powershell
+curl.exe -I http://localhost/api/health
+curl.exe -k https://localhost/api/health
 ```
 
 Kỳ vọng:
 
-- hệ thống trả `301` và chuyển sang HTTPS.
+- HTTP bị chuyển hướng
+- HTTPS phản hồi `200 OK`
 
 ### 6.2. Security headers
 
-Kiểm tra response của:
+Quan sát response của:
 
 - `https://localhost`
 - `https://localhost/api/health`
+- `https://localhost/swagger-ui.html`
 
-Nên thấy các header chính như:
+Những header nên chú ý:
 
-- `Strict-Transport-Security`
-- `Content-Security-Policy`
 - `X-Content-Type-Options`
 - `X-Frame-Options`
 - `Referrer-Policy`
 - `Permissions-Policy`
 
-### 6.3. Endpoint bảo vệ không cho truy cập trái phép
+### 6.3. Endpoint cần xác thực
 
 Dùng ZAP hoặc trình duyệt để kiểm tra:
 
@@ -139,82 +157,77 @@ Kỳ vọng:
 - thiếu xác thực: `401 Unauthorized`
 - sai quyền: `403 Forbidden`
 
-### 6.4. Swagger không lộ trên hostname/IP public
-
-Thử gửi request:
-
-```powershell
-curl.exe -k -I https://localhost/swagger-ui.html -H "Host: demo-public.example"
-curl.exe -k -I https://localhost/v3/api-docs -H "Host: demo-public.example"
-```
-
-Kỳ vọng:
-
-- đều trả `404 Not Found`
-
-Đây là một minh chứng quan trọng cho việc tài liệu API không bị lộ trên cổng public.
-
-## 7. Cách đọc kết quả trong ZAP
+## 7. Cách đọc kết quả ZAP cho báo cáo
 
 ### 7.1. Ý nghĩa mức cảnh báo
 
-- `FAIL` hoặc cảnh báo nghiêm trọng:
-  cần xử lý ngay vì có khả năng là lỗ hổng hoặc cấu hình nguy hiểm
-- `WARN`:
-  cần đọc kỹ và giải thích trong báo cáo
-- `PASS`:
-  cho thấy cơ chế tương ứng đang hoạt động đúng kỳ vọng
+- `FAIL`: có vấn đề cần xử lý ngay
+- `WARN`: cần giải thích trong báo cáo
+- `PASS`: đúng với kỳ vọng
 
-### 7.2. Một số cảnh báo thường gặp trong đồ án
-
-Với hệ thống kiểu demo, có thể gặp:
+### 7.2. Một số cảnh báo có thể gặp trong đồ án
 
 - cảnh báo liên quan `Content-Security-Policy`
-- cảnh báo nhận diện ứng dụng web hiện đại
-- cảnh báo do chứng chỉ self-signed local
+- cảnh báo `Modern Web Application`
+- cảnh báo do self-signed certificate ở local
 
-Các cảnh báo này không đồng nghĩa với việc hệ thống bị lỗi xác thực hay lỗi mã hóa, nhưng cần được giải thích rõ trong báo cáo.
+Những cảnh báo này không đồng nghĩa với việc hệ thống hỏng xác thực hay hỏng mật mã, nhưng cần được giải thích rõ.
 
-## 8. Cách chứng minh đồ án đã xử lý bảo mật
+## 8. Cách đối chiếu ZAP với các cơ chế bảo mật trong project
 
-Khi đọc kết quả quét, cần đối chiếu với các cơ chế đã làm trong dự án:
+Khi viết báo cáo, nên đối chiếu alert của ZAP với các phần đã làm:
 
-- `BOLA/IDOR`:
-  backend chặn bằng ownership check, trả `403`
-- `Broken Authentication`:
-  JWT sai chữ ký hoặc hết hạn bị từ chối
-- `Excessive Data Exposure`:
-  API không trả `passwordHash`
-- `Rate Limiting`:
-  endpoint nhạy cảm có thể trả `429`
-- `Security Misconfiguration`:
-  có HTTPS, có header bảo mật, không hard-code secret
+- `Broken Authentication`
+  - JWT sai chữ ký hoặc hết hạn bị từ chối bằng `401`
+- `Broken Object Level Authorization`
+  - BOLA bị chặn bằng ownership check và `403`
+- `Excessive Data Exposure`
+  - API không trả `passwordHash`
+- `Unrestricted Resource Consumption`
+  - login, webhook, admin API có rate limit
+- `Security Misconfiguration`
+  - có HTTPS, không hard-code secret, có security header cơ bản
 
-## 9. Khuyến nghị cách chụp minh chứng cho báo cáo
+## 9. Artifact và minh chứng có sẵn
 
-Nên chụp ít nhất các hình sau:
+Thư mục:
 
-1. Giao diện ZAP đang quét `https://localhost`
-2. Kết quả alert sau khi quét
-3. Kết quả truy cập `https://localhost/swagger-ui.html` thành công trên máy host
-4. Kết quả giả lập `Host: demo-public.example` bị `404`
+```text
+docs/security
+```
 
-Các hình này giúp giải thích rõ rằng:
+đang chứa sẵn:
 
-- hệ thống vẫn có tài liệu API để kiểm thử nội bộ;
-- nhưng tài liệu đó không bị public ra cổng người dùng thông thường.
+- `zap.yaml`
+- `zap-baseline-report.html`
+- `zap-baseline-report.json`
+- `zap-baseline-report.xml`
 
-## 10. Giới hạn hiện tại của cách quét
+Bạn có thể dùng trực tiếp các file này để:
 
-- Swagger chỉ mở cho hostname local nên khi quét bằng container ZAP phải dùng `https://host.docker.internal/swagger-ui.html`.
-- ZAP baseline không tự mô phỏng đầy đủ các ca đăng nhập, refresh token hay webhook HMAC.
-- Các tình huống nghiệp vụ sâu như BOLA, replay webhook, rate limit vẫn nên kiểm chứng bằng Postman và integration test.
+- tham khảo cách chạy baseline scan
+- chèn hình minh họa vào báo cáo
+- đối chiếu với lần quét mới nếu cần
 
-## 11. Kết luận
+## 10. Ảnh nên chụp cho báo cáo
 
-OWASP ZAP trong dự án này được dùng để:
+- Ảnh ZAP đang quét `https://localhost`
+- Ảnh ZAP quét `https://localhost/swagger-ui.html`
+- Ảnh tab `Alerts`
+- Ảnh report HTML hoặc JSON đã sinh trong `docs/security`
+- nếu có demo public, thêm ảnh quét `https://hackerlo.online`
 
-- kiểm tra nhanh bề mặt công khai của hệ thống;
-- xác nhận cấu hình HTTPS và header bảo mật;
-- hỗ trợ giải thích rằng Swagger/OpenAPI không còn lộ trên cổng public;
-- bổ sung minh chứng cho phần kiểm thử bảo mật trong báo cáo đồ án.
+## 11. Giới hạn của OWASP ZAP trong project này
+
+- ZAP baseline không tự mô phỏng đầy đủ login, refresh token, logout, forgot password, webhook HMAC.
+- Các bài test sâu như BOLA, replay webhook, rate limit vẫn nên kiểm chứng bằng Postman và integration test.
+- Nếu quét local bằng container, cần dùng `host.docker.internal` thay vì `localhost`.
+
+## 12. Kết luận
+
+OWASP ZAP trong đồ án này được dùng để:
+
+- quét nhanh bề mặt web qua HTTPS
+- quan sát header và phản hồi cơ bản
+- tạo minh chứng kiểm thử bảo mật cho báo cáo
+- bổ sung cho Postman, Swagger và integration test chứ không thay thế hoàn toàn các công cụ đó

@@ -4,39 +4,31 @@
 
 Tài liệu này hướng dẫn kiểm thử thủ công các cơ chế bảo mật chính của dự án bằng Postman, gồm:
 
-- đăng ký và đăng nhập;
-- xác thực bằng Bearer JWT;
-- refresh token;
-- quên mật khẩu và đặt lại mật khẩu;
-- phân quyền và chống BOLA/IDOR;
-- webhook HMAC-SHA256;
-- rate limit;
-- audit log.
+- đăng ký và đăng nhập
+- JWT và Bearer token
+- refresh token và logout
+- forgot password / reset password
+- BOLA / IDOR
+- webhook HMAC-SHA256
+- rate limiting
+- phân quyền admin
+- audit log
 
 ## 2. Chuẩn bị trước khi kiểm thử
 
 ### 2.1. Khởi động hệ thống
 
-Chạy toàn bộ hệ thống:
-
 ```powershell
+cd E:\PROJECT_MMUD
 docker compose up --build -d
 ```
 
-Sau khi chạy xong, kiểm tra các địa chỉ:
+### 2.2. Tắt kiểm tra SSL self-signed trong Postman
 
-- Frontend: `https://localhost`
-- API chính: `https://localhost/api`
-- Swagger: `https://localhost/swagger-ui.html`
-- Health check: `https://localhost/api/health`
+Trong `Settings`:
 
-### 2.2. Cấu hình Postman cho HTTPS self-signed
-
-Do hệ thống chạy local với chứng chỉ tự ký, trong Postman cần:
-
-1. Vào `Settings`.
-2. Tắt `SSL certificate verification`.
-3. Mở lại request nếu Postman còn giữ kết nối cũ.
+1. tắt `SSL certificate verification`
+2. đóng và mở lại request nếu Postman còn giữ kết nối cũ
 
 ### 2.3. Import collection
 
@@ -46,21 +38,52 @@ Import file:
 postman/online-course-security.postman_collection.json
 ```
 
-Sau khi import, kiểm tra các biến collection:
+### 2.4. Kiểm tra các biến collection
+
+Các biến quan trọng:
 
 - `baseUrl = https://localhost`
 - `webhookSecret = giá trị HMAC_WEBHOOK_SECRET trong .env`
-- các biến còn lại có thể giữ mặc định để collection tự cập nhật trong quá trình chạy
+
+Nếu đang demo qua domain public, có thể đổi:
+
+```text
+baseUrl = https://hackerlo.online
+```
+
+### 2.5. Các request đã có sẵn trong collection
+
+Collection hiện có sẵn các request sau:
+
+- `Register`
+- `Login Student 1`
+- `Login Student 2`
+- `Login Admin`
+- `Get Courses`
+- `Checkout Course`
+- `Get Lesson With Token`
+- `Get My Certificate`
+- `BOLA Attack Attempt`
+- `Admin Get Courses`
+- `Admin Get Course Roster`
+- `Admin Approve Pending Enrollment`
+- `Admin Add Student To Course`
+- `Admin Get Student Profile`
+- `Admin Remove Enrollment`
+- `Admin Audit Logs`
+- `Webhook Valid HMAC`
+- `Webhook Invalid HMAC`
+- `Rate Limit Test - Wrong Login`
 
 ## 3. Thứ tự chạy khuyến nghị
 
-Nếu muốn demo nhanh và ít lỗi nhất, nên chạy theo thứ tự:
+Nếu muốn demo ít lỗi nhất, nên đi theo thứ tự:
 
 1. `Get Courses`
 2. `Register`
 3. `Login Student 1`
-4. `Get My Certificate`
-5. `Get Lesson With Token`
+4. `Get Lesson With Token`
+5. `Get My Certificate`
 6. `Checkout Course`
 7. `Webhook Valid HMAC`
 8. `Login Student 2`
@@ -75,15 +98,11 @@ Nếu muốn demo nhanh và ít lỗi nhất, nên chạy theo thứ tự:
 17. `Admin Audit Logs`
 18. `Rate Limit Test - Wrong Login`
 
-## 4. Kiểm thử đăng ký tài khoản mới
+## 4. Kiểm thử đăng ký và đăng nhập
 
-### 4.1. Request sử dụng
+### 4.1. Request `Register`
 
-- `Register`
-
-### 4.2. Dữ liệu gửi đi
-
-Collection mặc định dùng dữ liệu:
+Body mặc định trong collection:
 
 ```json
 {
@@ -95,27 +114,14 @@ Collection mặc định dùng dữ liệu:
 }
 ```
 
-### 4.3. Kết quả mong đợi
+Kết quả mong đợi:
 
 - HTTP `201 Created`
-- response có:
-  - `accessToken`
-  - `refreshToken`
-  - `tokenType = Bearer`
-  - `user.role = STUDENT`
+- response có `accessToken`
+- response có `refreshToken`
+- `user.role = STUDENT`
 
-### 4.4. Lưu ý
-
-- Nếu email đã tồn tại, backend sẽ trả `409 Conflict`.
-- Nếu cần test lại nhiều lần, hãy đổi email trong request hoặc reset dữ liệu seed.
-
-## 5. Kiểm thử đăng nhập và Bearer JWT
-
-### 5.1. Đăng nhập Student 1
-
-Request:
-
-- `Login Student 1`
+### 4.2. Request `Login Student 1`
 
 Kết quả mong đợi:
 
@@ -125,21 +131,9 @@ Kết quả mong đợi:
   - `refreshToken`
   - `studentUserId`
 
-### 5.2. Gọi API bảo vệ bằng access token
+### 4.3. Request thủ công `GET /api/auth/me`
 
-Chạy các request:
-
-- `Get Lesson With Token`
-- `Get My Certificate`
-
-Kết quả mong đợi:
-
-- các request hợp lệ trả `200 OK`
-- nội dung bài học hoặc dữ liệu chứng chỉ chỉ hiển thị khi tài khoản có quyền
-
-### 5.3. Kiểm tra `GET /api/auth/me`
-
-Collection hiện chưa có sẵn request này, có thể tạo thủ công:
+Collection chưa có sẵn request này, nên tạo thủ công:
 
 - Method: `GET`
 - URL: `{{baseUrl}}/api/auth/me`
@@ -150,7 +144,9 @@ Kết quả mong đợi:
 - HTTP `200 OK`
 - response trả đúng email, họ tên, role của người dùng đang đăng nhập
 
-## 6. Kiểm thử refresh token
+## 5. Kiểm thử refresh token và logout
+
+### 5.1. Refresh token
 
 Tạo request thủ công:
 
@@ -171,14 +167,39 @@ Kết quả mong đợi:
 - response trả `accessToken` mới
 - response trả `refreshToken` mới
 
-Lưu ý:
+### 5.2. Logout
 
-- refresh token cũ sẽ bị thu hồi;
-- nếu gửi lại refresh token cũ sau khi đã đổi, backend sẽ từ chối.
+Tạo request thủ công:
 
-## 7. Kiểm thử quên mật khẩu và đặt lại mật khẩu
+- Method: `POST`
+- URL: `{{baseUrl}}/api/auth/logout`
+- Header:
+  - `Content-Type: application/json`
+  - `Authorization: Bearer {{accessToken}}`
+- Body:
 
-### 7.1. Gửi yêu cầu quên mật khẩu
+```json
+{
+  "refreshToken": "{{refreshToken}}"
+}
+```
+
+Kết quả mong đợi:
+
+- HTTP `200 OK`
+- message:
+
+```text
+Refresh token revoked successfully.
+```
+
+Sau đó gọi lại `/api/auth/refresh` với refresh token vừa logout, kết quả mong đợi:
+
+- HTTP `401 Unauthorized`
+
+## 6. Kiểm thử forgot password và reset password
+
+### 6.1. Forgot password
 
 Tạo request thủ công:
 
@@ -201,9 +222,7 @@ Kết quả mong đợi:
   - `expiresInSeconds`
   - `demoResetToken`
 
-Với môi trường demo hiện tại, `demoResetToken` được trả về để thuận tiện kiểm thử local.
-
-### 7.2. Đặt lại mật khẩu
+### 6.2. Reset password
 
 Tạo request thủ công:
 
@@ -214,7 +233,7 @@ Tạo request thủ công:
 
 ```json
 {
-  "token": "<demoResetToken vừa nhận được>",
+  "token": "<demoResetToken>",
   "newPassword": "NewPassword123!"
 }
 ```
@@ -222,61 +241,59 @@ Tạo request thủ công:
 Kết quả mong đợi:
 
 - HTTP `200 OK`
-- response có thông báo đặt lại mật khẩu thành công
 
-### 7.3. Kiểm tra sau khi đặt lại mật khẩu
+### 6.3. Các kiểm tra nên làm ngay sau reset
 
-Thực hiện ba bước:
-
-1. Đăng nhập bằng mật khẩu cũ.
+1. login bằng mật khẩu cũ
    Kỳ vọng: `401 Unauthorized`
-2. Đăng nhập bằng mật khẩu mới.
+2. login bằng mật khẩu mới
    Kỳ vọng: `200 OK`
-3. Dùng refresh token cũ trước khi đổi mật khẩu để gọi `/api/auth/refresh`.
-   Kỳ vọng: bị từ chối vì refresh token cũ đã bị thu hồi
+3. refresh bằng refresh token cũ
+   Kỳ vọng: `401 Unauthorized`
 
-Lưu ý:
+## 7. Kiểm thử bài học, chứng chỉ và BOLA / IDOR
 
-- nếu bạn đổi mật khẩu của tài khoản seed như `student1@example.com`, sau buổi demo nên reset dữ liệu bằng `docker compose down -v` rồi chạy lại stack.
+### 7.1. Request `Get Lesson With Token`
 
-## 8. Kiểm thử chống BOLA / IDOR
+Kết quả mong đợi:
 
-### 8.1. Chuẩn bị dữ liệu
+- nếu student đã có active enrollment ở khóa học tương ứng thì trả `200 OK`
+- nếu chưa có quyền thì sẽ bị `403 Forbidden`
 
-1. Chạy `Login Student 1`
-2. Chạy `Get My Certificate`
+### 7.2. Request `Get My Certificate`
 
-Sau bước này, collection sẽ tự lưu `victimCertificateId` từ chứng chỉ của Student 1.
+Kết quả mong đợi:
 
-### 8.2. Thực hiện tấn công thử
+- HTTP `200 OK`
+- collection lưu `victimCertificateId`
 
-1. Chạy `Login Student 2`
-2. Chạy `BOLA Attack Attempt`
+### 7.3. Request `BOLA Attack Attempt`
 
-Request này dùng access token của Student 2 nhưng cố đọc `certificateId` của Student 1.
+Luồng chuẩn:
 
-### 8.3. Kết quả mong đợi
+1. chạy `Login Student 1`
+2. chạy `Get My Certificate`
+3. chạy `Login Student 2`
+4. chạy `BOLA Attack Attempt`
+
+Kết quả mong đợi:
 
 - HTTP `403 Forbidden`
-- backend từ chối truy cập
+- Student 2 không thể đọc certificate của Student 1
 
-### 8.4. Kiểm tra audit log
+### 7.4. Kiểm tra audit log sau BOLA
 
-1. Chạy `Login Admin`
-2. Chạy `Admin Audit Logs`
+1. chạy `Login Admin`
+2. chạy `Admin Audit Logs`
 
-Tìm bản ghi có nội dung gần giống:
+Tìm bản ghi:
 
 - `ACCESS_DENIED`
-- `Certificate`
-- email người dùng truy cập sai quyền
+- `targetType = Certificate`
 
-## 9. Kiểm thử webhook HMAC-SHA256
+## 8. Kiểm thử webhook HMAC-SHA256
 
-### 9.1. Tạo enrollment chờ thanh toán
-
-1. Chạy `Login Student 1`
-2. Chạy `Checkout Course`
+### 8.1. Request `Checkout Course`
 
 Kết quả mong đợi:
 
@@ -285,122 +302,103 @@ Kết quả mong đợi:
   - `pendingEnrollmentId`
   - `paymentReference`
 
-### 9.2. Gửi webhook hợp lệ
-
-Chạy request:
-
-- `Webhook Valid HMAC`
+### 8.2. Request `Webhook Valid HMAC`
 
 Kết quả mong đợi:
 
 - HTTP `200 OK`
 - enrollment được chuyển sang `ACTIVE`
-- hệ thống phát hành chứng chỉ
+- certificate được cấp
 
-### 9.3. Gửi webhook sai chữ ký
+### 8.3. Request `Webhook Invalid HMAC`
 
-Chạy request:
-
-- `Webhook Invalid HMAC`
+Request này hiện được dùng để minh họa webhook chữ ký sai.
 
 Kết quả mong đợi:
 
 - HTTP `401 Unauthorized`
-- thông báo chữ ký webhook không hợp lệ
-
-### 9.4. Gửi lại webhook cùng `eventId` để test replay
-
-Collection hiện tự sinh `eventId` mới mỗi lần chạy `Webhook Valid HMAC`, vì vậy để test replay cần làm thủ công:
-
-1. Chạy `Webhook Valid HMAC` một lần thành công.
-2. Mở `Postman Console` để xem request thực tế đã gửi.
-3. Ghi lại nguyên ba header:
-   - `X-Event-Id`
-   - `X-Timestamp`
-   - `X-Signature`
-4. Tạo một request mới tên tùy ý, gửi lại đúng cùng body và cùng ba header đó tới:
+- message gần đúng:
 
 ```text
-POST {{baseUrl}}/api/webhooks/payment-success
+Webhook signature is invalid.
 ```
+
+### 8.4. Test replay attack
+
+1. chạy `Webhook Valid HMAC` một lần thành công
+2. mở `Postman Console`
+3. copy lại `X-Event-Id`, `X-Timestamp`, `X-Signature` và body
+4. gửi lại đúng y hệt request đó
 
 Kết quả mong đợi:
 
 - HTTP `409 Conflict`
-- thông báo `Webhook event has already been processed.`
+- message:
 
-## 10. Kiểm thử rate limit
+```text
+Webhook event has already been processed.
+```
 
-### 10.1. Request sử dụng
+## 9. Kiểm thử rate limit
 
-- `Rate Limit Test - Wrong Login`
+### 9.1. Request `Rate Limit Test - Wrong Login`
 
-### 10.2. Cách chạy
+Chạy request này nhiều lần liên tiếp trong cùng một phút.
 
-Gửi request này liên tục nhiều lần, thông thường từ lần thứ 6 trở đi trong cùng một phút sẽ bắt đầu bị chặn theo cấu hình mặc định.
+Kết quả mong đợi:
 
-### 10.3. Kết quả mong đợi
-
-- một vài lần đầu: `401 Unauthorized`
+- vài lần đầu: `401 Unauthorized`
 - sau khi vượt ngưỡng: `429 Too Many Requests`
 
-### 10.4. Cách kiểm tra bổ sung
+### 9.2. Kiểm tra audit log
 
-Đăng nhập admin rồi xem:
+Đăng nhập admin rồi gọi:
 
 - `Admin Audit Logs`
 
-Tìm bản ghi có:
+Tìm action:
 
-- `RATE_LIMIT_EXCEEDED`
+```text
+RATE_LIMIT_EXCEEDED
+```
 
-## 11. Kiểm thử phân quyền admin
+## 10. Kiểm thử phân quyền admin
 
-### 11.1. Tài khoản student thử vào API admin
+### 10.1. Student thử truy cập API admin
 
-Tạo request thủ công:
+Tạo thủ công:
 
 - Method: `GET`
 - URL: `{{baseUrl}}/api/admin/audit-logs`
 - Header: `Authorization: Bearer {{accessToken}}`
 
-Nếu `accessToken` hiện tại là của student, kết quả mong đợi:
+Nếu token hiện tại là của student, kết quả mong đợi:
 
 - HTTP `403 Forbidden`
 
-### 11.2. Tài khoản admin quản lý ghi danh học viên
+### 10.2. Admin quản lý học viên theo khóa học
 
-1. Chạy `Login Admin`
-2. Chạy `Admin Get Courses`
-3. Chạy `Admin Get Course Roster`
-4. Chạy `Admin Approve Pending Enrollment`
-5. Chạy `Admin Add Student To Course`
-6. Chạy `Admin Get Student Profile`
-7. Chạy `Admin Remove Enrollment`
+Chạy lần lượt:
 
-Kết quả mong đợi:
-
-- HTTP `200 OK`
-- nhận được danh sách khóa học kèm số học viên đang học và số yêu cầu chờ duyệt
-- request `Admin Get Course Roster` trả về danh sách học viên đang học và các yêu cầu `PENDING`
-- request `Admin Approve Pending Enrollment` chuyển enrollment sang `ACTIVE`
-- request `Admin Add Student To Course` thêm trực tiếp một tài khoản student vào khóa học
-- request `Admin Get Student Profile` trả về hồ sơ học viên để admin đối chiếu thông tin
-- request `Admin Remove Enrollment` đưa enrollment về trạng thái bị gỡ khỏi khóa học
-
-### 11.3. Tài khoản admin vào API audit log
-
-1. Chạy `Login Admin`
-2. Chạy `Admin Audit Logs`
+1. `Login Admin`
+2. `Admin Get Courses`
+3. `Admin Get Course Roster`
+4. `Admin Approve Pending Enrollment`
+5. `Admin Add Student To Course`
+6. `Admin Get Student Profile`
+7. `Admin Remove Enrollment`
 
 Kết quả mong đợi:
 
-- HTTP `200 OK`
-- nhận được danh sách audit log
+- admin xem được số lượng học viên đang học và số yêu cầu chờ duyệt
+- admin duyệt enrollment `PENDING` thành `ACTIVE`
+- admin thêm trực tiếp một student vào khóa học
+- admin xem được hồ sơ học viên qua endpoint quản trị
+- admin xóa enrollment khi cần
 
-### 11.4. Tài khoản admin thử đọc dữ liệu riêng tư của student
+### 10.3. Admin không dùng được endpoint student-only
 
-Tạo thủ công một request:
+Thử tạo thủ công:
 
 - Method: `GET`
 - URL: `{{baseUrl}}/api/certificates/{{victimCertificateId}}`
@@ -409,9 +407,10 @@ Tạo thủ công một request:
 Kết quả mong đợi:
 
 - HTTP `403 Forbidden`
-- chứng minh admin không được dùng các endpoint riêng tư của sinh viên trong phiên bản rút gọn này
 
-## 12. Kiểm tra nhanh các mã trạng thái cần nhớ
+Điểm này rất quan trọng để chứng minh tách biệt vai trò.
+
+## 11. Các mã trạng thái cần nhớ
 
 | Tình huống | Mã trạng thái mong đợi |
 | --- | --- |
@@ -423,19 +422,18 @@ Kết quả mong đợi:
 | Gửi lại webhook cùng `eventId` | `409` |
 | Vượt rate limit | `429` |
 
-## 13. Reset dữ liệu sau khi kiểm thử
+## 12. Reset dữ liệu sau khi kiểm thử
 
-Nếu trong quá trình test bạn đã:
+Nếu bạn đã:
 
-- đổi mật khẩu tài khoản seed;
-- kích hoạt enrollment;
-- tạo thêm user mới;
+- đổi mật khẩu tài khoản seed
+- tạo thêm user
+- kích hoạt nhiều enrollment
+- thêm hoặc xóa học viên khỏi khóa học
 
-thì nên reset lại dữ liệu trước khi demo chính thức:
+thì nên reset lại trước buổi demo chính:
 
 ```powershell
 docker compose down -v
 docker compose up --build -d
 ```
-
-Sau khi reset, các tài khoản mẫu sẽ quay lại trạng thái ban đầu.

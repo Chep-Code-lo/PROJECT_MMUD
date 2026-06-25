@@ -2,74 +2,62 @@
 
 ## 1. Mục tiêu
 
-Demo này dùng để chứng minh:
+Demo này nhằm chứng minh:
 
-- Ứng dụng chạy qua HTTPS thay vì chỉ dùng HTTP
-- Request HTTP bị ép chuyển hướng sang HTTPS
-- Dữ liệu truyền trên mạng như JWT, mật khẩu và dữ liệu API được bảo vệ tốt hơn khi đi qua TLS
-- Swagger chạy cùng lớp HTTPS của hệ thống và có thể kiểm tra được cả ở local lẫn domain public khi tunnel đang bật
+1. Hệ thống phục vụ dịch vụ qua `HTTPS` thay vì chỉ `HTTP`.
+2. Truy cập `HTTP` sẽ bị chuyển hướng sang `HTTPS`.
+3. Dữ liệu truyền trên mạng như mật khẩu, JWT và response API được bảo vệ tốt hơn nhờ `TLS`.
+4. Swagger/OpenAPI chạy trên cùng lớp HTTPS với hệ thống nên có thể test API mà không bị lệch cổng.
 
 ## 2. Chuẩn bị
 
 ### 2.1. Khởi động hệ thống
 
 ```powershell
+cd E:\PROJECT_MMUD
 docker compose up --build -d
 ```
 
 ### 2.2. Các địa chỉ cần nhớ
 
-- Ứng dụng: `https://localhost`
-- Health check: `https://localhost/api/health`
-- Swagger: `https://localhost/swagger-ui.html`
+- Frontend local: `https://localhost`
+- Health check local: `https://localhost/api/health`
+- Swagger local: `https://localhost/swagger-ui.html`
+- OpenAPI JSON local: `https://localhost/v3/api-docs`
 
-### 2.3. Thực hiện demo này ở đâu
+Nếu bạn đang bật tunnel/domain public, có thể kiểm tra thêm:
 
-Demo 07 nên dùng **2 nơi**:
+- Frontend public: `https://hackerlo.online`
+- Swagger public: `https://hackerlo.online/swagger-ui.html`
 
-#### Nơi 1: PowerShell để kiểm tra mã trạng thái HTTP và HTTPS
+### 2.3. Thực hiện ở đâu
 
-Bạn sẽ dùng `curl.exe` để kiểm tra:
+Demo này nên dùng:
 
-- HTTP có bị chuyển hướng không;
-- HTTPS có hoạt động không.
+- `PowerShell` để kiểm tra trạng thái HTTP và HTTPS
+- `Trình duyệt` để mở frontend và Swagger
 
-#### Nơi 2: Trình duyệt để kiểm tra giao diện và Swagger
+## 3. Các bước thực hiện chi tiết
 
-Bạn sẽ mở trực tiếp:
+### Bước 1: Kiểm tra HTTP bị chuyển hướng sang HTTPS
 
-- `https://localhost`
-- `https://localhost/swagger-ui.html`
-
-để minh họa việc Swagger dùng cùng cổng với ứng dụng nhưng vẫn bị chặn nếu đi bằng hostname public.
-để minh họa việc Swagger dùng cùng cổng với ứng dụng và đi qua đúng lớp HTTPS của hệ thống.
-
-## 3. Các bước thực hiện
-
-### Bước 1: Mở PowerShell tại thư mục project
+Mở PowerShell:
 
 ```powershell
 cd E:\PROJECT_MMUD
-```
-
-### Bước 2: Kiểm tra HTTP bị chuyển hướng sang HTTPS
-
-Chạy:
-
-```powershell
 curl.exe -I http://localhost/api/health
 ```
 
 Kết quả mong đợi:
 
-- Trả `301 Moved Permanently`
-- Header `Location` trỏ sang `https://localhost/...`
+- trả `301 Moved Permanently`
+- header `Location` trỏ sang `https://localhost/...`
 
 Điểm cần nói:
 
-- Nginx đang ép mọi truy cập HTTP sang HTTPS
+- reverse proxy đang ép toàn bộ request HTTP sang HTTPS
 
-### Bước 3: Kiểm tra HTTPS hoạt động bình thường
+### Bước 2: Kiểm tra HTTPS hoạt động bình thường
 
 Chạy:
 
@@ -79,15 +67,15 @@ curl.exe -k https://localhost/api/health
 
 Kết quả mong đợi:
 
-- Trả `200 OK`
+- HTTP `200 OK`
 
 Lưu ý:
 
-- Tùy chọn `-k` dùng vì certificate local là self-signed
+- dùng `-k` vì chứng chỉ local là self-signed
 
-### Bước 4: Mở ứng dụng trên trình duyệt
+### Bước 3: Mở frontend qua HTTPS
 
-Truy cập:
+Trên trình duyệt, mở:
 
 ```text
 https://localhost
@@ -95,81 +83,93 @@ https://localhost
 
 Kết quả mong đợi:
 
-- Frontend tải bình thường
-- Trình duyệt hiển thị kết nối HTTPS
+- trang chủ tải bình thường
+- trình duyệt hiển thị kết nối HTTPS
 
-Nếu trình duyệt cảnh báo chứng chỉ, hãy tiếp tục truy cập vì đây là môi trường demo local.
+Nếu trình duyệt cảnh báo self-signed certificate, chọn tiếp tục truy cập vì đây là môi trường demo local.
 
-### Bước 5: Kiểm tra Swagger mở được trên hostname local
+### Bước 4: Mở Swagger qua HTTPS
 
-Trên trình duyệt, mở:
+Mở:
 
 ```text
 https://localhost/swagger-ui.html
+```
+
+hoặc nếu được chuyển hướng:
+
+```text
+https://localhost/swagger-ui/index.html
+```
+
+Kết quả mong đợi:
+
+- Swagger mở được bình thường
+- bấm `Execute` không bị lỗi lệch cổng vì frontend proxy và API đều chạy sau HTTPS edge
+
+### Bước 5: Kiểm tra OpenAPI JSON
+
+Mở:
+
+```text
 https://localhost/v3/api-docs
 ```
 
 Kết quả mong đợi:
 
-- Cả hai URL đều mở được trên chính máy host
+- trả ra tài liệu OpenAPI ở dạng JSON
 
-Ý nghĩa:
+### Bước 6: Tùy chọn kiểm tra public domain
 
-- Tài liệu API dùng cùng lớp HTTPS với ứng dụng để tránh lỗi lệch cổng khi demo
+Chỉ thực hiện bước này khi tunnel/domain public đang bật thật.
 
-### Bước 6: Kiểm tra Swagger qua hostname phù hợp với môi trường demo
-
-Trên PowerShell, chạy:
+Trên PowerShell:
 
 ```powershell
-curl.exe -k -I https://localhost/swagger-ui.html -H "Host: demo-public.example"
-curl.exe -k -I https://localhost/v3/api-docs -H "Host: demo-public.example"
+curl.exe -I https://hackerlo.online
+curl.exe -I https://hackerlo.online/swagger-ui.html
+```
+
+Hoặc mở trực tiếp trên trình duyệt:
+
+```text
+https://hackerlo.online
+https://hackerlo.online/swagger-ui.html
 ```
 
 Kết quả mong đợi:
 
-- Nếu chưa bật tunnel public, hai request giả lập trên thường không cho kết quả hợp lệ cho Swagger.
-- Nếu đã bật tunnel public, nên kiểm tra trực tiếp domain thật như `https://hackerlo.online/swagger-ui.html`.
+- public domain phản hồi qua HTTPS
+- Swagger public mở được nếu bạn đang cho phép public swagger ở reverse proxy
 
-Điểm cần nhấn mạnh:
+## 4. Kết quả mong đợi
 
-- Swagger nên được kiểm thử trên đúng hostname đang dùng để demo
-- `localhost` phù hợp cho buổi báo cáo trực tiếp trên máy chạy hệ thống
-- domain public phù hợp cho buổi demo từ xa khi tunnel đã bật
+Sau khi làm xong Demo 07, bạn phải chứng minh được:
 
-## 4. Cách trình bày ngắn gọn trước giảng viên
+1. `HTTP` bị ép sang `HTTPS`.
+2. API health phản hồi thành công trên `HTTPS`.
+3. Frontend và Swagger đều phục vụ qua cùng lớp HTTPS.
+4. Có thể dùng local host hoặc domain public để demo tùy ngữ cảnh triển khai.
 
-Bạn nên trình bày theo đúng thứ tự:
+## 5. Câu nên nói khi trình bày
 
-1. Mở PowerShell
-2. Chạy `curl.exe -I http://localhost/api/health`
-3. Chỉ ra mã `301`
-4. Chạy `curl.exe -k https://localhost/api/health`
-5. Chỉ ra mã `200`
-6. Mở `https://localhost` trên trình duyệt
-7. Mở `https://localhost/swagger-ui.html` và chỉ ra Swagger hoạt động cùng cổng `443`
-8. Nếu cần demo public, mở thêm `https://hackerlo.online/swagger-ui.html`
+- `TLS` giúp mã hóa kênh truyền giữa client và server.
+- Nếu chỉ dùng HTTP thì JWT, mật khẩu và response API có thể bị nhìn thấy trên đường truyền.
+- Trong project này, TLS được terminate tại Nginx rồi reverse proxy vào backend/frontend trong mạng Docker nội bộ.
+- HTTPS là lớp bảo vệ cho dữ liệu khi truyền, còn JWT, bcrypt, AES và HMAC là các lớp bảo vệ ở tầng ứng dụng.
 
-Nếu giảng viên hỏi “demo này làm ở đâu”, câu trả lời chuẩn là:
+## 6. Ảnh nên chụp cho báo cáo
 
-- **PowerShell để kiểm tra trạng thái HTTP/HTTPS**
-- **Trình duyệt để kiểm tra giao diện và Swagger**
+- Ảnh `curl.exe -I http://localhost/api/health` trả `301`.
+- Ảnh `curl.exe -k https://localhost/api/health` trả `200`.
+- Ảnh trình duyệt mở `https://localhost`.
+- Ảnh truy cập `https://localhost/swagger-ui.html`.
+- Nếu có demo từ xa, thêm ảnh `https://hackerlo.online`.
 
-## 5. Giải thích ngắn gọn để trình bày
+## 7. Cách reset sau demo
 
-- TLS giúp mã hóa kênh truyền giữa client và server
-- Khi chỉ dùng HTTP, dữ liệu nhạy cảm có thể bị nhìn thấy trên đường truyền nếu môi trường mạng không an toàn
-- Với HTTPS, nội dung request và response được bảo vệ tốt hơn khi đi qua mạng
-- Trong đồ án này, TLS được terminate tại Nginx, sau đó Nginx chuyển tiếp request vào backend và frontend trong mạng Docker nội bộ
+Demo này không làm thay đổi dữ liệu hệ thống nên không cần reset.
 
-## 6. Minh chứng nên chụp cho báo cáo
+## 8. Kết luận
 
-- Ảnh `curl.exe -I http://localhost/api/health` trả `301`
-- Ảnh `curl.exe -k https://localhost/api/health` trả `200`
-- Ảnh trình duyệt mở `https://localhost`
-- Ảnh truy cập `https://localhost/swagger-ui.html` thành công
-- Ảnh PowerShell giả lập host public và nhận `404`
-
-## 7. Kết luận
-
-Demo này cho thấy hệ thống không chỉ bảo vệ dữ liệu khi lưu trữ mà còn bảo vệ dữ liệu trong quá trình truyền qua mạng. Đây là phần quan trọng để liên kết giữa xác thực, token, mật khẩu và kênh truyền an toàn trong một hệ thống RESTful API.
+Demo này cho thấy project không chỉ bảo vệ dữ liệu khi lưu trữ mà còn bảo vệ dữ liệu trong quá trình truyền qua mạng. Đây là mắt xích quan trọng để hoàn thiện chuỗi bảo mật tổng thể của hệ thống RESTful API.

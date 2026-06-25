@@ -1,36 +1,33 @@
 # Tài liệu kiểm thử bảo mật
 
-Đây là thư mục tổng hợp các tài liệu kiểm thử bảo mật của đồ án. Mục tiêu là giúp bạn có đủ tài liệu để:
-
-- kiểm thử thủ công bằng Postman;
-- quét cơ bản bằng OWASP ZAP;
-- trình bày demo tấn công và phòng thủ trước giảng viên.
+Đây là thư mục tổng hợp các tài liệu phục vụ kiểm thử, demo và báo cáo phần bảo mật của đồ án.
 
 ## 1. Các tài liệu chính
 
+- `docs/demo-runbook.md`: kịch bản demo tổng hợp theo thứ tự trình bày
 - `docs/postman-testing.md`: hướng dẫn kiểm thử thủ công bằng Postman
 - `docs/owasp-zap-testing.md`: hướng dẫn quét và đọc kết quả OWASP ZAP
-- `docs/demo-runbook.md`: kịch bản demo tổng hợp theo thứ tự trình bày
-- `docs/demo-01-password-bcrypt.md`: demo băm mật khẩu bằng bcrypt
-- `docs/demo-02-jwt.md`: demo JWT, Bearer token, refresh token
-- `docs/demo-03-aes-encryption.md`: demo mã hóa dữ liệu nhạy cảm bằng AES-GCM
-- `docs/demo-04-bola-idor.md`: demo chống BOLA / IDOR
-- `docs/demo-05-webhook-hmac.md`: demo webhook HMAC-SHA256
-- `docs/demo-06-rate-limit.md`: demo rate limiting
-- `docs/demo-07-https-tls.md`: demo HTTPS / TLS
+- `docs/demo-01-password-bcrypt.md`: demo `bcrypt`
+- `docs/demo-02-jwt.md`: demo `JWT`, `Bearer token`, `refresh token`, `logout`
+- `docs/demo-03-aes-encryption.md`: demo `AES-GCM`
+- `docs/demo-04-bola-idor.md`: demo chống `BOLA / IDOR`
+- `docs/demo-05-webhook-hmac.md`: demo `HMAC-SHA256` cho webhook
+- `docs/demo-06-rate-limit.md`: demo `rate limiting`
+- `docs/demo-07-https-tls.md`: demo `HTTPS / TLS`
+- `docs/demo-08-forgot-password.md`: demo `forgot password / reset password`
 
 ## 2. Nên bắt đầu từ đâu
 
-Nếu bạn cần kiểm thử nhanh:
+Nếu cần chuẩn bị nhanh cho buổi demo:
 
-1. Đọc `docs/demo-runbook.md`
-2. Mở `docs/postman-testing.md`
-3. Mở `docs/owasp-zap-testing.md` khi cần phần quét bảo mật
+1. đọc `docs/demo-runbook.md`
+2. mở `docs/postman-testing.md`
+3. mở `docs/owasp-zap-testing.md` khi cần phần kiểm thử bằng ZAP
 
-Nếu bạn cần viết báo cáo hoặc chuẩn bị thuyết trình:
+Nếu cần viết báo cáo chi tiết:
 
-1. Dùng `docs/demo-runbook.md` làm kịch bản tổng quát
-2. Mở từng file `demo-01` đến `demo-07` để lấy bước thực hiện chi tiết
+1. dùng `docs/demo-runbook.md` làm xương sống
+2. lấy bước thao tác cụ thể từ từng file `demo-01` đến `demo-08`
 
 ## 3. Công cụ nên dùng theo từng nhóm bài test
 
@@ -38,31 +35,36 @@ Nếu bạn cần viết báo cáo hoặc chuẩn bị thuyết trình:
 
 Dùng cho:
 
-- kiểm tra HTTP và HTTPS;
-- xem dữ liệu trong database;
-- spam request để demo rate limit;
-- chạy test tự động khi cần minh họa kỹ thuật.
+- kiểm tra HTTP / HTTPS
+- xem dữ liệu trong database
+- spam request để demo rate limit
+- chạy unit test hoặc integration test khi cần minh họa kỹ thuật
 
 ### Swagger
 
 Dùng cho:
 
-- đăng nhập;
-- lấy JWT;
-- gọi API profile, chứng chỉ, duyệt khóa học admin, audit log;
-- kiểm tra nhanh response của backend trên máy host.
+- đăng nhập và lấy JWT
+- gọi `me`, `refresh`, `logout`, `forgot-password`, `reset-password`
+- xem audit log bằng admin
+- kiểm tra nhanh response của backend
 
-Địa chỉ:
+Địa chỉ local:
 
 - `https://localhost/swagger-ui.html`
+
+Nếu tunnel/domain public đang bật:
+
+- `https://hackerlo.online/swagger-ui.html`
 
 ### Postman
 
 Dùng cho:
 
-- BOLA/IDOR;
-- webhook HMAC-SHA256;
-- các tình huống cần giữ nhiều token cùng lúc.
+- BOLA / IDOR
+- webhook HMAC-SHA256
+- quản trị enrollment bằng admin
+- các tình huống cần giữ nhiều token cùng lúc
 
 Collection:
 
@@ -70,9 +72,8 @@ Collection:
 
 ## 4. Lưu ý quan trọng
 
-- Swagger dùng cùng cổng `443`; khi tunnel public đang bật có thể truy cập cả qua domain public để phục vụ demo từ xa
-- Các tài liệu trong thư mục này phục vụ kiểm thử kỹ thuật, không phải nội dung hiển thị cho người dùng cuối
-- Khi đã thay đổi dữ liệu seed trong lúc demo, nên reset lại bằng:
+- Tài liệu trong thư mục này phục vụ kiểm thử kỹ thuật, không phải nội dung hiển thị cho người dùng cuối.
+- Khi đã thay đổi seed data trong lúc demo, nên reset lại:
 
 ```powershell
 docker compose down -v

@@ -2,18 +2,16 @@
 
 ## 1. Mục đích
 
-Tài liệu này dùng khi bạn muốn trình bày đồ án trước giảng viên theo một mạch rõ ràng, ngắn gọn và đúng trọng tâm môn Mật mã ứng dụng. Mục tiêu của runbook là giúp bạn biết:
+Tài liệu này là runbook tổng hợp để bạn trình bày đồ án trước giảng viên theo một mạch rõ ràng, đúng trọng tâm môn Mật mã ứng dụng và bảo mật API. Mục tiêu là:
 
-- mở ở đâu;
-- thao tác trên công cụ nào;
-- nên nói gì khi trình bày;
-- cần chụp màn hình những gì để đưa vào báo cáo.
+- biết mở gì trước
+- biết demo phần nào bằng công cụ nào
+- biết nên nói gì trong từng phần
+- biết nên chụp ảnh nào để đưa vào báo cáo
 
 ## 2. Chuẩn bị trước khi demo
 
 ### 2.1. Khởi động hệ thống
-
-Mở PowerShell tại thư mục project:
 
 ```powershell
 cd E:\PROJECT_MMUD
@@ -22,9 +20,15 @@ docker compose up --build -d
 
 ### 2.2. Các địa chỉ cần nhớ
 
-- Frontend: `https://localhost`
+- Frontend local: `https://localhost`
 - API health: `https://localhost/api/health`
-- Swagger: `https://localhost/swagger-ui.html`
+- Swagger local: `https://localhost/swagger-ui.html`
+- OpenAPI JSON local: `https://localhost/v3/api-docs`
+
+Nếu bạn đang bật tunnel/domain public:
+
+- Frontend public: `https://hackerlo.online`
+- Swagger public: `https://hackerlo.online/swagger-ui.html`
 
 ### 2.3. Tài khoản mẫu
 
@@ -32,409 +36,236 @@ docker compose up --build -d
 - `student2@example.com / Password123!`
 - `admin@example.com / Admin123!`
 
-### 2.4. Cần mở sẵn những gì trước khi vào demo
+### 2.4. Nên mở sẵn gì trước khi bắt đầu
 
-Để buổi demo mượt hơn, nên mở sẵn:
+Để buổi demo mượt hơn, nên mở sẵn ba cửa sổ:
 
-#### Cửa sổ 1: PowerShell
+1. `PowerShell`
+2. `Trình duyệt` tại `https://localhost/swagger-ui.html`
+3. `Postman`
 
-Dùng để:
+### 2.5. Mẹo nhỏ trước khi vào demo thật
 
-- kiểm tra HTTP/HTTPS;
-- xem database;
-- spam request để demo rate limit;
-- chạy test minh họa khi cần.
+- nếu dùng Postman, tắt `SSL certificate verification`
+- nếu muốn kiểm tra nhanh toàn hệ thống trước khi trình bày, có thể chạy:
 
-#### Cửa sổ 2: Trình duyệt với Swagger
-
-Mở:
-
-```text
-https://localhost/swagger-ui.html
+```powershell
+& .\scripts\demo-security.ps1
 ```
-
-Dùng cho các phần:
-
-- JWT;
-- bcrypt;
-- AES-GCM;
-- audit log;
-- kiểm tra kết quả sau webhook.
-
-#### Cửa sổ 3: Postman
-
-Dùng cho các phần:
-
-- BOLA/IDOR;
-- webhook HMAC-SHA256;
-- các tình huống cần giữ nhiều token cùng lúc.
-
-Nếu Postman báo lỗi certificate, vào `Settings` và tắt `SSL certificate verification`.
 
 ## 3. Thứ tự demo khuyến nghị
 
-Nếu cần trình bày trong khoảng 10 đến 15 phút, nên đi theo thứ tự này:
+Nếu bạn có khoảng `10` đến `15` phút, nên đi theo thứ tự sau:
 
-1. HTTPS/TLS
-2. JWT và Bearer Token
-3. bcrypt cho mật khẩu
-4. AES-GCM cho dữ liệu nhạy cảm
-5. BOLA/IDOR
-6. Webhook HMAC-SHA256
-7. Rate limit
-8. Audit log
-9. Swagger
+1. Demo 07: HTTPS / TLS
+2. Demo 02: JWT, Bearer Token, Refresh Token
+3. Demo 01: bcrypt cho mật khẩu
+4. Demo 03: AES-GCM cho dữ liệu nhạy cảm
+5. Demo 08: Forgot Password và Reset Password
+6. Demo 04: Chống BOLA / IDOR
+7. Demo 05: Webhook HMAC-SHA256
+8. Demo 06: Rate Limiting
+9. Audit log và Swagger
 
-Lý do của thứ tự này:
+Lý do:
 
-- đi từ lớp bảo vệ đường truyền;
-- đến lớp xác thực người dùng;
-- đến lớp bảo vệ dữ liệu;
-- rồi mới sang các tình huống tấn công và phòng thủ cụ thể.
+- đi từ lớp bảo vệ đường truyền
+- sang lớp xác thực
+- sang lớp bảo vệ dữ liệu
+- rồi mới đến các tình huống tấn công và phòng thủ cụ thể
 
-## 4. Kịch bản trình bày từng phần
+## 4. Kịch bản trình bày gợi ý
 
-## 4.1. Demo HTTPS/TLS
+## 4.1. Mở đầu trong 30 giây
 
-### Thực hiện ở đâu
+Bạn có thể nói ngắn gọn:
 
-- PowerShell
-- Trình duyệt
+- Đề tài tập trung vào bảo mật RESTful API cho dịch vụ khóa học online nhỏ.
+- Trọng tâm là `JWT`, `bcrypt`, `AES-GCM`, `HMAC-SHA256`, `HTTPS/TLS`, `audit log` và chống `BOLA/IDOR`.
+- Demo sẽ đi từ đường truyền an toàn, đến xác thực, đến bảo vệ dữ liệu và cuối cùng là các tình huống tấn công/phòng thủ.
 
-### Các bước thao tác
+## 4.2. Demo HTTPS / TLS
 
-#### Bước 1: Kiểm tra HTTP bị chuyển hướng
+### Làm ở đâu
 
-Chạy:
+- `PowerShell`
+- `Trình duyệt`
+
+### Thao tác nhanh
 
 ```powershell
 curl.exe -I http://localhost/api/health
-```
-
-Kỳ vọng:
-
-- trả `301 Moved Permanently`
-
-#### Bước 2: Kiểm tra HTTPS hoạt động
-
-Chạy:
-
-```powershell
 curl.exe -k https://localhost/api/health
 ```
 
-Kỳ vọng:
-
-- trả `200 OK`
-
-#### Bước 3: Mở trình duyệt
-
-Mở:
+Sau đó mở:
 
 ```text
 https://localhost
-```
-
-Kỳ vọng:
-
-- giao diện frontend tải bình thường
-
-### Câu nên nói khi trình bày
-
-- Hệ thống không phục vụ API qua HTTP thuần
-- HTTP bị ép sang HTTPS để bảo vệ dữ liệu trên đường truyền
-- Đây là lớp bảo vệ quan trọng cho JWT, mật khẩu và dữ liệu API
-
-### Ảnh nên chụp
-
-- `curl.exe -I http://localhost/api/health` trả `301`
-- `curl.exe -k https://localhost/api/health` trả `200`
-- trình duyệt mở `https://localhost`
-
-## 4.2. Demo JWT và Bearer Token
-
-### Thực hiện ở đâu
-
-- Swagger
-- PowerShell nếu muốn demo token hết hạn hoặc chạy test tamper token
-
-### Các bước thao tác
-
-#### Bước 1: Mở Swagger
-
-Mở:
-
-```text
 https://localhost/swagger-ui.html
 ```
 
-#### Bước 2: Đăng nhập để lấy token
+### Điều cần nói
 
-Vào `Auth API`, mở `POST /api/auth/login`, nhập:
-
-```json
-{
-  "email": "student1@example.com",
-  "password": "Password123!"
-}
-```
-
-Kỳ vọng:
-
-- trả `200 OK`
-- nhận được `accessToken` và `refreshToken`
-
-#### Bước 3: Dùng Bearer token gọi API bảo vệ
-
-1. Copy `accessToken`
-2. Bấm `Authorize`
-3. Nhập `Bearer <accessToken>`
-4. Gọi `GET /api/auth/me`
-
-Kỳ vọng:
-
-- trả `200 OK`
-
-#### Bước 4: Xóa token rồi gọi lại
-
-1. Mở lại `Authorize`
-2. `Logout` hoặc xóa token
-3. Gọi lại `GET /api/auth/me`
-
-Kỳ vọng:
-
-- trả `401 Unauthorized`
-
-#### Bước 5: Nếu cần, demo token bị sửa payload
-
-Có thể:
-
-- sửa payload thủ công trên token demo local;
-- hoặc chạy test:
-
-```powershell
-cd E:\PROJECT_MMUD\backend
-mvn -Dtest=AuthSecurityIntegrationTest#tamperedJwtPayloadIsRejected test
-```
-
-Kỳ vọng:
-
-- token bị sửa sẽ bị từ chối
-
-#### Bước 6: Demo refresh token
-
-Gọi `POST /api/auth/refresh` với:
-
-```json
-{
-  "refreshToken": "<refreshToken>"
-}
-```
-
-Kỳ vọng:
-
-- trả token mới
-
-### Câu nên nói khi trình bày
-
-- JWT được backend ký bằng secret phía server
-- Client gửi token qua header `Authorization: Bearer <token>`
-- Nếu token bị sửa payload thì chữ ký không còn hợp lệ
-- Access token sống ngắn, refresh token dùng để xin token mới
+- HTTP bị ép sang HTTPS.
+- TLS bảo vệ mật khẩu, JWT và dữ liệu API trên đường truyền.
+- Swagger cũng chạy trên cùng lớp HTTPS nên test thuận tiện.
 
 ### Ảnh nên chụp
 
-- đăng nhập trả `accessToken`
+- `301` từ HTTP sang HTTPS
+- `200` ở `https://localhost/api/health`
+- trình duyệt mở `https://localhost`
+
+## 4.3. Demo JWT và Bearer Token
+
+### Làm ở đâu
+
+- `Swagger`
+- `PowerShell`
+
+### Thao tác nhanh
+
+1. đăng nhập `student1@example.com`
+2. lấy `accessToken`
+3. `Authorize` rồi gọi `GET /api/auth/me`
+4. xóa token rồi gọi lại `GET /api/auth/me`
+5. dùng PowerShell sửa payload token để minh họa chữ ký sai
+6. gọi `POST /api/auth/refresh`
+7. gọi `POST /api/auth/logout`
+
+### Điều cần nói
+
+- access token là JWT, refresh token là token opaque lưu dạng hash trong DB
+- token sai chữ ký hoặc hết hạn sẽ bị từ chối
+- logout là thu hồi refresh token
+
+### Ảnh nên chụp
+
+- login trả `accessToken`
 - `GET /api/auth/me` trả `200`
-- gọi không có token trả `401`
-- nếu có, ảnh refresh token thành công
+- token sai bị `401`
+- refresh token mới
+- refresh token cũ bị revoke sau logout
 
-## 4.3. Demo bcrypt cho mật khẩu
+## 4.4. Demo bcrypt
 
-### Thực hiện ở đâu
+### Làm ở đâu
 
-- Swagger
-- PowerShell để xem database
+- `Swagger`
+- `PowerShell`
 
-### Các bước thao tác
+### Thao tác nhanh
 
-#### Bước 1: Đăng nhập bằng tài khoản seed
-
-Trên Swagger, gọi:
-
-```http
-POST /api/auth/login
-```
-
-Body:
-
-```json
-{
-  "email": "student1@example.com",
-  "password": "Password123!"
-}
-```
-
-#### Bước 2: Xem `password_hash` trong database
-
-Mở PowerShell, chạy:
+1. đăng nhập `student1`
+2. mở PowerShell và truy vấn:
 
 ```powershell
 docker exec securityapp-db mysql -uroot -pchange-me-root-password securityapp -e "SELECT id,email,password_hash,role FROM users;"
 ```
 
-Nếu `MYSQL_ROOT_PASSWORD` trong `.env` khác giá trị trên thì thay cho đúng.
+3. chỉ ra cột `password_hash`
+4. thử đăng nhập sai để thấy `401`
 
-Kỳ vọng:
+### Điều cần nói
 
-- cột `password_hash` là chuỗi bcrypt
-- không thấy mật khẩu gốc
-
-#### Bước 3: Đăng nhập lại bằng đúng mật khẩu
-
-Trên Swagger, gọi lại `POST /api/auth/login`.
-
-Kỳ vọng:
-
-- vẫn đăng nhập được
-
-#### Bước 4: Thử mật khẩu sai
-
-Đổi password thành sai rồi gọi lại.
-
-Kỳ vọng:
-
-- trả `401 Unauthorized`
-
-### Câu nên nói khi trình bày
-
-- bcrypt là băm một chiều, không phải mã hóa để giải ngược
-- Database chỉ lưu hash, không lưu plaintext
-- Khi đăng nhập, hệ thống chỉ so khớp bằng `matches`
+- mật khẩu không lưu plaintext
+- bcrypt là băm một chiều
+- khi đăng nhập chỉ có bước so khớp `matches`
 
 ### Ảnh nên chụp
 
-- đăng nhập thành công
-- PowerShell hiển thị cột `password_hash`
-- đăng nhập sai trả `401`
+- login thành công
+- query bảng `users`
+- login sai trả `401`
 
-## 4.4. Demo AES-GCM cho dữ liệu nhạy cảm
+## 4.5. Demo AES-GCM
 
-### Thực hiện ở đâu
+### Làm ở đâu
 
-- Swagger
-- PowerShell
+- `Swagger`
+- `PowerShell`
 
-### Các bước thao tác
+### Thao tác nhanh
 
-#### Bước 1: Đăng nhập `student1`
-
-Trên Swagger, lấy `accessToken` rồi `Authorize`.
-
-#### Bước 2: Gọi API hồ sơ và chứng chỉ
-
-Gọi:
-
-- `GET /api/auth/me`
-- `GET /api/certificates/me`
-
-Kỳ vọng:
-
-- response có dữ liệu như:
-  - `phoneNumber`
-  - `billingAddress`
-  - `certificateCode`
-
-#### Bước 3: Xem ciphertext trong database
-
-Mở PowerShell, chạy:
+1. authorize bằng token của `student1`
+2. gọi:
+   - `GET /api/auth/me`
+   - `GET /api/certificates/me`
+3. truy vấn DB:
 
 ```powershell
 docker exec securityapp-db mysql -uroot -pchange-me-root-password securityapp -e "SELECT id,email,phone_number_encrypted,billing_address_encrypted FROM users;"
-docker exec securityapp-db mysql -uroot -pchange-me-root-password securityapp -e "SELECT id,student_id,course_id,payment_reference_encrypted,status FROM enrollments;"
 docker exec securityapp-db mysql -uroot -pchange-me-root-password securityapp -e "SELECT id,student_id,course_id,certificate_code_encrypted,score FROM certificates;"
 ```
 
-Kỳ vọng:
-
-- dữ liệu trong DB là ciphertext khó đọc
-
-#### Bước 4: Nếu cần, chạy test toàn vẹn AES-GCM
+4. nếu cần, chạy:
 
 ```powershell
 cd E:\PROJECT_MMUD\backend
 mvn -Dtest=EncryptionServiceTest test
 ```
 
-Kỳ vọng:
+### Điều cần nói
 
-- test cho thấy ciphertext bị sửa sẽ không giải mã được
-
-### Câu nên nói khi trình bày
-
-- Dữ liệu nhạy cảm không lưu trực tiếp trong DB
-- Backend chỉ giải mã khi đúng người, đúng ngữ cảnh
-- AES-GCM vừa bảo vệ bí mật vừa kiểm tra toàn vẹn
+- dữ liệu nhạy cảm lưu dưới dạng mã hóa
+- backend giải mã khi đúng người dùng, đúng ngữ cảnh
+- AES-GCM còn kiểm tra tính toàn vẹn của ciphertext
 
 ### Ảnh nên chụp
 
-- `GET /api/auth/me`
-- `GET /api/certificates/me`
-- PowerShell truy vấn bảng mã hóa
-- nếu có, ảnh test `EncryptionServiceTest`
+- profile có `phoneNumber`
+- certificate có `certificateCode`
+- bảng DB có các cột `_encrypted`
 
-## 4.5. Demo BOLA / IDOR
+## 4.6. Demo Forgot Password và Reset Password
 
-### Thực hiện ở đâu
+### Làm ở đâu
 
-- Postman
-- có thể dùng Swagger để đối chiếu, nhưng Postman là công cụ chính
+- `Swagger` hoặc `Postman`
 
-### Các bước thao tác
+### Thao tác nhanh
 
-#### Bước 1: Import collection
+1. tạo một tài khoản mới để demo
+2. gọi `POST /api/auth/forgot-password`
+3. lấy `demoResetToken`
+4. gọi `POST /api/auth/reset-password`
+5. thử login bằng mật khẩu cũ
+6. login bằng mật khẩu mới
+7. thử refresh bằng refresh token cũ
 
-Import:
+### Điều cần nói
 
-```text
-postman/online-course-security.postman_collection.json
-```
+- chế độ demo local trả `demoResetToken` để dễ test
+- response forgot password là đồng nhất để không lộ email tồn tại
+- reset password sẽ revoke refresh token cũ
 
-#### Bước 2: Chạy `Login Student 1`
+### Ảnh nên chụp
 
-Kỳ vọng:
+- forgot password có `demoResetToken`
+- reset password thành công
+- refresh token cũ bị từ chối
 
-- lưu được token của `student1`
+## 4.7. Demo BOLA / IDOR
 
-#### Bước 3: Chạy `Get My Certificate`
+### Làm ở đâu
 
-Kỳ vọng:
+- `Postman`
 
-- lấy được `victimCertificateId`
+### Thao tác nhanh
 
-#### Bước 4: Chạy `Login Student 2`
+1. `Login Student 1`
+2. `Get My Certificate`
+3. `Login Student 2`
+4. `BOLA Attack Attempt`
+5. `Login Admin`
+6. `Admin Audit Logs`
 
-Kỳ vọng:
+### Điều cần nói
 
-- lưu được token của `student2`
-
-#### Bước 5: Chạy `BOLA Attack Attempt`
-
-Kỳ vọng:
-
-- trả `403 Forbidden`
-
-#### Bước 6: Chạy `Login Admin` và `Admin Audit Logs`
-
-Kỳ vọng:
-
-- thấy bản ghi `ACCESS_DENIED`
-
-### Câu nên nói khi trình bày
-
-- Đây là kiểu lỗi đổi ID trên URL để xem dữ liệu người khác
-- Frontend có ẩn nút cũng không đủ
-- Backend phải kiểm tra ownership ở phía server
+- đây là lỗi đổi ID trên URL để xem dữ liệu người khác
+- frontend ẩn nút là chưa đủ
+- backend phải kiểm tra ownership ở phía server
 
 ### Ảnh nên chụp
 
@@ -442,113 +273,65 @@ Kỳ vọng:
 - `BOLA Attack Attempt` trả `403`
 - `Admin Audit Logs` có `ACCESS_DENIED`
 
-## 4.6. Demo webhook HMAC-SHA256
+## 4.8. Demo Webhook HMAC-SHA256
 
-### Thực hiện ở đâu
+### Làm ở đâu
 
-- Postman là công cụ chính
-- Swagger chỉ để kiểm tra kết quả sau webhook
+- `Postman`
+- `Swagger` để kiểm tra kết quả
 
-### Các bước thao tác
+### Thao tác nhanh
 
-#### Bước 1: Chạy `Login Student 1`
+1. `Login Student 1`
+2. `Checkout Course`
+3. `Webhook Valid HMAC`
+4. kiểm tra `GET /api/enrollments/me`
+5. kiểm tra `GET /api/certificates/me`
+6. `Webhook Invalid HMAC`
+7. gửi lại cùng `eventId` để demo replay
 
-#### Bước 2: Chạy `Checkout Course`
+### Điều cần nói
 
-Kỳ vọng:
-
-- có `pendingEnrollmentId`
-- có `paymentReference`
-
-#### Bước 3: Chạy `Webhook Valid HMAC`
-
-Kỳ vọng:
-
-- trả `200 OK`
-- enrollment được kích hoạt
-
-#### Bước 4: Kiểm tra kết quả
-
-Mở Swagger hoặc Postman, kiểm tra:
-
-- `GET /api/enrollments/me`
-- `GET /api/certificates/me`
-
-Kỳ vọng:
-
-- enrollment thành `ACTIVE`
-- có certificate
-
-#### Bước 5: Chạy `Webhook Invalid HMAC`
-
-Kỳ vọng:
-
-- trả `401 Unauthorized`
-
-#### Bước 6: Demo replay attack
-
-1. Mở `Postman Console`
-2. Ghi lại `X-Event-Id`, `X-Timestamp`, `X-Signature` của request hợp lệ
-3. Gửi lại đúng body và đúng các header đó
-
-Kỳ vọng:
-
-- trả `409 Conflict`
-
-### Câu nên nói khi trình bày
-
-- HMAC giúp xác minh webhook đến từ nguồn biết secret dùng chung
-- Timestamp và eventId giúp chống replay
+- HMAC xác minh nguồn gửi webhook
+- timestamp và `eventId` giúp chống replay
+- webhook hợp lệ mới kích hoạt enrollment
 
 ### Ảnh nên chụp
 
 - `Checkout Course`
 - `Webhook Valid HMAC`
 - enrollment `ACTIVE`
-- `Webhook Invalid HMAC`
-- replay bị `409`
+- webhook sai bị từ chối
+- replay trả `409`
 
-## 4.7. Demo rate limit
+## 4.9. Demo Rate Limit
 
-### Thực hiện ở đâu
+### Làm ở đâu
 
-- PowerShell
-- Swagger hoặc Postman để xem audit log
+- `PowerShell`
+- `Swagger` hoặc `Postman`
 
-### Các bước thao tác
-
-#### Bước 1: Spam login sai bằng PowerShell
+### Thao tác nhanh
 
 ```powershell
 1..7 | ForEach-Object {
-  Write-Host "----- Lan goi $($_) -----"
   curl.exe -k -i https://localhost/api/auth/login `
     -H "Content-Type: application/json" `
     -d '{"email":"student1@example.com","password":"WrongPassword123!"}'
 }
 ```
 
-Kỳ vọng:
-
-- vài lần đầu `401`
-- sau đó `429`
-
-#### Bước 2: Mở audit log
-
-Dùng Swagger hoặc Postman đăng nhập `admin` rồi gọi:
+Sau đó đăng nhập admin và gọi:
 
 ```http
 GET /api/admin/audit-logs
 ```
 
-Kỳ vọng:
+### Điều cần nói
 
-- có bản ghi `RATE_LIMIT_EXCEEDED`
-
-### Câu nên nói khi trình bày
-
-- Rate limiting là lớp bảo vệ bổ sung chống brute-force và spam
-- Đây không thay thế xác thực hay phân quyền, nhưng giúp giảm lạm dụng tài nguyên
+- vài lần đầu là `401`
+- vượt ngưỡng sẽ thành `429 Too Many Requests`
+- audit log ghi `RATE_LIMIT_EXCEEDED`
 
 ### Ảnh nên chụp
 
@@ -556,68 +339,45 @@ Kỳ vọng:
 - response `429`
 - audit log có `RATE_LIMIT_EXCEEDED`
 
-## 4.8. Demo audit log
+## 4.10. Demo Audit Log
 
-### Thực hiện ở đâu
+### Làm ở đâu
 
-- Swagger hoặc Postman
+- `Swagger`
+- `Postman`
 
-### Các bước thao tác
+### Thao tác nhanh
 
-#### Bước 1: Đăng nhập admin
-
-Gọi:
-
-```http
-POST /api/auth/login
-```
-
-Body:
-
-```json
-{
-  "email": "admin@example.com",
-  "password": "Admin123!"
-}
-```
-
-#### Bước 2: Dùng token admin gọi audit log
-
-Gọi:
+Đăng nhập admin rồi mở:
 
 ```http
 GET /api/admin/audit-logs
 ```
 
-Kỳ vọng:
+### Điều cần nói
 
-- nhìn thấy các sự kiện như:
+- audit log giúp giám sát sự kiện bảo mật
+- ở đây có thể thấy các action như:
   - `LOGIN_SUCCESS`
   - `LOGIN_FAILED`
   - `ACCESS_DENIED`
+  - `TOKEN_REJECTED`
   - `WEBHOOK_ACCEPTED`
   - `WEBHOOK_REJECTED`
   - `RATE_LIMIT_EXCEEDED`
-
-### Câu nên nói khi trình bày
-
-- Audit log là lớp giám sát giúp phát hiện và truy vết hành vi bất thường
-- Đồ án không chỉ chặn tấn công mà còn có khả năng quan sát sự kiện bảo mật
 
 ### Ảnh nên chụp
 
 - danh sách audit log
 - một vài action tiêu biểu
 
-## 4.9. Demo Swagger
+## 4.11. Demo Swagger / OpenAPI
 
-### Thực hiện ở đâu
+### Làm ở đâu
 
-- Trình duyệt
+- `Trình duyệt`
 
-### Các bước thao tác
-
-#### Bước 1: Mở Swagger trên hostname local
+### Thao tác nhanh
 
 Mở:
 
@@ -626,74 +386,69 @@ https://localhost/swagger-ui.html
 https://localhost/v3/api-docs
 ```
 
-Kỳ vọng:
+Nếu đang bật tunnel public, có thể mở thêm:
 
-- đều mở được bình thường trên chính máy host
-
-#### Bước 2: Giả lập truy cập bằng hostname public để kiểm tra chặn
-
-Mở PowerShell và chạy:
-
-```powershell
-curl.exe -k -I https://localhost/swagger-ui.html -H "Host: demo-public.example"
-curl.exe -k -I https://localhost/v3/api-docs -H "Host: demo-public.example"
+```text
+https://hackerlo.online/swagger-ui.html
+https://hackerlo.online/v3/api-docs
 ```
 
-Kỳ vọng:
+### Điều cần nói
 
-- đều trả `404`
-
-### Câu nên nói khi trình bày
-
-- Swagger dùng cùng cổng với ứng dụng để tránh lệch cổng khi bấm `Execute`
-- Nhưng chỉ các hostname local mới được mở tài liệu API để kiểm thử nội bộ
+- Swagger dùng để test nhanh endpoint có JWT
+- OpenAPI JSON dùng cho Postman, ZAP và đối chiếu tài liệu
 
 ### Ảnh nên chụp
 
-- `https://localhost/swagger-ui.html` mở được
-- PowerShell giả lập host public và nhận `404`
+- Swagger local
+- OpenAPI JSON local
+- nếu có demo public thì thêm ảnh public domain
 
-## 5. Nếu cần demo nhanh trong thời gian rất ngắn
+## 5. Nếu chỉ có 5 đến 7 phút
 
-Nếu chỉ có khoảng 5 đến 7 phút, nên chọn 5 phần sau:
+Nên chọn 5 phần sau:
 
-1. HTTPS/TLS
+1. HTTPS / TLS
 2. JWT
 3. bcrypt
-4. BOLA/IDOR
+4. BOLA / IDOR
 5. Webhook HMAC-SHA256
 
-Đây là 5 phần dễ gây ấn tượng nhất vì:
+Đây là bộ 5 phần gọn nhất nhưng vẫn thể hiện đủ:
 
-- có lớp bảo vệ đường truyền;
-- có xác thực hiện đại;
-- có băm mật khẩu;
-- có chống truy cập trái phép;
-- có kỹ thuật mật mã ứng dụng rõ ràng ở webhook.
+- đường truyền an toàn
+- xác thực hiện đại
+- bảo vệ mật khẩu
+- chống truy cập sai đối tượng
+- áp dụng mật mã thực tế với webhook
 
-## 6. Nếu cần chạy demo tự động
+## 6. Nếu giảng viên hỏi riêng về admin
 
-Project có script:
+Bạn có thể mở thêm các request Postman:
 
-```powershell
-& .\scripts\demo-security.ps1
-```
+- `Admin Get Courses`
+- `Admin Get Course Roster`
+- `Admin Approve Pending Enrollment`
+- `Admin Add Student To Course`
+- `Admin Get Student Profile`
+- `Admin Remove Enrollment`
 
-Script này phù hợp khi muốn:
+Điểm nên giải thích:
 
-- rà nhanh toàn hệ thống;
-- lấy minh chứng kỹ thuật;
-- kiểm tra lại sau khi sửa mã nguồn.
+- admin quản lý học viên theo từng khóa học
+- admin có thể xem roster, duyệt yêu cầu ghi danh, thêm hoặc xóa học viên
+- admin có endpoint riêng, không dùng API student-only
 
 ## 7. Reset dữ liệu sau buổi demo
 
 Nếu trong lúc trình bày bạn đã:
 
-- đổi mật khẩu tài khoản seed;
-- kích hoạt enrollment;
-- tạo thêm user mới;
+- tạo thêm user
+- đổi mật khẩu
+- kích hoạt enrollment
+- cấp thêm certificate
 
-hãy reset dữ liệu:
+thì reset như sau:
 
 ```powershell
 docker compose down -v
@@ -702,8 +457,6 @@ docker compose up --build -d
 
 ## 8. Tài liệu liên quan
 
-- `docs/postman-testing.md`
-- `docs/owasp-zap-testing.md`
 - `docs/demo-01-password-bcrypt.md`
 - `docs/demo-02-jwt.md`
 - `docs/demo-03-aes-encryption.md`
@@ -711,3 +464,6 @@ docker compose up --build -d
 - `docs/demo-05-webhook-hmac.md`
 - `docs/demo-06-rate-limit.md`
 - `docs/demo-07-https-tls.md`
+- `docs/demo-08-forgot-password.md`
+- `docs/postman-testing.md`
+- `docs/owasp-zap-testing.md`

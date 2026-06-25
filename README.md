@@ -488,7 +488,7 @@ Các mục tiêu quét chính:
 
 ## 20. Tài liệu liên quan
 
-- `docs/bao-cao-chuong-1-2-3.md`
+- `docs/bao-cao-hoan-chinh.md`
 - `docs/report-image-captions.md`
 - `docs/https-tls.md`
 - `docs/postman-testing.md`

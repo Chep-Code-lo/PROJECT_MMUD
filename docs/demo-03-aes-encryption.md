@@ -2,13 +2,13 @@
 
 ## 1. Mục tiêu
 
-Demo này dùng để chứng minh:
+Demo này nhằm chứng minh:
 
-- Dữ liệu nhạy cảm trong database không lưu dạng rõ
-- Backend vẫn giải mã được dữ liệu cho đúng người có quyền
-- Nếu ciphertext bị sửa, quá trình giải mã sẽ thất bại vì AES-GCM có kiểm tra toàn vẹn
+1. Dữ liệu nhạy cảm trong database không được lưu ở dạng rõ.
+2. Backend vẫn có thể giải mã để trả dữ liệu cho đúng người dùng hợp lệ.
+3. Nếu ciphertext bị sửa thì quá trình giải mã sẽ thất bại do AES-GCM có cơ chế kiểm tra toàn vẹn.
 
-## 2. Các trường đang được mã hóa
+## 2. Các trường đang được mã hóa trong project
 
 - `users.phone_number_encrypted`
 - `users.billing_address_encrypted`
@@ -20,72 +20,48 @@ Demo này dùng để chứng minh:
 ### 3.1. Khởi động hệ thống
 
 ```powershell
+cd E:\PROJECT_MMUD
 docker compose up --build -d
 ```
 
-### 3.2. Tài khoản gợi ý
+### 3.2. Tài khoản nên dùng
 
 - `student1@example.com / Password123!`
 
-Tài khoản này có sẵn:
+Tài khoản này đã có sẵn:
 
-- thông tin cá nhân để xem `phoneNumber`, `billingAddress`;
-- enrollment đã kích hoạt;
-- certificate đã được cấp để xem `certificateCode`.
+- thông tin hồ sơ để xem `phoneNumber` và `billingAddress`
+- enrollment đã kích hoạt
+- certificate đã được cấp để xem `certificateCode`
 
-### 3.3. Thực hiện demo này ở đâu
+### 3.3. Thực hiện ở đâu
 
-Demo 03 nên dùng **3 nơi**:
+Demo này nên dùng ba nơi:
 
-#### Nơi 1: Swagger để gọi API
-
-```text
-https://localhost/swagger-ui.html
-```
-
-Tại đây bạn sẽ:
-
-- đăng nhập;
-- gọi `GET /api/auth/me`;
-- gọi `GET /api/certificates/me`.
-
-#### Nơi 2: PowerShell để xem trực tiếp dữ liệu trong database
-
-Bạn mở PowerShell tại:
-
-```text
-E:\PROJECT_MMUD
-```
-
-Rồi chạy các lệnh `docker exec ... mysql ...` để xem ciphertext.
-
-#### Nơi 3: PowerShell để chạy test toàn vẹn AES-GCM
-
-Bạn cũng dùng PowerShell để chạy:
-
-```powershell
-mvn -Dtest=EncryptionServiceTest test
-```
-
-Nhằm chứng minh ciphertext bị sửa sẽ không giải mã được.
-
-## 4. Các bước thực hiện
-
-### Bước 1: Mở Swagger
-
-Truy cập:
+- `Swagger` để xem dữ liệu sau khi backend giải mã:
 
 ```text
 https://localhost/swagger-ui.html
 ```
 
-Sau đó:
+- `PowerShell` để truy vấn database và nhìn thấy ciphertext.
+- `PowerShell` để chạy unit test chứng minh ciphertext bị sửa sẽ không giải mã được.
 
-1. Tìm nhóm `Auth API`
-2. Mở `POST /api/auth/login`
-3. Bấm `Try it out`
+## 4. Các bước thực hiện chi tiết
 
-### Bước 2: Đăng nhập bằng tài khoản mẫu
+### Bước 1: Đăng nhập và authorize trên Swagger
+
+Mở:
+
+```text
+https://localhost/swagger-ui.html
+```
+
+Gọi:
+
+```http
+POST /api/auth/login
+```
 
 Body:
 
@@ -96,81 +72,58 @@ Body:
 }
 ```
 
-Thao tác:
-
-1. Dán JSON vào request body
-2. Bấm `Execute`
-3. Copy `accessToken`
-
-### Bước 3: Dán Bearer token vào Swagger
-
-1. Bấm `Authorize`
-2. Nhập:
+Copy `accessToken`, bấm `Authorize`, nhập:
 
 ```text
-Bearer <accessToken>
+Bearer <access-token>
 ```
 
-3. Bấm `Authorize`
-4. Đóng hộp thoại
+### Bước 2: Xem dữ liệu hồ sơ đã được giải mã
 
-### Bước 4: Xem dữ liệu đã được giải mã qua API profile
-
-Mở:
+Gọi:
 
 ```http
 GET /api/auth/me
 ```
 
-Rồi:
-
-1. Bấm `Try it out`
-2. Bấm `Execute`
-
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Response có các trường như:
+- HTTP `200 OK`
+- response có các trường:
   - `phoneNumber`
   - `billingAddress`
 
 Điểm cần nói:
 
-- Đây là dữ liệu đã được ứng dụng giải mã ở tầng backend
-- Người dùng hợp lệ mới được nhận dữ liệu này
+- dữ liệu trả về cho người dùng đã được backend giải mã
+- nhưng trong database các trường này không lưu ở dạng rõ
 
-### Bước 5: Xem mã chứng chỉ đã được giải mã
+### Bước 3: Xem dữ liệu chứng chỉ đã được giải mã
 
-Mở:
+Gọi:
 
 ```http
 GET /api/certificates/me
 ```
 
-Rồi:
-
-1. Bấm `Try it out`
-2. Bấm `Execute`
-
 Kết quả mong đợi:
 
-- Trả `200 OK`
-- Trong response có trường:
+- HTTP `200 OK`
+- response có ít nhất một chứng chỉ
+- trong từng phần tử có trường:
   - `certificateCode`
+  - `score`
+  - `courseTitle`
 
-Ý nghĩa:
+### Bước 4: Truy vấn database để xem ciphertext thật sự
 
-- Dù database lưu dạng mã hóa, API vẫn trả được giá trị đã giải mã cho đúng chủ sở hữu
-
-### Bước 6: Mở PowerShell để xem dữ liệu thật trong database
-
-Mở PowerShell và đứng tại thư mục project:
+Mở PowerShell:
 
 ```powershell
 cd E:\PROJECT_MMUD
 ```
 
-Nếu trong `.env` bạn đang để:
+Nếu `.env` đang để:
 
 ```text
 MYSQL_ROOT_PASSWORD=change-me-root-password
@@ -186,32 +139,42 @@ docker exec securityapp-db mysql -uroot -pchange-me-root-password securityapp -e
 
 Quan sát:
 
-- Các cột mã hóa là chuỗi dài, không đọc hiểu trực tiếp
-- Không thấy số điện thoại, địa chỉ, mã thanh toán hay mã chứng chỉ ở dạng rõ
+- các cột `_encrypted` là chuỗi dài, khó đọc
+- không nhìn thấy số điện thoại, địa chỉ hay mã chứng chỉ ở dạng plaintext
 
-### Bước 7: So sánh dữ liệu giữa API và database
+### Bước 5: So sánh dữ liệu giữa API và database
 
-Lúc này bạn đối chiếu:
+Đối chiếu hai nơi:
 
-- Trên Swagger:
+- trên Swagger:
   - `phoneNumber`
   - `billingAddress`
   - `certificateCode`
-- Trong database:
+- trong database:
   - `phone_number_encrypted`
   - `billing_address_encrypted`
   - `certificate_code_encrypted`
 
-Kết luận cần rút ra:
+Kết luận phải rút ra:
 
-- Dữ liệu lưu trữ được bảo vệ
-- Ứng dụng chỉ giải mã khi đúng người dùng, đúng ngữ cảnh
+- cùng một dữ liệu nhưng ở database là ciphertext
+- còn ở response API là giá trị đã được giải mã có kiểm soát
 
-### Bước 8: Chứng minh AES-GCM phát hiện dữ liệu bị sửa
+### Bước 6: Giải thích riêng về `payment_reference_encrypted`
 
-Khuyến nghị không sửa thẳng database demo. Cách sạch nhất là chạy test.
+Trường `payment_reference_encrypted` hiện không được trả về cho phía client. Đây là chủ đích bảo mật.
 
-Mở PowerShell:
+Vì vậy với trường này, cách chứng minh tốt nhất là:
+
+1. truy vấn bảng `enrollments`
+2. chỉ ra cột `payment_reference_encrypted`
+3. giải thích rằng hệ thống chỉ giữ bản mã hóa ở tầng lưu trữ
+
+Nếu bạn muốn demo đầy đủ hơn, hãy kết hợp với `docs/demo-05-webhook-hmac.md` để tạo một enrollment mới rồi xem ciphertext tương ứng sau webhook.
+
+### Bước 7: Chứng minh AES-GCM phát hiện dữ liệu bị sửa
+
+Không nên sửa thẳng database khi đang chuẩn bị bảo vệ dữ liệu demo. Cách sạch nhất là chạy unit test.
 
 ```powershell
 cd E:\PROJECT_MMUD\backend
@@ -220,53 +183,50 @@ mvn -Dtest=EncryptionServiceTest test
 
 Kết quả mong đợi:
 
-- Có test mã hóa rồi giải mã thành công
-- Có test sửa ciphertext và nhận lỗi giải mã
+- test `aesGcmRoundTripWorksAndTamperingFails` chạy thành công
+- trong test có phần sửa ciphertext rồi giải mã thất bại
 
-Điểm cần nói:
+### Bước 8: Nếu muốn nói sâu hơn về kỹ thuật
 
-- AES-GCM không chỉ bảo mật bí mật dữ liệu
-- Nó còn kiểm tra tính toàn vẹn
-- Vì vậy ciphertext bị sửa sẽ không được chấp nhận
+Bạn có thể giải thích ngắn gọn:
 
-## 5. Cách trình bày ngắn gọn trước giảng viên
+- AES là mã hóa đối xứng
+- GCM vừa bảo mật dữ liệu vừa kiểm tra tính toàn vẹn
+- mỗi lần mã hóa dùng IV ngẫu nhiên
+- key lấy từ biến môi trường `ENCRYPTION_KEY`, không hard-code trong source code
 
-Bạn có thể trình bày theo thứ tự:
+## 5. Kết quả mong đợi
 
-1. Mở Swagger
-2. Đăng nhập `student1`
-3. Gọi `GET /api/auth/me` và `GET /api/certificates/me`
-4. Chỉ cho giảng viên thấy các trường đã giải mã
-5. Mở PowerShell, truy vấn bảng `users`, `enrollments`, `certificates`
-6. So sánh ciphertext trong database với dữ liệu có nghĩa ở response API
-7. Chạy `EncryptionServiceTest` để chứng minh sửa ciphertext sẽ bị phát hiện
+Sau khi làm xong Demo 03, bạn phải chứng minh được:
 
-Nếu giảng viên hỏi “demo này làm ở đâu”, câu trả lời chuẩn là:
+1. Hồ sơ người dùng và mã chứng chỉ không lưu ở dạng rõ trong database.
+2. API vẫn trả được dữ liệu đã giải mã cho đúng người dùng hợp lệ.
+3. Ciphertext bị sửa sẽ làm quá trình giải mã lỗi.
 
-- **Swagger để xem dữ liệu sau khi backend giải mã**
-- **PowerShell để xem ciphertext trong database**
-- **PowerShell để chạy test minh họa AES-GCM phát hiện dữ liệu bị sửa**
+## 6. Câu nên nói khi trình bày
 
-## 6. Giải thích ngắn gọn để trình bày
+- Mật khẩu dùng `bcrypt` còn dữ liệu nhạy cảm có thể cần lấy lại thì dùng `AES-GCM`.
+- `AES-GCM` phù hợp vì vừa giữ bí mật vừa phát hiện bị sửa dữ liệu.
+- Kẻ tấn công đọc trực tiếp database sẽ chỉ thấy ciphertext.
+- Secret key không đặt cứng trong source mà lấy từ biến môi trường.
 
-- AES là thuật toán mã hóa đối xứng
-- GCM là chế độ vừa bảo mật dữ liệu vừa kiểm tra toàn vẹn
-- Mỗi lần mã hóa đều dùng IV ngẫu nhiên để tránh sinh cùng ciphertext cho cùng đầu vào
-- Secret key lấy từ biến môi trường `ENCRYPTION_KEY`, không hard-code trong source code
+## 7. Ảnh nên chụp cho báo cáo
 
-## 7. Minh chứng nên chụp cho báo cáo
+- Ảnh `GET /api/auth/me` có `phoneNumber`, `billingAddress`.
+- Ảnh `GET /api/certificates/me` có `certificateCode`.
+- Ảnh PowerShell truy vấn bảng `users`.
+- Ảnh PowerShell truy vấn bảng `enrollments`.
+- Ảnh PowerShell truy vấn bảng `certificates`.
+- Ảnh chạy `EncryptionServiceTest`.
 
-- Ảnh `GET /api/auth/me` có `phoneNumber`, `billingAddress`
-- Ảnh `GET /api/certificates/me` có `certificateCode`
-- Ảnh PowerShell truy vấn bảng `users`
-- Ảnh PowerShell truy vấn bảng `enrollments`
-- Ảnh PowerShell truy vấn bảng `certificates`
-- Ảnh test `EncryptionServiceTest` chạy thành công
+## 8. Cách reset sau demo
 
-## 8. Kết luận
+Demo này thường không làm thay đổi seed data, nên thường không cần reset. Chỉ cần reset nếu bạn đã kết hợp thêm demo webhook hoặc checkout mới.
 
-Demo này chứng minh hệ thống đã áp dụng AES-GCM đúng hướng cho dữ liệu nhạy cảm:
+## 9. Kết luận
 
-- Dữ liệu lưu trữ không ở dạng rõ
-- Người dùng hợp lệ vẫn sử dụng được dữ liệu cần thiết
-- Việc sửa ciphertext sẽ bị phát hiện
+Demo này chứng minh dự án đã áp dụng AES-GCM đúng hướng:
+
+- bảo vệ dữ liệu nhạy cảm khi lưu trong database
+- chỉ giải mã ở phía backend khi có quyền phù hợp
+- phát hiện được việc sửa đổi ciphertext

@@ -1,12 +1,12 @@
-# Demo 06: Rate limiting
+# Demo 06: Rate Limiting
 
 ## 1. Mục tiêu
 
-Demo này dùng để chứng minh:
+Demo này nhằm chứng minh:
 
-- Hệ thống có giới hạn tốc độ truy cập để giảm brute-force và spam API
-- Khi vượt quá ngưỡng cho phép, backend trả `429 Too Many Requests`
-- Hệ thống có ghi lại sự kiện bất thường để phục vụ giám sát
+1. Hệ thống có cơ chế giới hạn số lần gọi API trong một cửa sổ thời gian.
+2. Khi vượt ngưỡng cho phép, backend trả `429 Too Many Requests`.
+3. Hệ thống có ghi nhận sự kiện rate limit vào audit log.
 
 ## 2. Các nhóm API đang được giới hạn
 
@@ -16,7 +16,7 @@ Demo này dùng để chứng minh:
 - `POST /api/webhooks/payment-success`
 - `GET /api/admin/**`
 
-Ngưỡng cụ thể được cấu hình qua biến môi trường trong `.env`, ví dụ:
+Các ngưỡng lấy từ biến môi trường:
 
 - `RATE_LIMIT_LOGIN_PER_MINUTE`
 - `RATE_LIMIT_REGISTER_PER_MINUTE`
@@ -29,53 +29,38 @@ Ngưỡng cụ thể được cấu hình qua biến môi trường trong `.env`
 ### 3.1. Khởi động hệ thống
 
 ```powershell
+cd E:\PROJECT_MMUD
 docker compose up --build -d
 ```
 
-### 3.2. Giá trị mặc định dễ demo
+### 3.2. Cấu hình mặc định dễ demo
 
-Trong `.env.example`, login đang được đặt khá thấp:
+Trong `.env.example` hiện đang để:
 
 ```text
 RATE_LIMIT_LOGIN_PER_MINUTE=5
 ```
 
-Điều này phù hợp để demo nhanh.
+Điều này nghĩa là sau khoảng 5 lần gọi login trong cùng một phút, request tiếp theo sẽ bị chặn.
 
-### 3.3. Thực hiện demo này ở đâu
+### 3.3. Thực hiện ở đâu
 
-Demo 06 nên dùng **2 nơi**:
+Demo này nên dùng:
 
-#### Nơi 1: PowerShell để spam request nhanh
+- `PowerShell` để bắn nhanh nhiều request liên tiếp
+- `Swagger` hoặc `Postman` để xem audit log bằng tài khoản admin
 
-Đây là cách dễ nhất để:
+## 4. Các bước thực hiện chi tiết
 
-- gửi nhiều request liên tiếp;
-- quan sát mốc chuyển từ `401` sang `429`.
+### Bước 1: Spam request đăng nhập sai bằng PowerShell
 
-#### Nơi 2: Swagger hoặc Postman để xem audit log
-
-Sau khi spam xong, bạn dùng:
-
-```text
-https://localhost/swagger-ui.html
-```
-
-hoặc Postman để đăng nhập admin và mở audit log.
-
-Không nên dùng Swagger để bấm tay nhiều lần cho phần spam, vì chậm và khó quan sát hơn.
-
-## 4. Kịch bản demo rate limit cho login
-
-### Bước 1: Mở PowerShell tại thư mục project
+Mở PowerShell tại thư mục project:
 
 ```powershell
 cd E:\PROJECT_MMUD
 ```
 
-### Bước 2: Gửi nhiều request đăng nhập sai liên tiếp
-
-Chạy lệnh:
+Chạy:
 
 ```powershell
 1..7 | ForEach-Object {
@@ -88,29 +73,40 @@ Chạy lệnh:
 
 Ý nghĩa:
 
-- dùng cùng email `student1@example.com`;
-- gửi liên tiếp trong cùng một phút;
-- cố tình nhập sai mật khẩu để minh họa brute-force.
+- dùng cùng email `student1@example.com`
+- cố tình nhập sai mật khẩu
+- gửi dồn trong cùng một phút để mô phỏng brute-force
 
-### Bước 3: Quan sát phản hồi
+### Bước 2: Quan sát mốc chuyển từ `401` sang `429`
 
 Kết quả mong đợi:
 
-- Những lần đầu nhận `401 Unauthorized`
-- Sau khi vượt ngưỡng, backend trả `429 Too Many Requests`
+- những lần đầu:
+
+```text
+401 Unauthorized
+```
+
+- sau khi vượt ngưỡng:
+
+```text
+429 Too Many Requests
+```
 
 Điểm cần nói:
 
-- `401` là sai thông tin đăng nhập
-- `429` là bị chặn do vượt rate limit
+- `401` nghĩa là sai thông tin đăng nhập
+- `429` nghĩa là backend đã chủ động chặn do vượt giới hạn
 
-## 5. Kiểm tra audit log sau khi bị rate limit
+### Bước 3: Xem audit log của hành vi vượt ngưỡng
 
-### Cách A: Xem bằng Swagger
+Mở Swagger:
 
-1. Mở `https://localhost/swagger-ui.html`
-2. Tìm `Auth API`
-3. Gọi `POST /api/auth/login` với:
+```text
+https://localhost/swagger-ui.html
+```
+
+Đăng nhập admin:
 
 ```json
 {
@@ -119,93 +115,96 @@ Kết quả mong đợi:
 }
 ```
 
-4. Copy `accessToken`
-5. Bấm `Authorize`
-6. Nhập:
+`Authorize` bằng token admin rồi gọi:
 
-```text
-Bearer <admin-accessToken>
+```http
+GET /api/admin/audit-logs
 ```
-
-7. Mở nhóm `Admin API`
-8. Gọi `GET /api/admin/audit-logs`
 
 Kết quả mong đợi:
 
-- Có bản ghi `RATE_LIMIT_EXCEEDED`
-- Message mô tả hành vi vượt ngưỡng
+- có bản ghi:
 
-### Cách B: Xem bằng Postman
+```text
+RATE_LIMIT_EXCEEDED
+```
 
-Nếu thích Postman hơn:
+- message mô tả dạng:
 
-1. Chạy `Login Admin`
-2. Chạy `Admin Audit Logs`
+```text
+Login rate limit exceeded.
+```
 
-Kết quả mong đợi là giống nhau.
+## 5. Biến thể có thể demo thêm
 
-## 6. Biến thể có thể demo thêm
+### 5.1. Chống spam đăng ký
 
-### 6.1. Với đăng ký tài khoản
-
-Bạn có thể gửi liên tiếp:
+Gửi nhiều lần:
 
 ```http
 POST /api/auth/register
 ```
 
-trong thời gian ngắn để minh họa chống spam đăng ký.
+với cùng email hoặc nhiều email khác nhau trong thời gian ngắn.
 
-### 6.2. Với quên mật khẩu
+### 5.2. Chống spam quên mật khẩu
 
-Bạn có thể gửi liên tiếp:
+Gửi nhiều lần:
 
 ```http
 POST /api/auth/forgot-password
 ```
 
-để minh họa chống spam yêu cầu reset mật khẩu.
+để minh họa bảo vệ endpoint reset password.
 
-### 6.3. Với webhook
+### 5.3. Chống spam webhook
 
-Bạn có thể gửi nhiều request tới:
+Gửi liên tiếp nhiều request đến:
 
 ```http
 POST /api/webhooks/payment-success
 ```
 
-để minh họa giới hạn tốc độ ở lớp webhook.
+để minh họa thêm rằng cả luồng webhook cũng có rate limit.
 
-## 7. Cách trình bày ngắn gọn trước giảng viên
+### 5.4. Giới hạn API admin
 
-Bạn nên trình bày theo đúng thứ tự:
+Đăng nhập admin rồi gọi liên tiếp:
 
-1. Mở PowerShell
-2. Chạy vòng lặp gửi sai mật khẩu nhiều lần
-3. Chỉ ra vài lần đầu là `401`
-4. Chỉ ra các lần sau thành `429`
-5. Mở Swagger
-6. Đăng nhập admin
-7. Mở `GET /api/admin/audit-logs`
-8. Chỉ ra bản ghi `RATE_LIMIT_EXCEEDED`
+```http
+GET /api/admin/courses
+GET /api/admin/audit-logs
+```
 
-Nếu giảng viên hỏi “demo này làm ở đâu”, câu trả lời chuẩn là:
+để giải thích rằng khu vực quản trị cũng bị giới hạn lưu lượng.
 
-- **PowerShell để gửi nhiều request thật nhanh**
-- **Swagger hoặc Postman để xem audit log**
+## 6. Kết quả mong đợi
 
-## 8. Giải thích ngắn gọn để trình bày
+Sau khi làm xong Demo 06, bạn phải chứng minh được:
 
-- Rate limiting không thay thế xác thực hay phân quyền
-- Đây là lớp bảo vệ bổ sung để giảm brute-force, spam và lạm dụng tài nguyên
-- Với đồ án học phần, chỉ cần cấu hình đơn giản nhưng phải dễ test và dễ nhìn thấy kết quả
+1. Login sai nhiều lần liên tiếp sẽ không chỉ dừng ở `401`.
+2. Sau một ngưỡng nhất định, backend sẽ trả `429 Too Many Requests`.
+3. Audit log có ghi nhận sự kiện `RATE_LIMIT_EXCEEDED`.
 
-## 9. Minh chứng nên chụp cho báo cáo
+## 7. Câu nên nói khi trình bày
 
-- Ảnh PowerShell gửi nhiều request đăng nhập sai
-- Ảnh response `429 Too Many Requests`
-- Ảnh `GET /api/admin/audit-logs` hiển thị `RATE_LIMIT_EXCEEDED`
+- Rate limiting là lớp phòng thủ bổ sung, không thay thế xác thực hay phân quyền.
+- Mục tiêu là giảm brute-force, spam API và lạm dụng tài nguyên.
+- Với đồ án môn học, cấu hình đơn giản nhưng phải nhìn thấy được kết quả là đủ thuyết phục.
+
+## 8. Ảnh nên chụp cho báo cáo
+
+- Ảnh PowerShell gửi nhiều request login sai.
+- Ảnh lần request bị trả `429 Too Many Requests`.
+- Ảnh `GET /api/admin/audit-logs` có `RATE_LIMIT_EXCEEDED`.
+
+## 9. Cách reset sau demo
+
+Rate limit dùng cửa sổ thời gian 1 phút. Bạn chỉ cần:
+
+- chờ qua 1 phút
+- hoặc restart stack nếu muốn sạch trạng thái nhanh hơn
 
 ## 10. Kết luận
 
-Demo này chứng minh hệ thống đã có cơ chế kiểm soát lưu lượng cơ bản, phù hợp để minh họa nhóm lỗi `Unrestricted Resource Consumption` trong OWASP API Security Top 10.
+Demo này chứng minh hệ thống đã có cơ chế chống lạm dụng tài nguyên ở mức API, phù hợp để minh họa nhóm `Unrestricted Resource Consumption` trong OWASP API Security Top 10.

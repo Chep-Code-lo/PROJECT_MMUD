@@ -171,7 +171,7 @@ Kỳ vọng:
 - `swagger-ui.html` trả `302` sang `/swagger-ui/index.html` hoặc `200`
 - `v3/api-docs` trả `200`
 
-Với cấu hình hiện tại của project, public domain `hackerlo.online` đã được phép mở Swagger/OpenAPI.
+Nếu domain `hackerlo.online` đang trỏ đúng về tunnel/reverse proxy hiện tại, Swagger/OpenAPI sẽ mở được qua domain này.
 
 ## 5. Các file liên quan
 

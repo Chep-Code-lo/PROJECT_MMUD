@@ -1,314 +1,284 @@
-# Bảo mật ứng dụng mạng dựa trên Cloud API cho dịch vụ công ty nhỏ
+# Bao mat he thong RESTful API cho dich vu khoa hoc online nho
 
-`README.md` này là file **hướng dẫn chạy dự án**. Nếu chỉ cần dựng hệ thống, hãy đọc theo thứ tự:
+Do an dinh huong mon Mat ma ung dung / Cryptography cho sinh vien nam 2 An toan thong tin.
 
-1. `Chạy local`
-2. `Chạy public domain`
-3. `Test nhanh sau khi chạy`
+## 1. Muc tieu
 
-Các tài liệu giải thích sâu hơn về kiến trúc, checklist, sơ đồ và tài liệu tham khảo được để ở cuối file.
+- Xay dung RESTful API bang Spring Boot va Spring Security.
+- Xay dung frontend demo toi gian bang Next.js.
+- Ap dung JWT, refresh token, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS.
+- Demo duoc BOLA/IDOR, Broken Authentication, Excessive Data Exposure, Rate Limiting va Security Misconfiguration.
+- Ho tro test bang Swagger, Postman va OWASP ZAP.
+- Dockerize de co the chay local qua HTTPS va de mo rong deploy sau nay.
 
-## 1. Stack dự án
+## 2. Cong nghe chinh
 
-- `frontend/`: `Next.js`
-- `backend/`: `Spring Boot`, `Spring Security`, `JWT`, `Argon2id`, `AES-GCM`
-- `database/`: `MySQL`
-- `deploy/nginx/`: `Nginx` reverse proxy + TLS local
-- `deploy/cloudflared/`: script publish public domain qua `Cloudflare Tunnel`
-- `docs/api/`: `Swagger/OpenAPI`
-- `docs/postman/`: `Postman/Newman`
-- `docs/security/`: `OWASP ZAP`
+- Backend: Spring Boot 3, Spring Security, Spring Data JPA, Hibernate
+- Frontend: Next.js 14
+- Database: MySQL qua Docker, H2 cho local test
+- Authentication: JWT access token + refresh token hash trong database
+- Password hashing: BCryptPasswordEncoder
+- Encryption at rest: AES-GCM
+- Webhook signing: HMAC-SHA256
+- API docs: Swagger / OpenAPI
+- Reverse proxy TLS: Nginx
 
-## 2. Hai chế độ chạy
+## 3. Kien truc he thong
 
-| Chế độ | Base URL | Dùng khi nào | Cần gì |
-|---|---|---|---|
-| `Local` | `https://localhost` | Chạy mặc định trên máy đang mở dự án | Chỉ cần Docker |
-| `Public domain` | `https://demo.hackerlo.online` | Muốn cho máy khác truy cập từ bên ngoài | Docker + `cloudflared` + tunnel đang bật |
+```mermaid
+flowchart LR
+    Browser[Next.js Client] -->|HTTPS + Bearer JWT| Nginx[Nginx TLS Reverse Proxy]
+    Tester[Postman / OWASP ZAP] -->|HTTPS API calls| Nginx
+    Gateway[Mock Payment Sender] -->|HMAC-SHA256 Webhook| Nginx
+    Nginx --> Spring[Spring Boot REST API]
+    Spring --> Security[JWT Filter + Spring Security]
+    Spring --> Crypto[AES-GCM Encryption Service]
+    Spring --> Audit[Audit Log Service]
+    Spring --> DB[(MySQL / H2)]
+```
 
-Lưu ý:
+## 4. Tinh nang chinh
 
-- `Local` là chế độ chính và luôn nên giữ lại.
-- `Public domain` chỉ publish **cùng stack local đang chạy**, không phải một hệ thống khác.
-- Người truy cập public domain **không cần** đăng nhập Cloudflare; chỉ máy chủ chạy dự án mới cần bật tunnel.
-- Bằng chứng `HTTP -> HTTPS 301` hiện lấy ở `http://localhost`, không dùng public HTTP làm tiêu chí chính.
+- Auth: register, login, current user, refresh token, logout/revoke refresh token
+- Courses: danh sach khoa hoc public, chi tiet khoa hoc, CRUD course cho instructor/admin
+- Lessons: preview public, full lesson chi cho user da enroll hoac course owner
+- Enrollment: checkout mock de tao enrollment pending
+- Certificates: student chi xem certificate cua chinh minh, admin co the audit
+- Admin: xem users, summary, audit logs
+- Payment webhook: webhook thanh toan thanh cong duoc ky HMAC-SHA256
 
-## 3. Điều kiện trước khi chạy
+## 5. Tinh nang bao mat
 
-### Bắt buộc cho cả 2 chế độ
+- `bcrypt`: hash password khi register, khong luu plaintext, khong tra hash ra API
+- `JWT`: access token ngan han, co `sub`, `email`, `role`, `scope`, `iat`, `exp`
+- `Refresh token`: token ngau nhien, luu hash SHA-256 trong database, revoke khi logout
+- `AES-GCM`: ma hoa `phoneNumber`, `billingAddress`, `paymentReference`, `certificateCode`
+- `HMAC-SHA256`: bao ve webhook thanh toan, kiem tra signature, timestamp va replay event
+- `BOLA/IDOR defense`: ownership check cho profile, enrollment, certificate, lesson
+- `Rate limiting`: login, register, webhook, admin APIs tra `429` khi vuot nguong
+- `Audit log`: ghi nhan login success/failed, access denied, token rejected, webhook accepted/rejected
+- `HTTPS/TLS`: Nginx terminate TLS, HTTP -> HTTPS redirect
+- `Swagger`: ho tro Bearer JWT de test protected APIs
 
-- Đã bật `Docker Desktop`
-- Máy còn trống các port mặc định `80`, `443`, `3307`
-- Đang đứng ở thư mục project:
+## 6. Cau truc thu muc
+
+- `backend/`: Spring Boot source code
+- `frontend/`: Next.js source code
+- `database/`: schema MySQL
+- `deploy/nginx/`: Nginx reverse proxy + TLS config
+- `deploy/ssl/`: self-signed certificate local
+- `docs/`: huong dan test, demo attack/defense, HTTPS/TLS
+- `postman/`: Postman collection
+
+## 7. Bien moi truong
+
+Tao file `.env` tu `.env.example`.
 
 ```powershell
-cd E:\PROJECT_MMUD
+Copy-Item .env.example .env
 ```
 
-Nếu máy không bind được `80/443` do bị chặn hoặc bị chiếm port, có thể đổi sang port khác bằng file `.env` ở thư mục gốc. Ví dụ:
+Can dien it nhat:
+
+- `MYSQL_ROOT_PASSWORD`
+- `MYSQL_APP_PASSWORD`
+- `DATABASE_PASSWORD`
+- `JWT_SECRET`
+- `ENCRYPTION_KEY`
+- `HMAC_WEBHOOK_SECRET`
+
+Luu y:
+
+- `DATABASE_USERNAME` mac dinh la `securityapp`
+- `DATABASE_PASSWORD` phai khop voi `MYSQL_APP_PASSWORD`
+- Khong nen cho backend dang nhap MySQL bang `root` trong compose demo
+
+Khong commit secret that vao git.
+
+## 8. Cach chay khuyen nghi: Docker + HTTPS
+
+### 8.1. Tao / cap nhat cert local
+
+Project da kem `deploy/ssl/fullchain.pem` va `deploy/ssl/privkey.pem` de demo local.
+
+Neu muon tao cert moi:
 
 ```powershell
-@"
-LOCAL_HTTP_PORT=8080
-LOCAL_HTTPS_PORT=8443
-LOCAL_DB_PORT=3307
-LOCAL_BASE_URL=https://localhost:8443
-LOCAL_ALLOWED_ORIGINS=https://localhost:8443,https://127.0.0.1:8443
-"@ | Set-Content .env
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 `
+  -keyout deploy/ssl/privkey.pem `
+  -out deploy/ssl/fullchain.pem `
+  -subj "/CN=localhost"
 ```
 
-Sau đó chạy bình thường bằng `docker compose up -d --build` và mở `https://localhost:8443`.
+Chi tiet them xem `docs/https-tls.md`.
 
-### Chỉ cần nếu muốn chạy public domain
-
-- Đã cài `cloudflared.exe` ở:
-
-```text
-C:\Cloudflared\bin\cloudflared.exe
-```
-
-- Đã có file config tunnel:
-
-```text
-deploy\cloudflared\config.hackerlo.local.yml
-```
-
-- Đã login/cấu hình Cloudflare từ trước
-
-## 4. Chạy local
-
-Đây là cách chạy mặc định cho đồ án. Chỉ cần Docker, không cần bật public domain.
-
-### 4.1. Khởi động local
+### 8.2. Khoi dong stack
 
 ```powershell
-docker compose up -d --build
-docker compose ps
+docker compose up --build
 ```
 
-Nếu đang dùng port thay thế qua `.env`, hãy mở đúng URL theo `LOCAL_BASE_URL`.
+URL sau khi len:
 
-Kỳ vọng:
+- Frontend: `https://localhost`
+- Swagger: `https://localhost/swagger-ui.html`
+- OpenAPI JSON: `https://localhost/v3/api-docs`
+- Health: `https://localhost/api/health`
 
-- `securityapp-nginx` đang `Up`
-- `securityapp-frontend` đang `Up`
-- `securityapp-backend` đang `Up`
-- `securityapp-db` đang `healthy`
+Mac dinh:
 
-### 4.2. URL local cần dùng
+- Nginx nghe `80` va `443` tren host
+- MySQL nghe `3307` tren host
 
-| Hạng mục | URL |
-|---|---|
-| Frontend | `https://localhost` |
-| Login | `https://localhost/login` |
-| Swagger UI | `https://localhost/swagger-ui.html` |
-| OpenAPI JSON | `https://localhost/v3/api-docs` |
-| Health | `https://localhost/api/health` |
+Neu `80` / `443` dang bi Apache, XAMPP hoac IIS chiem, co the doi trong `.env`:
 
-Lưu ý:
+- `LOCAL_HTTP_PORT=<port-http-khac>`
+- `LOCAL_HTTPS_PORT=<port-https-khac>`
+- `APP_API_BASE_URL=https://localhost:<port-https-khac>`
+- `CORS_ALLOWED_ORIGINS=https://localhost:<port-https-khac>,http://localhost:3000`
 
-- Local đang dùng cert demo/self-signed, nên lần đầu mở bằng trình duyệt có thể cần chấp nhận cảnh báo certificate.
-
-### 4.3. Kiểm tra nhanh local
-
-```powershell
-curl.exe -I http://localhost/api/health
-curl.exe -k https://localhost/api/health
-curl.exe -k -I https://localhost/swagger-ui.html
-curl.exe -k https://localhost/v3/api-docs
-```
-
-Kỳ vọng:
-
-- `http://localhost/api/health` trả `301`
-- `https://localhost/api/health` trả `200`
-- `https://localhost/swagger-ui.html` redirect sang `/swagger-ui/index.html`
-- `https://localhost/v3/api-docs` trả `200`
-
-### 4.4. Dừng local
+### 8.3. Dung stack
 
 ```powershell
 docker compose down
 ```
 
-### 4.5. Reset dữ liệu local
+Reset data:
 
 ```powershell
 docker compose down -v
-docker compose up -d --build
+docker compose up --build
 ```
 
-### 4.6. Xem log local
+## 9. Cach chay thu cong de lap trinh
+
+### Backend
 
 ```powershell
-docker compose logs nginx
-docker compose logs backend
-docker compose logs frontend
-docker compose logs database
+cd backend
+$env:SPRING_PROFILES_ACTIVE="local"
+$env:JWT_SECRET="dev-jwt-secret-please-change"
+$env:ENCRYPTION_KEY="dev-encryption-key-please-change"
+$env:HMAC_WEBHOOK_SECRET="dev-hmac-secret-please-change"
+mvn spring-boot:run
 ```
 
-## 5. Chạy public domain
+Khi chay profile `local`, backend dung H2 in-memory va HTTP `http://localhost:8080`.
 
-Chỉ dùng mục này khi muốn người khác truy cập hệ thống từ máy ngoài qua:
-
-```text
-https://demo.hackerlo.online
-```
-
-### 5.1. Cách hiểu đúng
-
-- Public domain vẫn dùng **chính stack local** đang chạy trên máy của bạn.
-- Nếu tunnel tắt, public domain sẽ không dùng được.
-- Khi tunnel tắt, `https://localhost` vẫn chạy bình thường.
-
-### 5.2. Khởi động stack cho public domain
-
-Nếu đang chạy local rồi, có thể chạy lại bằng file override để cập nhật `APP_API_BASE_URL` và `CORS` cho public mode:
+### Frontend
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.public-domain.yml up -d --build
-docker compose ps
+cd frontend
+$env:NEXT_PUBLIC_API_URL="http://localhost:8080"
+npm install
+npm run dev
 ```
 
-### 5.3. Bật tunnel
+## 10. Tai khoan seed de demo
 
-```powershell
-& .\deploy\cloudflared\start-hackerlo-tunnel.ps1
-& .\deploy\cloudflared\status-hackerlo-tunnel.ps1
-```
+- `student1@example.com / Password123!`
+- `student2@example.com / Password123!`
+- `instructor@example.com / Password123!`
+- `admin@example.com / Admin123!`
 
-### 5.4. URL public cần dùng
+Du lieu seed:
 
-| Hạng mục | URL |
-|---|---|
-| Frontend | `https://demo.hackerlo.online` |
-| Login | `https://demo.hackerlo.online/login` |
-| Swagger UI | `https://demo.hackerlo.online/swagger-ui.html` |
-| OpenAPI JSON | `https://demo.hackerlo.online/v3/api-docs` |
-| Health | `https://demo.hackerlo.online/api/health` |
+- `student1` da enroll `Java Security Basics`
+- `student2` da enroll `Applied Cryptography for Beginners`
+- `student1` co mot enrollment `PENDING` cho `Secure RESTful API with Spring Boot` de demo webhook
 
-### 5.5. Kiểm tra nhanh public
+## 11. Huong dan test nhanh bang Swagger
 
-```powershell
-curl.exe https://demo.hackerlo.online/api/health
-curl.exe -I https://demo.hackerlo.online/swagger-ui.html
-curl.exe https://demo.hackerlo.online/v3/api-docs
-```
+1. Mo `https://localhost/swagger-ui.html`
+2. Goi `POST /api/auth/login`
+3. Copy `accessToken`
+4. Bam `Authorize`
+5. Nhap `Bearer <accessToken>`
+6. Test:
+   - `GET /api/auth/me`
+   - `GET /api/certificates/me`
+   - `GET /api/admin/audit-logs` voi tai khoan admin
+   - `POST /api/courses/{courseId}/checkout`
+   - `GET /api/courses/{courseId}/lessons/{lessonId}`
 
-Kỳ vọng:
+## 12. Test bang Postman
 
-- `https://demo.hackerlo.online/api/health` trả `200`
-- Public Swagger mở được
-- Public OpenAPI mở được
+- Collection: `postman/online-course-security.postman_collection.json`
+- Huong dan chi tiet: `docs/postman-testing.md`
 
-Lưu ý:
+Collection co cac request:
 
-- Ở lần rà hiện tại, `http://demo.hackerlo.online` **không** được dùng làm bằng chứng redirect `301`.
-- Hãy dùng `https://demo.hackerlo.online` làm URL demo công khai.
+- Register
+- Login Student
+- Login Admin
+- Get Courses
+- Checkout Course
+- Get Lesson With Token
+- Get My Certificate
+- BOLA Attack Attempt
+- Admin Audit Logs
+- Webhook Valid HMAC
+- Webhook Invalid HMAC
+- Rate Limit Test - Wrong Login
 
-### 5.6. Tắt public domain
+## 13. Test bang OWASP ZAP
 
-```powershell
-& .\deploy\cloudflared\stop-hackerlo-tunnel.ps1
-```
+- Huong dan: `docs/owasp-zap-testing.md`
+- Muc tieu de scan:
+  - `https://localhost`
+  - `https://localhost/swagger-ui.html`
 
-Sau khi tắt tunnel:
+## 14. Demo attack / defense
 
-- `https://demo.hackerlo.online` sẽ không còn truy cập được
-- `https://localhost` vẫn dùng được nếu stack Docker còn chạy
+- `docs/demo-runbook.md`
+- `docs/demo-01-password-bcrypt.md`
+- `docs/demo-02-jwt.md`
+- `docs/demo-03-aes-encryption.md`
+- `docs/demo-04-bola-idor.md`
+- `docs/demo-05-webhook-hmac.md`
+- `docs/demo-06-rate-limit.md`
+- `docs/demo-07-https-tls.md`
 
-## 6. Tài khoản demo
+## 15. Mapping toi OWASP API Security Top 10
 
-- `admin@securityapp.local` / `Password@123`
-- `staff@securityapp.local` / `Password@123`
-- `user@securityapp.local` / `Password@123`
+- `API1: Broken Object Level Authorization`
+  - `GET /api/certificates/{id}`
+  - `GET /api/enrollments/{id}`
+  - `GET /api/users/{userId}/profile`
+  - `GET /api/courses/{courseId}/lessons/{lessonId}`
+- `API2: Broken Authentication`
+  - JWT signature / expiry validation
+  - bcrypt password hashing
+  - refresh token revoke
+- `API3: Broken Object Property Level Authorization / Excessive Data Exposure`
+  - DTO responses, khong tra `passwordHash`, khong tra ciphertext khong can thiet
+- `API4: Unrestricted Resource Consumption`
+  - rate limit login/register/webhook/admin APIs
+- `API8: Security Misconfiguration`
+  - CORS ro rang, TLS, khong hard-code secret, stacktrace an o production profile
 
-## 7. Test nhanh sau khi chạy
+## 16. Kiem tra va xac nhan da chay
 
-### 7.1. Swagger
+Da chay thanh cong:
 
-Mở một trong hai địa chỉ:
+- `backend`: `mvn clean test`
+- `frontend`: `npm run build`
+- `demo script`: `& .\scripts\demo-security.ps1`
+- `ZAP baseline`: artifact moi nhat trong `docs/security/` ngay `2026-06-25`
 
-- `https://localhost/swagger-ui.html`
-- `https://demo.hackerlo.online/swagger-ui.html`
+## 17. Luu y / gioi han
 
-Flow test nhanh:
+- Frontend luu token trong `localStorage` de phuc vu demo mon hoc. Day khong phai cach tot nhat cho production.
+- Webhook HMAC la mo phong payment gateway noi bo, khong ket noi cong thanh toan that.
+- TLS local dung self-signed certificate. Khi deploy public nen dung reverse proxy va cert hop le, vi du Let's Encrypt.
 
-1. `POST /api/auth/login`
-2. Copy `accessToken`
-3. Bấm `Authorize`
-4. Nhập `Bearer <accessToken>`
-5. Test `GET /api/auth/me`, `GET /api/customers`, `GET /api/admin/summary`
+## 18. Tai lieu lien quan
 
-### 7.2. Newman
-
-Chạy local:
-
-```powershell
-npx --yes newman run docs\postman\securityapp.postman_collection.json -e docs\postman\securityapp.local.postman_environment.json --insecure --reporters cli
-```
-
-Chạy public domain:
-
-```powershell
-npx --yes newman run docs\postman\securityapp.postman_collection.json -e docs\postman\securityapp.demo.hackerlo_environment.json --reporters cli
-```
-
-### 7.3. ZAP baseline
-
-```powershell
-docker run --rm --network project_mmud_default -v "${PWD}\docs\security:/zap/wrk" ghcr.io/zaproxy/zaproxy:stable zap.sh -cmd -autorun /zap/wrk/zap.yaml
-```
-
-Target nội bộ hiện dùng:
-
-```text
-https://nginx/swagger-ui.html
-```
-
-### 7.4. Query DB để chứng minh bảo mật
-
-Kiểm tra password hash:
-
-```powershell
-docker exec securityapp-db mysql -uroot -proot securityapp -e "SELECT id,email,password_hash,role FROM users;"
-```
-
-Kiểm tra dữ liệu customer đã mã hóa:
-
-```powershell
-docker exec securityapp-db mysql -uroot -proot securityapp -e "SELECT id,email,phone_encrypted,address_encrypted,tax_code_encrypted,key_version FROM customers;"
-```
-
-## 8. Kết quả đã rà ngày `2026-06-21`
-
-- Local: `http://localhost/api/health -> 301`, `https://localhost/api/health -> 200`
-- Local Swagger: `https://localhost/swagger-ui.html -> 302 -> /swagger-ui/index.html`
-- Local OpenAPI: `https://localhost/v3/api-docs -> 200`
-- Public health: `https://demo.hackerlo.online/api/health -> 200`
-- Smoke security: `register 201`, `login đúng 200 + JWT`, `login sai 401`, `no token 401`, `USER -> /api/customers = 403`
-- Password hash mới: prefix `$argon2id$...`
-- Customer data trong DB: ciphertext + `key_version = 2`
-- Newman local: `15 requests`, `22 assertions`, `0 failed`
-- Newman public: `15 requests`, `22 assertions`, `0 failed`
-- ZAP baseline: `PASS=59`, `WARN=2`, `FAIL=0`
-
-## 9. File nào dùng để làm gì
-
-- [README.md](/E:/PROJECT_MMUD/README.md): hướng dẫn chạy dự án
-- [DEMO_SECURITY_RUNTIME_CHECKLIST.md](/E:/PROJECT_MMUD/DEMO_SECURITY_RUNTIME_CHECKLIST.md): checklist demo nhanh trên lớp
-- [FULL_SECURITY_TEST_EVIDENCE_CHECKLIST.md](/E:/PROJECT_MMUD/FULL_SECURITY_TEST_EVIDENCE_CHECKLIST.md): checklist đầy đủ để chụp bằng chứng
-- [PROJECT_COMPONENTS_AND_RUNTIME_FLOW.md](/E:/PROJECT_MMUD/PROJECT_COMPONENTS_AND_RUNTIME_FLOW.md): dự án có những gì và luồng chạy ra sao
-- [PROJECT_SECURITY_ARCHITECTURE_AND_DEMO_DIAGRAMS.html](/E:/PROJECT_MMUD/PROJECT_SECURITY_ARCHITECTURE_AND_DEMO_DIAGRAMS.html): file xem sơ đồ
-- [SECURITY_REFERENCES_DIRECT_LINKS.md](/E:/PROJECT_MMUD/SECURITY_REFERENCES_DIRECT_LINKS.md): tài liệu tham khảo và link trực tiếp
-- [docs/api/README.md](/E:/PROJECT_MMUD/docs/api/README.md): tài liệu Swagger/OpenAPI
-- [docs/postman/README.md](/E:/PROJECT_MMUD/docs/postman/README.md): tài liệu Postman/Newman
-- [docs/security/README.md](/E:/PROJECT_MMUD/docs/security/README.md): tài liệu OWASP ZAP
-- [deploy/ssl/README.md](/E:/PROJECT_MMUD/deploy/ssl/README.md): ghi chú TLS local
-
-## 10. Ghi chú cuối
-
-- Không public backend thuần HTTP ra internet.
-- TLS nên terminate ở reverse proxy/edge.
-- Nếu chỉ cần nhóm tự test, dùng `https://localhost` là đủ.
-- Nếu cần demo cho máy ngoài, bật thêm `public domain` bằng `Cloudflare Tunnel`.
+- `docs/https-tls.md`
+- `docs/postman-testing.md`
+- `docs/owasp-zap-testing.md`
+- `docs/demo-runbook.md`
+- `docs/security-testing/README.md`
+- `docs/demo-05-webhook-hmac.md`
+- `docs/bao-cao-chuong-1-2-3.md`
+- `docs/report-image-captions.md`

@@ -1,20 +1,19 @@
 package com.company.securityapp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import com.company.securityapp.entity.Customer;
-import com.company.securityapp.entity.Role;
 import com.company.securityapp.entity.User;
-import com.company.securityapp.repository.CustomerRepository;
+import com.company.securityapp.repository.AuditLogRepository;
+import com.company.securityapp.repository.RefreshTokenRepository;
 import com.company.securityapp.repository.UserRepository;
-import com.company.securityapp.security.JwtService;
-import com.company.securityapp.service.EncryptionService;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,14 +21,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("local")
+@TestPropertySource(properties = {
+        "spring.datasource.url=jdbc:h2:mem:auth_security_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+        "app.jwt.secret=test-jwt-secret-123456789012345678901234567890",
+        "app.encryption.key=test-encryption-key-123456789012345678901234567890",
+        "app.webhook.hmac-secret=test-hmac-secret-123456789012345678901234567890",
+        "app.seed.enabled=false"
+})
 class AuthSecurityIntegrationTest {
 
     @Autowired
@@ -42,139 +47,108 @@ class AuthSecurityIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
-    private CustomerRepository customerRepository;
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtService jwtService;
-
-    @Autowired
-    private EncryptionService encryptionService;
+    private AuditLogRepository auditLogRepository;
 
     @BeforeEach
     void setUp() {
-        customerRepository.deleteAll();
+        refreshTokenRepository.deleteAll();
+        auditLogRepository.deleteAll();
         userRepository.deleteAll();
     }
 
     @Test
-    void registerLoginAndMeFlowWorks() throws Exception {
-        String registerPayload = objectMapper.writeValueAsString(Map.of(
-                "fullName", "New User",
-                "email", "newuser@example.test",
-                "password", "Password@123"));
+    void registerLoginRefreshAndMeFlowUseBcryptAndJwt() throws Exception {
+        Map<String, Object> registerPayload = new LinkedHashMap<>();
+        registerPayload.put("fullName", "New Student");
+        registerPayload.put("email", "newstudent@example.test");
+        registerPayload.put("password", "Password123!");
+        registerPayload.put("phoneNumber", "0909555666");
+        registerPayload.put("billingAddress", "123 Demo Street");
 
-        mockMvc.perform(post("/api/auth/register")
+        String registerResponse = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(registerPayload))
+                        .content(objectMapper.writeValueAsString(registerPayload)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("newuser@example.test"))
-                .andExpect(jsonPath("$.role").value("USER"));
-
-        String loginPayload = objectMapper.writeValueAsString(Map.of(
-                "email", "newuser@example.test",
-                "password", "Password@123"));
-
-        String loginResponse = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginPayload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isString())
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.role").value("USER"))
-                .andExpect(jsonPath("$.user.email").value("newuser@example.test"))
+                .andExpect(jsonPath("$.role").value("STUDENT"))
+                .andExpect(jsonPath("$.user.email").value("newstudent@example.test"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
-        String token = objectMapper.readTree(loginResponse).get("accessToken").asText();
+        User storedUser = userRepository.findByEmailIgnoreCase("newstudent@example.test").orElseThrow();
+        assertThat(storedUser.getPasswordHash()).startsWith("$2");
+        assertThat(storedUser.getPasswordHash()).doesNotContain("Password123!");
+        assertThat(storedUser.getPhoneNumberEncrypted()).isNotEqualTo("0909555666");
 
-        mockMvc.perform(get("/api/auth/me")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("newuser@example.test"))
-                .andExpect(jsonPath("$.role").value("USER"));
-    }
+        Map<String, Object> loginPayload = Map.of(
+                "email", "newstudent@example.test",
+                "password", "Password123!");
 
-    @Test
-    void missingOrInvalidTokenReturnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/auth/me"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.status").value(401));
-
-        mockMvc.perform(get("/api/auth/me")
-                        .header("Authorization", "Bearer invalid.token.value"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.status").value(401));
-    }
-
-    @Test
-    void roleAuthorizationMatrixIsApplied() throws Exception {
-        String adminToken = createTokenForRole(Role.ADMIN, "admin-role@example.test");
-        String staffToken = createTokenForRole(Role.STAFF, "staff-role@example.test");
-        String userToken = createTokenForRole(Role.USER, "user-role@example.test");
-
-        Customer customer = new Customer();
-        customer.setName("Role Customer");
-        customer.setEmail("role-customer@example.test");
-        customer.setPhoneEncrypted(encryptionService.encrypt("0900000000"));
-        customer.setAddressEncrypted(encryptionService.encrypt("Demo address"));
-        customer.setTaxCodeEncrypted(encryptionService.encrypt("TAX-ROLE"));
-        customerRepository.save(customer);
-
-        mockMvc.perform(get("/api/customers")
-                        .header("Authorization", "Bearer " + staffToken))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/customers")
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
-
-        mockMvc.perform(get("/api/admin/summary")
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
-
-        mockMvc.perform(get("/api/admin/summary")
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.users").isNumber());
-    }
-
-    @Test
-    void legacyBcryptPasswordIsRehashedToArgon2AfterSuccessfulLogin() throws Exception {
-        User user = new User();
-        user.setFullName("Legacy Bcrypt User");
-        user.setEmail("legacy-bcrypt@example.test");
-        user.setPasswordHash(new BCryptPasswordEncoder().encode("Password@123"));
-        user.setRole(Role.USER);
-        userRepository.save(user);
-
-        String loginPayload = objectMapper.writeValueAsString(Map.of(
-                "email", "legacy-bcrypt@example.test",
-                "password", "Password@123"));
-
-        mockMvc.perform(post("/api/auth/login")
+        String loginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginPayload))
+                        .content(objectMapper.writeValueAsString(loginPayload)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isString());
+                .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.refreshToken").isString())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-        User upgradedUser = userRepository.findByEmailIgnoreCase("legacy-bcrypt@example.test").orElseThrow();
-        assertThat(upgradedUser.getPasswordHash()).startsWith("$argon2");
-        assertThat(passwordEncoder.matches("Password@123", upgradedUser.getPasswordHash())).isTrue();
+        JsonNode loginJson = objectMapper.readTree(loginResponse);
+        String accessToken = loginJson.get("accessToken").asText();
+        String refreshToken = loginJson.get("refreshToken").asText();
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("newstudent@example.test"))
+                .andExpect(jsonPath("$.phoneNumber").value("0909555666"));
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", refreshToken))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.refreshToken").isString());
+
+        JsonNode registerJson = objectMapper.readTree(registerResponse);
+        assertThat(registerJson.get("tokenType").asText()).isEqualTo("Bearer");
     }
 
-    private String createTokenForRole(Role role, String email) {
-        User user = new User();
-        user.setFullName(role.name() + " Demo");
-        user.setEmail(email.toLowerCase());
-        user.setPasswordHash(passwordEncoder.encode("Password@123"));
-        user.setRole(role);
-        User savedUser = userRepository.save(user);
-        return jwtService.generateToken(savedUser);
+    @Test
+    void tamperedJwtPayloadIsRejected() throws Exception {
+        Map<String, Object> registerPayload = Map.of(
+                "fullName", "Tamper Student",
+                "email", "tamper@example.test",
+                "password", "Password123!");
+
+        String registerResponse = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerPayload)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String token = objectMapper.readTree(registerResponse).get("accessToken").asText();
+        String tamperedToken = tamperPayload(token);
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + tamperedToken))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("JWT signature is invalid."));
+    }
+
+    private String tamperPayload(String token) throws Exception {
+        String[] parts = token.split("\\.");
+        JsonNode payload = objectMapper.readTree(Base64.getUrlDecoder().decode(parts[1]));
+        ((com.fasterxml.jackson.databind.node.ObjectNode) payload).put("role", "ADMIN");
+        parts[1] = Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(objectMapper.writeValueAsBytes(payload));
+        return String.join(".", parts);
     }
 }

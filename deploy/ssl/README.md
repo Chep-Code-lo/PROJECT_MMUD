@@ -1,4 +1,4 @@
-# Ghi chú TLS cho local và public domain
+# Ghi chú TLS cho môi trường local
 
 Thư mục này chứa certificate dùng cho `Nginx` local origin.
 
@@ -9,18 +9,11 @@ Thư mục này chứa certificate dùng cho `Nginx` local origin.
 
 Reverse proxy được mô tả tại [deploy/nginx/securityapp.conf](/E:/PROJECT_MMUD/deploy/nginx/securityapp.conf).
 
-## 2. Cách hiểu theo từng chế độ
-
-### Localhost
+## 2. Cách dùng trong project
 
 - `Nginx` dùng certificate trong thư mục này để phục vụ `https://localhost`
-- mode này dùng cho test nội bộ và là fallback chính cho cả nhóm
-
-### Public domain
-
-- `https://demo.hackerlo.online` publish cùng local origin khi `Cloudflare Tunnel` đang bật
-- certificate public nằm ở lớp `Cloudflare edge`; thư mục này vẫn chủ yếu phục vụ local origin `https://localhost`
-- không cần tạo thêm một bộ cert public riêng trong repo chỉ để phục vụ mode publish
+- Đây là chế độ chạy chuẩn cho demo đồ án và kiểm thử bảo mật nội bộ
+- Nếu sau này cần publish ra internet, nên để TLS kết thúc ở reverse proxy hoặc dịch vụ edge phù hợp, nhưng luồng nộp đồ án hiện tại chỉ cần `https://localhost`
 
 ## 3. Mục tiêu của lớp TLS
 

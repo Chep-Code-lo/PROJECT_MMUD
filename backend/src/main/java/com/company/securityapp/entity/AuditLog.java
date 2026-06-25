@@ -17,26 +17,32 @@ public class AuditLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String action;
-
-    @Column(name = "entity_type", length = 100)
-    private String entityType;
-
-    @Column(name = "entity_id")
-    private Long entityId;
-
     @Column(name = "actor_user_id")
     private Long actorUserId;
 
     @Column(name = "actor_email", length = 255)
     private String actorEmail;
 
-    @Column(nullable = false)
-    private boolean success = true;
+    @Column(nullable = false, length = 100)
+    private String action;
 
-    @Column(length = 2000)
-    private String details;
+    @Column(name = "target_type", length = 100)
+    private String targetType;
+
+    @Column(name = "target_id")
+    private Long targetId;
+
+    @Column(name = "ip_address", length = 128)
+    private String ipAddress;
+
+    @Column(name = "user_agent", length = 512)
+    private String userAgent;
+
+    @Column(nullable = false, length = 50)
+    private String status;
+
+    @Column(nullable = false, length = 2000)
+    private String message;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -48,30 +54,6 @@ public class AuditLog {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getAction() {
-        return action;
-    }
-
-    public void setAction(String action) {
-        this.action = action;
-    }
-
-    public String getEntityType() {
-        return entityType;
-    }
-
-    public void setEntityType(String entityType) {
-        this.entityType = entityType;
-    }
-
-    public Long getEntityId() {
-        return entityId;
-    }
-
-    public void setEntityId(Long entityId) {
-        this.entityId = entityId;
     }
 
     public Long getActorUserId() {
@@ -90,20 +72,60 @@ public class AuditLog {
         this.actorEmail = actorEmail;
     }
 
-    public boolean isSuccess() {
-        return success;
+    public String getAction() {
+        return action;
     }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
+    public void setAction(String action) {
+        this.action = action;
     }
 
-    public String getDetails() {
-        return details;
+    public String getTargetType() {
+        return targetType;
     }
 
-    public void setDetails(String details) {
-        this.details = details;
+    public void setTargetType(String targetType) {
+        this.targetType = targetType;
+    }
+
+    public Long getTargetId() {
+        return targetId;
+    }
+
+    public void setTargetId(Long targetId) {
+        this.targetId = targetId;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public Instant getCreatedAt() {
@@ -114,4 +136,3 @@ public class AuditLog {
         this.createdAt = createdAt;
     }
 }
-

@@ -12,13 +12,17 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const baseClass =
-    "px-4 py-2 rounded font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold tracking-wide transition disabled:cursor-not-allowed disabled:opacity-50";
 
   const variantClass = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700",
-    danger: "bg-red-600 text-white hover:bg-red-700",
-    secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300",
-    success: "bg-green-600 text-white hover:bg-green-700",
+    primary:
+      "bg-[#0f766e] text-[#f9f7f1] shadow-[0_14px_30px_rgba(15,118,110,0.25)] hover:bg-[#115e59]",
+    danger:
+      "bg-[#b45309] text-[#fff8ef] shadow-[0_14px_30px_rgba(180,83,9,0.2)] hover:bg-[#92400e]",
+    secondary:
+      "border border-[#1f2a24]/15 bg-white/80 text-[#1f2a24] hover:bg-[#f3ede4]",
+    success:
+      "bg-[#14532d] text-[#f5fbf7] shadow-[0_14px_30px_rgba(20,83,45,0.2)] hover:bg-[#166534]",
   };
 
   return (

@@ -38,7 +38,15 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private Role role = Role.USER;
+    private Role role = Role.STUDENT;
+
+    @JsonIgnore
+    @Column(name = "phone_number_encrypted", length = 512)
+    private String phoneNumberEncrypted;
+
+    @JsonIgnore
+    @Column(name = "billing_address_encrypted", length = 2048)
+    private String billingAddressEncrypted;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -86,6 +94,22 @@ public class User implements UserDetails {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public String getPhoneNumberEncrypted() {
+        return phoneNumberEncrypted;
+    }
+
+    public void setPhoneNumberEncrypted(String phoneNumberEncrypted) {
+        this.phoneNumberEncrypted = phoneNumberEncrypted;
+    }
+
+    public String getBillingAddressEncrypted() {
+        return billingAddressEncrypted;
+    }
+
+    public void setBillingAddressEncrypted(String billingAddressEncrypted) {
+        this.billingAddressEncrypted = billingAddressEncrypted;
     }
 
     public Instant getCreatedAt() {
@@ -139,4 +163,3 @@ public class User implements UserDetails {
         return true;
     }
 }
-

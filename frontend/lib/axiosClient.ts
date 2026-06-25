@@ -11,7 +11,7 @@ const axiosClient = axios.create({
 });
 
 axiosClient.interceptors.request.use((config) => {
-  const token = tokenStorage.getToken();
+  const token = tokenStorage.getAccessToken();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -23,8 +23,14 @@ axiosClient.interceptors.request.use((config) => {
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      tokenStorage.removeToken();
+    const requestUrl = String(error.config?.url ?? "");
+    const isAuthRequest =
+      requestUrl.includes("/api/auth/login") ||
+      requestUrl.includes("/api/auth/register") ||
+      requestUrl.includes("/api/auth/refresh");
+
+    if (error.response?.status === 401 && !isAuthRequest) {
+      tokenStorage.clearSession();
 
       if (typeof window !== "undefined") {
         window.location.href = "/login";

@@ -1,0 +1,323 @@
+{
+  "info": {
+    "_postman_id": "7f0c1c0b-6e46-4f53-a5e1-8d9b3e77c101",
+    "name": "Online Course Security",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for the Applied Cryptography project: JWT, bcrypt, AES-GCM, BOLA, HMAC webhook, audit log, and rate limit."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://localhost" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "student2AccessToken", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "studentUserId", "value": "1" },
+    { "key": "courseId", "value": "1" },
+    { "key": "lessonId", "value": "1" },
+    { "key": "pendingCourseId", "value": "3" },
+    { "key": "pendingEnrollmentId", "value": "3" },
+    { "key": "victimCertificateId", "value": "1" },
+    { "key": "courseAmount", "value": "299000.00" },
+    { "key": "paymentReference", "value": "PAY-POSTMAN-001" },
+    { "key": "webhookSecret", "value": "change-me-webhook-secret-with-at-least-32-characters" },
+    { "key": "webhookEventId", "value": "" },
+    { "key": "webhookTimestamp", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Postman Student\",\n  \"email\": \"postman.student@example.com\",\n  \"password\": \"Password123!\",\n  \"phoneNumber\": \"0909555666\",\n  \"billingAddress\": \"123 Postman Street\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "Login Student 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('accessToken', data.accessToken);",
+              "pm.collectionVariables.set('refreshToken', data.refreshToken);",
+              "pm.collectionVariables.set('studentUserId', String(data.user.id));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student1@example.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Login Student 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('student2AccessToken', data.accessToken);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student2@example.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Login Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('adminAccessToken', data.accessToken);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin123!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Get Courses",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/courses",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "courses"]
+        }
+      }
+    },
+    {
+      "name": "Checkout Course",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('pendingEnrollmentId', String(data.enrollmentId));",
+              "pm.collectionVariables.set('paymentReference', data.paymentReference);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/courses/{{pendingCourseId}}/checkout",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "courses", "{{pendingCourseId}}", "checkout"]
+        }
+      }
+    },
+    {
+      "name": "Get Lesson With Token",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/courses/{{courseId}}/lessons/{{lessonId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "courses", "{{courseId}}", "lessons", "{{lessonId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get My Certificate",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "if (Array.isArray(data) && data.length > 0) {",
+              "  pm.collectionVariables.set('victimCertificateId', String(data[0].id));",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/certificates/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "certificates", "me"]
+        }
+      }
+    },
+    {
+      "name": "BOLA Attack Attempt",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{student2AccessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/certificates/{{victimCertificateId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "certificates", "{{victimCertificateId}}"]
+        }
+      }
+    },
+    {
+      "name": "Admin Audit Logs",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/audit-logs",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "audit-logs"]
+        }
+      }
+    },
+    {
+      "name": "Webhook Valid HMAC",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const eventId = `evt_postman_${Date.now()}`;",
+              "const timestamp = Math.floor(Date.now() / 1000).toString();",
+              "pm.collectionVariables.set('webhookEventId', eventId);",
+              "pm.collectionVariables.set('webhookTimestamp', timestamp);",
+              "const rawBody = pm.variables.replaceIn(pm.request.body.raw);",
+              "const payloadToSign = `${eventId}.${timestamp}.${rawBody}`;",
+              "const signature = CryptoJS.HmacSHA256(payloadToSign, pm.collectionVariables.get('webhookSecret')).toString(CryptoJS.enc.Hex);",
+              "pm.request.headers.upsert({ key: 'X-Event-Id', value: eventId });",
+              "pm.request.headers.upsert({ key: 'X-Timestamp', value: timestamp });",
+              "pm.request.headers.upsert({ key: 'X-Signature', value: signature });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"enrollmentId\": {{pendingEnrollmentId}},\n  \"userId\": {{studentUserId}},\n  \"courseId\": {{pendingCourseId}},\n  \"paymentReference\": \"{{paymentReference}}\",\n  \"amount\": {{courseAmount}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/webhooks/payment-success",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "webhooks", "payment-success"]
+        }
+      }
+    },
+    {
+      "name": "Webhook Invalid HMAC",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Event-Id", "value": "evt_invalid_signature" },
+          { "key": "X-Timestamp", "value": "1735689600" },
+          { "key": "X-Signature", "value": "bad-signature" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"enrollmentId\": {{pendingEnrollmentId}},\n  \"userId\": {{studentUserId}},\n  \"courseId\": {{pendingCourseId}},\n  \"paymentReference\": \"PAY-INVALID-001\",\n  \"amount\": {{courseAmount}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/webhooks/payment-success",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "webhooks", "payment-success"]
+        }
+      }
+    },
+    {
+      "name": "Rate Limit Test - Wrong Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student1@example.com\",\n  \"password\": \"WrongPassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    }
+  ]
+}

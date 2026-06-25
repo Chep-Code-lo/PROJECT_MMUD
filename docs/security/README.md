@@ -1,6 +1,6 @@
 # Tài liệu bảo mật và OWASP ZAP
 
-Thư mục này chứa artifact bảo mật cho giai đoạn kiểm thử, tập trung vào `OWASP ZAP baseline`, kết quả quét và ghi chú liên quan đến `TLS/deploy`.
+Thư mục này chứa các artifact phục vụ kiểm thử bảo mật, tập trung vào `OWASP ZAP baseline`, kết quả quét và ghi chú liên quan đến `TLS/deploy`.
 
 ## 1. File chính
 
@@ -11,27 +11,24 @@ Thư mục này chứa artifact bảo mật cho giai đoạn kiểm thử, tập
 
 ## 2. Target scan đang dùng
 
-Target nội bộ của ZAP:
-
 ```text
-https://nginx/swagger-ui.html
+https://host.docker.internal/swagger-ui.html
 ```
 
-Từ góc nhìn người dùng, cùng surface này tương ứng với:
+Từ góc nhìn người dùng, cùng bề mặt này tương ứng với:
 
 - `https://localhost/swagger-ui.html`
-- `https://demo.hackerlo.online/swagger-ui.html`
 
-Lý do chọn target nội bộ:
+Lý do chọn target này:
 
-- Swagger UI là surface public, dễ truy cập và phù hợp cho baseline spider.
-- Authenticated API đã được cover bổ sung bằng integration test và Postman/Newman vì baseline spider không tự login JWT.
-- Quét trực tiếp `nginx` service trong Docker network phản ánh đúng stack dự án đang chạy.
+- Swagger UI là bề mặt dễ truy cập và phù hợp cho baseline spider.
+- Các API cần JWT đã được kiểm thử bổ sung bằng integration test, Postman và script demo vì baseline spider không tự đăng nhập.
+- `host.docker.internal` trỏ về chính reverse proxy HTTPS đang expose trên máy host, phù hợp khi chạy ZAP trong container.
 
 ## 3. Lệnh chạy
 
 ```powershell
-docker run --rm --network project_mmud_default -v "${PWD}\docs\security:/zap/wrk" ghcr.io/zaproxy/zaproxy:stable zap.sh -cmd -autorun /zap/wrk/zap.yaml
+docker run --rm -v "${PWD}\docs\security:/zap/wrk" ghcr.io/zaproxy/zaproxy:stable zap.sh -cmd -autorun /zap/wrk/zap.yaml
 ```
 
 ## 4. Kết quả artifact hiện có
@@ -40,7 +37,7 @@ docker run --rm --network project_mmud_default -v "${PWD}\docs\security:/zap/wrk
 - `WARN`: `2`
 - `FAIL`: `0`
 
-Kết quả trên đã được chạy lại và rà ngày `2026-06-21` bằng chính lệnh trong file này.
+Kết quả trên đã được chạy lại vào ngày `2026-06-25` bằng chính lệnh trong file này.
 
 Hai nhóm warning hiện tại:
 
@@ -50,16 +47,10 @@ Hai nhóm warning hiện tại:
 ## 5. Cách hiểu kết quả
 
 - Nhóm `CSP-related [10055]` chủ yếu xuất phát từ Swagger UI, gồm các cảnh báo như wildcard hoặc `unsafe-inline`, `unsafe-eval`.
-- `Modern Web Application [10109]` là nhận diện kiểu ứng dụng web, không phải lỗ hổng nghiêm trọng về auth hay mã hóa.
+- `Modern Web Application [10109]` là nhận diện kiểu ứng dụng web, không phải lỗ hổng nghiêm trọng về xác thực hay mã hóa.
 - Không có `FAIL` trong artifact hiện tại.
 
-## 6. Liên hệ với local và public domain
-
-- `localhost` là nơi thuận tiện để nhóm tự chạy, tự sửa lỗi và tự test.
-- `public domain` là cùng hệ thống đó nhưng được publish ra ngoài qua `Cloudflare Tunnel`.
-- Dù người dùng truy cập theo mode nào, ZAP vẫn quét đúng reverse proxy của stack qua target nội bộ `https://nginx/swagger-ui.html`.
-
-## 7. Liên hệ với deploy và TLS
+## 6. Liên hệ với deploy và TLS
 
 - Reverse proxy mẫu nằm ở `deploy/nginx/securityapp.conf`
 - Ghi chú TLS nằm ở `deploy/ssl/README.md`

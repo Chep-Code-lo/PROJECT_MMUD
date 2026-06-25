@@ -1,73 +1,88 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Navbar from "@/components/Navbar";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { authService } from "@/services/authService";
-import type { User } from "@/types/auth";
+import type { UserProfile } from "@/types/auth";
+
+const quickLinks = [
+  {
+    title: "Course Catalogue",
+    href: "/courses",
+    text: "Kiem tra public courses, lesson preview va checkout mock.",
+  },
+  {
+    title: "Profile + Certificates",
+    href: "/profile",
+    text: "Xem thong tin da giai ma va danh sach enrollment/certificate cua chinh minh.",
+  },
+  {
+    title: "Swagger UI",
+    href: "/swagger-ui.html",
+    text: "Dang token vao Swagger de goi API va test role-based access.",
+  },
+];
 
 export default function DashboardPage() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadCurrentUser = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        setCurrentUser(user);
-      } catch {
-        setCurrentUser(null);
-      }
-    };
-
-    loadCurrentUser();
+    authService
+      .getCurrentUser()
+      .then(setCurrentUser)
+      .catch((err) => setError(getApiErrorMessage(err, "Khong tai duoc user hien tai.")));
   }, []);
 
   return (
-    <ProtectedRoute allowedRoles={["ADMIN", "STAFF", "USER"]}>
-      <main className="min-h-screen bg-gray-100 text-gray-900">
-        <Navbar />
-
-        <div className="max-w-5xl mx-auto p-8">
-          <h1 className="text-3xl font-bold mb-8">
-            Small Company Security Dashboard
+    <ProtectedRoute>
+      <main className="space-y-6">
+        <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
+            Security Dashboard
+          </p>
+          <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
+            Tong quan flow demo bao mat
           </h1>
+          <p className="max-w-3xl text-sm leading-7 text-[#526059]">
+            Dashboard nay khong tap trung UI. Muc tieu la giup giang vien nhin nhanh
+            cac flow: login JWT, lesson locked/unlocked, certificate ownership, audit
+            log va webhook thanh toan.
+          </p>
 
           {currentUser && (
-            <div className="mb-6 rounded-xl border bg-white p-5 shadow">
-              <p className="text-sm uppercase tracking-wide text-gray-500">
-                Current Session
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">{currentUser.fullName}</h2>
-              <p className="mt-1 text-gray-700">
-                {currentUser.email} - role {currentUser.role}
-              </p>
+            <div className="mt-6 rounded-[26px] border border-[#1f2a24]/8 bg-[#f4ecdf] p-5">
+              <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[#6c655a]">
+                Session hien tai
+              </div>
+              <div className="mt-3 text-lg font-semibold text-[#17352d]">
+                {currentUser.fullName} / {currentUser.role}
+              </div>
+              <div className="text-sm text-[#5a645d]">{currentUser.email}</div>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border p-6 rounded-xl bg-white shadow">
-              <h2 className="text-xl font-semibold mb-2">Security Scope</h2>
-              <p>
-                Dashboard nay tap trung vao JWT, bcrypt, AES-GCM cho customer
-                data va audit log de phuc vu huong mat ma ung dung.
-              </p>
+          {error && (
+            <div className="mt-5 rounded-2xl border border-[#b45309]/15 bg-[#fff4ea] px-4 py-3 text-sm text-[#9a3412]">
+              {error}
             </div>
+          )}
+        </section>
 
-            {(currentUser?.role === "ADMIN" || currentUser?.role === "STAFF") && (
-              <a href="/customers" className="border p-6 rounded-xl bg-white shadow">
-                <h2 className="text-xl font-semibold mb-2">Customers</h2>
-                <p>Quản lý khách hàng, dữ liệu nhạy cảm được AES ở backend.</p>
-              </a>
-            )}
-
-            {currentUser?.role === "ADMIN" && (
-              <a href="/audit-logs" className="border p-6 rounded-xl bg-white shadow">
-                <h2 className="text-xl font-semibold mb-2">Audit Logs</h2>
-                <p>Xem lịch sử login va customer action de demo truy vet bao mat.</p>
-              </a>
-            )}
-          </div>
-        </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          {quickLinks.map((item) => (
+            <Link
+              key={item.title}
+              href={item.href}
+              className="rounded-[28px] border border-[#1f2a24]/8 bg-white/80 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_45px_rgba(31,42,36,0.08)]"
+            >
+              <h2 className="mb-3 text-xl font-semibold text-[#163d35]">{item.title}</h2>
+              <p className="text-sm leading-7 text-[#536059]">{item.text}</p>
+            </Link>
+          ))}
+        </section>
       </main>
     </ProtectedRoute>
   );

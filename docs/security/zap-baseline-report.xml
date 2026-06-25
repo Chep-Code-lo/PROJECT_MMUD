@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<OWASPZAPReport programName="ZAP" version="2.17.0" generated="Sun, 21 Jun 2026 16:20:44" created="2026-06-21T16:20:44.791455475Z">
+<OWASPZAPReport programName="ZAP" version="2.17.0" generated="Thu, 25 Jun 2026 07:49:42" created="2026-06-25T07:49:42.991846114Z">
 	
-		<site name="https://nginx" host="nginx" port="443" ssl="true">
+		<site name="https://host.docker.internal" host="host.docker.internal" port="443" ssl="true">
 			<alerts>
 				
 					<alertitem>
@@ -17,8 +17,8 @@
 						<instances>
 							
 								<instance>
-									<uri>https://nginx/swagger-ui.html</uri>
-									<nodeName>https://nginx/swagger-ui.html</nodeName>
+									<uri>https://host.docker.internal/swagger-ui.html</uri>
+									<nodeName>https://host.docker.internal/swagger-ui.html</nodeName>
 									<method>GET</method>
 									<param>Content-Security-Policy</param>
 									<attack></attack>
@@ -52,8 +52,8 @@ script-src, style-src, img-src, connect-src, font-src</otherinfo>
 						<instances>
 							
 								<instance>
-									<uri>https://nginx/swagger-ui.html</uri>
-									<nodeName>https://nginx/swagger-ui.html</nodeName>
+									<uri>https://host.docker.internal/swagger-ui.html</uri>
+									<nodeName>https://host.docker.internal/swagger-ui.html</nodeName>
 									<method>GET</method>
 									<param>Content-Security-Policy</param>
 									<attack></attack>
@@ -86,8 +86,8 @@ script-src, style-src, img-src, connect-src, font-src</otherinfo>
 						<instances>
 							
 								<instance>
-									<uri>https://nginx/swagger-ui.html</uri>
-									<nodeName>https://nginx/swagger-ui.html</nodeName>
+									<uri>https://host.docker.internal/swagger-ui.html</uri>
+									<nodeName>https://host.docker.internal/swagger-ui.html</nodeName>
 									<method>GET</method>
 									<param>Content-Security-Policy</param>
 									<attack></attack>
@@ -120,8 +120,8 @@ script-src, style-src, img-src, connect-src, font-src</otherinfo>
 						<instances>
 							
 								<instance>
-									<uri>https://nginx/swagger-ui.html</uri>
-									<nodeName>https://nginx/swagger-ui.html</nodeName>
+									<uri>https://host.docker.internal/swagger-ui.html</uri>
+									<nodeName>https://host.docker.internal/swagger-ui.html</nodeName>
 									<method>GET</method>
 									<param>Content-Security-Policy</param>
 									<attack></attack>
@@ -154,8 +154,8 @@ script-src, style-src, img-src, connect-src, font-src</otherinfo>
 						<instances>
 							
 								<instance>
-									<uri>https://nginx/swagger-ui.html</uri>
-									<nodeName>https://nginx/swagger-ui.html</nodeName>
+									<uri>https://host.docker.internal/swagger-ui.html</uri>
+									<nodeName>https://host.docker.internal/swagger-ui.html</nodeName>
 									<method>GET</method>
 									<param></param>
 									<attack></attack>

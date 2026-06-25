@@ -1,12 +1,12 @@
 {
 	"@programName": "ZAP",
 	"@version": "2.17.0",
-	"@generated": "Sun, 21 Jun 2026 16:20:44",
-	"created": "2026-06-21T16:20:44.835765472Z",
+	"@generated": "Thu, 25 Jun 2026 07:49:43",
+	"created": "2026-06-25T07:49:43.088087551Z",
 	"site":[ 
 		{
-			"@name": "https://nginx",
-			"@host": "nginx",
+			"@name": "https://host.docker.internal",
+			"@host": "host.docker.internal",
 			"@port": "443",
 			"@ssl": "true",
 			"alerts": [ 
@@ -22,8 +22,8 @@
 					"instances":[ 
 						{
 							"id": "0",
-							"uri": "https://nginx/swagger-ui.html",
-							"nodeName": "https:\/\/nginx\/swagger-ui.html",
+							"uri": "https://host.docker.internal/swagger-ui.html",
+							"nodeName": "https:\/\/host.docker.internal\/swagger-ui.html",
 							"method": "GET",
 							"param": "Content-Security-Policy",
 							"attack": "",
@@ -52,8 +52,8 @@
 					"instances":[ 
 						{
 							"id": "3",
-							"uri": "https://nginx/swagger-ui.html",
-							"nodeName": "https:\/\/nginx\/swagger-ui.html",
+							"uri": "https://host.docker.internal/swagger-ui.html",
+							"nodeName": "https:\/\/host.docker.internal\/swagger-ui.html",
 							"method": "GET",
 							"param": "Content-Security-Policy",
 							"attack": "",
@@ -82,8 +82,8 @@
 					"instances":[ 
 						{
 							"id": "1",
-							"uri": "https://nginx/swagger-ui.html",
-							"nodeName": "https:\/\/nginx\/swagger-ui.html",
+							"uri": "https://host.docker.internal/swagger-ui.html",
+							"nodeName": "https:\/\/host.docker.internal\/swagger-ui.html",
 							"method": "GET",
 							"param": "Content-Security-Policy",
 							"attack": "",
@@ -112,8 +112,8 @@
 					"instances":[ 
 						{
 							"id": "2",
-							"uri": "https://nginx/swagger-ui.html",
-							"nodeName": "https:\/\/nginx\/swagger-ui.html",
+							"uri": "https://host.docker.internal/swagger-ui.html",
+							"nodeName": "https:\/\/host.docker.internal\/swagger-ui.html",
 							"method": "GET",
 							"param": "Content-Security-Policy",
 							"attack": "",
@@ -142,8 +142,8 @@
 					"instances":[ 
 						{
 							"id": "4",
-							"uri": "https://nginx/swagger-ui.html",
-							"nodeName": "https:\/\/nginx\/swagger-ui.html",
+							"uri": "https://host.docker.internal/swagger-ui.html",
+							"nodeName": "https:\/\/host.docker.internal\/swagger-ui.html",
 							"method": "GET",
 							"param": "",
 							"attack": "",

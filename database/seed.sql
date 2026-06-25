@@ -1,12 +1,15 @@
--- No default customer rows are inserted here on purpose.
--- Sensitive fields (phone, address, tax code) are encrypted with the runtime
--- AES key, so the safest way to generate valid demo data is to create
--- customers through POST /api/customers after the backend starts.
--- Demo users are also provisioned at application startup by the backend so
--- their bcrypt hashes stay managed in Java instead of being hardcoded here.
+-- Demo data for this project is seeded by Spring Boot at startup so that:
+-- 1. Passwords are hashed with BCryptPasswordEncoder inside Java.
+-- 2. Sensitive fields are encrypted with AES-GCM using the runtime ENCRYPTION_KEY.
+-- 3. Sample enrollments/certificates stay aligned with the current entity model.
 --
 -- Suggested local reset order:
+-- DELETE FROM webhook_events;
+-- DELETE FROM refresh_tokens;
+-- DELETE FROM certificates;
+-- DELETE FROM enrollments;
+-- DELETE FROM lessons;
+-- DELETE FROM courses;
 -- DELETE FROM audit_logs;
--- DELETE FROM customers;
 -- DELETE FROM users;
 

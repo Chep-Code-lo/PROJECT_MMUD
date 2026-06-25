@@ -1,76 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { authService } from "@/services/authService";
+
+const demoAccounts = [
+  { label: "Student 1", email: "student1@example.com", password: "Password123!" },
+  { label: "Admin", email: "admin@example.com", password: "Admin123!" },
+];
 
 export default function LoginPage() {
   const router = useRouter();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
     setError("");
 
     try {
-      await authService.login({ email, password });
-      router.push("/dashboard");
-    } catch {
-      setError("Đăng nhập thất bại. Kiểm tra email hoặc mật khẩu.");
+      await authService.login(form);
+      router.push("/courses");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Dang nhap that bai."));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-8 rounded-xl shadow-md w-full max-w-md text-gray-900"
-      >
-        <h1 className="text-2xl font-bold mb-6 text-center text-gray-900">
-          Login
-        </h1>
+    <main className="mx-auto max-w-4xl">
+      <div className="grid gap-6 md:grid-cols-[0.95fr_1.05fr]">
+        <section className="rounded-[32px] border border-[#1f2a24]/10 bg-[#12372f] p-8 text-[#f7f5ef] shadow-[0_24px_60px_rgba(18,55,47,0.24)]">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#cddbd2]">
+            JWT Authentication
+          </p>
+          <h1 className="mb-4 text-3xl font-bold">Dang nhap de goi API bao mat</h1>
+          <p className="mb-6 text-sm leading-7 text-[#dbe4de]">
+            Sau khi dang nhap, frontend luu access token va refresh token de demo
+            Bearer authentication, role-based access control va 403 khi truy cap sai.
+          </p>
 
-        {error && <p className="mb-4 text-red-600 text-sm">{error}</p>}
+          <div className="space-y-3">
+            {demoAccounts.map((account) => (
+              <button
+                key={account.label}
+                type="button"
+                onClick={() =>
+                  setForm({
+                    email: account.email,
+                    password: account.password,
+                  })
+                }
+                className="flex w-full items-center justify-between rounded-2xl border border-white/15 bg-white/8 px-4 py-3 text-left transition hover:bg-white/12"
+              >
+                <span>{account.label}</span>
+                <span className="text-xs uppercase tracking-[0.18em] text-[#dbe4de]">
+                  Auto fill
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
 
-        <label className="block mb-2 text-gray-900">Email</label>
-        <input
-          className="w-full border p-2 rounded mb-4 text-gray-900 bg-white"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          required
-        />
+        <section className="rounded-[32px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
+          <form onSubmit={handleLogin} className="space-y-5">
+            <Input
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, email: event.target.value }))
+              }
+              placeholder="student1@example.com"
+              required
+            />
 
-        <label className="block mb-2 text-gray-900">Password</label>
-        <input
-          className="w-full border p-2 rounded mb-2 text-gray-900 bg-white"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          required
-        />
+            <Input
+              label="Password"
+              type="password"
+              value={form.password}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, password: event.target.value }))
+              }
+              placeholder="Password123!"
+              required
+            />
 
-        <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mt-6">
-          Đăng nhập
-        </button>
+            {error && (
+              <div className="rounded-2xl border border-[#b45309]/15 bg-[#fff4ea] px-4 py-3 text-sm text-[#9a3412]">
+                {error}
+              </div>
+            )}
 
-        <p className="text-sm text-center mt-4 text-gray-900">
-          Chưa có tài khoản?{" "}
-          <a href="/register" className="text-blue-600 underline">
-            Đăng ký
-          </a>
-        </p>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Dang xu ly..." : "Dang nhap"}
+            </Button>
+          </form>
 
-        <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-gray-800">
-          <p className="font-semibold mb-2">Demo accounts</p>
-          <p>`admin@securityapp.local` / `Password@123`</p>
-          <p>`staff@securityapp.local` / `Password@123`</p>
-          <p>`user@securityapp.local` / `Password@123`</p>
-        </div>
-      </form>
+          <p className="mt-6 text-sm text-[#526059]">
+            Chua co tai khoan?{" "}
+            <Link href="/register" className="font-semibold text-[#0f766e]">
+              Dang ky student moi
+            </Link>
+          </p>
+        </section>
+      </div>
     </main>
   );
 }

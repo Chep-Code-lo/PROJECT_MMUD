@@ -1,33 +1,74 @@
 import axiosClient from "@/lib/axiosClient";
 import { tokenStorage } from "@/lib/tokenStorage";
-import type { LoginRequest, LoginResponse, RegisterRequest, User } from "@/types/auth";
+import type {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  UserProfile,
+} from "@/types/auth";
 
 export const authService = {
   register: async (data: RegisterRequest) => {
-    const res = await axiosClient.post("/api/auth/register", data);
+    const res = await axiosClient.post<AuthResponse>("/api/auth/register", data);
+    tokenStorage.setSession({
+      accessToken: res.data.accessToken,
+      refreshToken: res.data.refreshToken,
+      user: res.data.user,
+    });
     return res.data;
   },
 
   login: async (data: LoginRequest) => {
-    const res = await axiosClient.post<LoginResponse>("/api/auth/login", data);
-    const token = res.data.accessToken ?? res.data.token;
-
-    if (!token) {
-      throw new Error("Login response does not contain an access token");
-    }
-
-    tokenStorage.setToken(token);
-
+    const res = await axiosClient.post<AuthResponse>("/api/auth/login", data);
+    tokenStorage.setSession({
+      accessToken: res.data.accessToken,
+      refreshToken: res.data.refreshToken,
+      user: res.data.user,
+    });
     return res.data;
   },
 
   getCurrentUser: async () => {
-    const res = await axiosClient.get<User>("/api/auth/me");
+    const res = await axiosClient.get<UserProfile>("/api/auth/me");
+    tokenStorage.setUser(res.data);
     return res.data;
   },
 
-  logout: () => {
-    tokenStorage.removeToken();
-    window.location.href = "/login";
+  refreshSession: async () => {
+    const refreshToken = tokenStorage.getRefreshToken();
+
+    if (!refreshToken) {
+      throw new Error("Khong tim thay refresh token.");
+    }
+
+    const res = await axiosClient.post<AuthResponse>("/api/auth/refresh", {
+      refreshToken,
+    });
+
+    tokenStorage.setSession({
+      accessToken: res.data.accessToken,
+      refreshToken: res.data.refreshToken,
+      user: res.data.user,
+    });
+
+    return res.data;
+  },
+
+  getStoredUser: () => tokenStorage.getUser<UserProfile>(),
+
+  logout: async () => {
+    const refreshToken = tokenStorage.getRefreshToken();
+
+    try {
+      if (refreshToken) {
+        await axiosClient.post("/api/auth/logout", { refreshToken });
+      }
+    } finally {
+      tokenStorage.clearSession();
+
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+    }
   },
 };

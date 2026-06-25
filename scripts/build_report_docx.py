@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import math
 import re
 import sys
@@ -35,17 +36,19 @@ SUBTITLE = (
     "và Swagger/OpenAPI"
 )
 
-NARRATIVE_PRESET = {
-    "base_font": "Calibri",
-    "body_size": 11,
-    "body_after": 8,
-    "body_line": 1.333,
-    "heading1": {"size": 16, "color": "2E74B5", "before": 18, "after": 10},
-    "heading2": {"size": 13, "color": "2E74B5", "before": 12, "after": 6},
-    "heading3": {"size": 12, "color": "1F4D78", "before": 8, "after": 4},
-    "table_header_fill": "F4F6F9",
-    "table_border": "D7DFEA",
+REPORT_PRESET = {
+    "preset_name": "narrative_proposal + academic_times_override",
+    "base_font": "Times New Roman",
+    "body_size": 13,
+    "body_after": 6,
+    "body_line": 1.3,
+    "heading1": {"size": 17, "color": "1F3A5F", "before": 18, "after": 10},
+    "heading2": {"size": 14, "color": "1F3A5F", "before": 12, "after": 6},
+    "heading3": {"size": 13, "color": "202124", "before": 8, "after": 4},
+    "table_header_fill": "EFF3F8",
+    "table_border": "C9D2DD",
 }
+EXPORT_DATE_TEXT = date.today().strftime("%d tháng %m năm %Y")
 
 
 def rgb(hex_color: str) -> RGBColor:
@@ -55,7 +58,7 @@ def rgb(hex_color: str) -> RGBColor:
 def set_run_font(
     run,
     *,
-    name: str = NARRATIVE_PRESET["base_font"],
+    name: str = REPORT_PRESET["base_font"],
     size: float | None = None,
     color: str | None = None,
     bold: bool | None = None,
@@ -82,8 +85,8 @@ def set_paragraph_spacing(
     paragraph,
     *,
     before: float = 0,
-    after: float = NARRATIVE_PRESET["body_after"],
-    line_spacing: float = NARRATIVE_PRESET["body_line"],
+    after: float = REPORT_PRESET["body_after"],
+    line_spacing: float = REPORT_PRESET["body_line"],
     alignment=WD_ALIGN_PARAGRAPH.JUSTIFY,
 ):
     fmt = paragraph.paragraph_format
@@ -125,6 +128,15 @@ def add_page_number(paragraph):
     set_run_font(run, size=9.5, color="6F6F6F")
 
 
+def set_page_number_start(section, start: int):
+    sect_pr = section._sectPr
+    pg_num_type = sect_pr.find(qn("w:pgNumType"))
+    if pg_num_type is None:
+        pg_num_type = OxmlElement("w:pgNumType")
+        sect_pr.append(pg_num_type)
+    pg_num_type.set(qn("w:start"), str(start))
+
+
 def ensure_style(doc: Document, name: str, style_type=WD_STYLE_TYPE.PARAGRAPH):
     styles = doc.styles
     if name in styles:
@@ -132,7 +144,7 @@ def ensure_style(doc: Document, name: str, style_type=WD_STYLE_TYPE.PARAGRAPH):
     return styles.add_style(name, style_type)
 
 
-def configure_section(section):
+def configure_section(section, *, running_header_footer: bool):
     section.page_width = Inches(8.5)
     section.page_height = Inches(11)
     section.top_margin = Inches(1)
@@ -141,7 +153,13 @@ def configure_section(section):
     section.right_margin = Inches(1)
     section.header_distance = Inches(0.492)
     section.footer_distance = Inches(0.492)
-    section.different_first_page_header_footer = True
+    section.different_first_page_header_footer = False
+
+    if not running_header_footer:
+        return
+
+    section.header.is_linked_to_previous = False
+    section.footer.is_linked_to_previous = False
 
     header = section.header
     p = header.paragraphs[0]
@@ -154,62 +172,64 @@ def configure_section(section):
     p = footer.paragraphs[0]
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     set_paragraph_spacing(p, before=0, after=0, line_spacing=1.0, alignment=WD_ALIGN_PARAGRAPH.CENTER)
+    label = p.add_run("Trang ")
+    set_run_font(label, size=9.5, color="6F6F6F")
     add_page_number(p)
 
 
 def configure_styles(doc: Document):
     normal = doc.styles["Normal"]
-    normal.font.name = NARRATIVE_PRESET["base_font"]
-    normal._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    normal._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    normal._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
-    normal.font.size = Pt(NARRATIVE_PRESET["body_size"])
+    normal.font.name = REPORT_PRESET["base_font"]
+    normal._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    normal._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    normal._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
+    normal.font.size = Pt(REPORT_PRESET["body_size"])
     normal.font.color.rgb = rgb("202124")
     normal.paragraph_format.space_before = Pt(0)
-    normal.paragraph_format.space_after = Pt(NARRATIVE_PRESET["body_after"])
-    normal.paragraph_format.line_spacing = NARRATIVE_PRESET["body_line"]
+    normal.paragraph_format.space_after = Pt(REPORT_PRESET["body_after"])
+    normal.paragraph_format.line_spacing = REPORT_PRESET["body_line"]
 
     heading1 = doc.styles["Heading 1"]
-    heading1.font.name = NARRATIVE_PRESET["base_font"]
-    heading1._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    heading1._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    heading1._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
-    heading1.font.size = Pt(NARRATIVE_PRESET["heading1"]["size"])
-    heading1.font.color.rgb = rgb(NARRATIVE_PRESET["heading1"]["color"])
+    heading1.font.name = REPORT_PRESET["base_font"]
+    heading1._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    heading1._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    heading1._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
+    heading1.font.size = Pt(REPORT_PRESET["heading1"]["size"])
+    heading1.font.color.rgb = rgb(REPORT_PRESET["heading1"]["color"])
     heading1.font.bold = True
-    heading1.paragraph_format.space_before = Pt(NARRATIVE_PRESET["heading1"]["before"])
-    heading1.paragraph_format.space_after = Pt(NARRATIVE_PRESET["heading1"]["after"])
+    heading1.paragraph_format.space_before = Pt(REPORT_PRESET["heading1"]["before"])
+    heading1.paragraph_format.space_after = Pt(REPORT_PRESET["heading1"]["after"])
     heading1.paragraph_format.line_spacing = 1.1
 
     heading2 = doc.styles["Heading 2"]
-    heading2.font.name = NARRATIVE_PRESET["base_font"]
-    heading2._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    heading2._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    heading2._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
-    heading2.font.size = Pt(NARRATIVE_PRESET["heading2"]["size"])
-    heading2.font.color.rgb = rgb(NARRATIVE_PRESET["heading2"]["color"])
+    heading2.font.name = REPORT_PRESET["base_font"]
+    heading2._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    heading2._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    heading2._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
+    heading2.font.size = Pt(REPORT_PRESET["heading2"]["size"])
+    heading2.font.color.rgb = rgb(REPORT_PRESET["heading2"]["color"])
     heading2.font.bold = True
-    heading2.paragraph_format.space_before = Pt(NARRATIVE_PRESET["heading2"]["before"])
-    heading2.paragraph_format.space_after = Pt(NARRATIVE_PRESET["heading2"]["after"])
+    heading2.paragraph_format.space_before = Pt(REPORT_PRESET["heading2"]["before"])
+    heading2.paragraph_format.space_after = Pt(REPORT_PRESET["heading2"]["after"])
     heading2.paragraph_format.line_spacing = 1.08
 
     heading3 = doc.styles["Heading 3"]
-    heading3.font.name = NARRATIVE_PRESET["base_font"]
-    heading3._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    heading3._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    heading3._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
-    heading3.font.size = Pt(NARRATIVE_PRESET["heading3"]["size"])
-    heading3.font.color.rgb = rgb(NARRATIVE_PRESET["heading3"]["color"])
+    heading3.font.name = REPORT_PRESET["base_font"]
+    heading3._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    heading3._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    heading3._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
+    heading3.font.size = Pt(REPORT_PRESET["heading3"]["size"])
+    heading3.font.color.rgb = rgb(REPORT_PRESET["heading3"]["color"])
     heading3.font.bold = True
-    heading3.paragraph_format.space_before = Pt(NARRATIVE_PRESET["heading3"]["before"])
-    heading3.paragraph_format.space_after = Pt(NARRATIVE_PRESET["heading3"]["after"])
+    heading3.paragraph_format.space_before = Pt(REPORT_PRESET["heading3"]["before"])
+    heading3.paragraph_format.space_after = Pt(REPORT_PRESET["heading3"]["after"])
     heading3.paragraph_format.line_spacing = 1.05
 
     cover_kicker = ensure_style(doc, "CoverKicker")
-    cover_kicker.font.name = NARRATIVE_PRESET["base_font"]
-    cover_kicker._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    cover_kicker._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    cover_kicker._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
+    cover_kicker.font.name = REPORT_PRESET["base_font"]
+    cover_kicker._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    cover_kicker._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    cover_kicker._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
     cover_kicker.font.size = Pt(12)
     cover_kicker.font.bold = True
     cover_kicker.font.color.rgb = rgb("55606D")
@@ -219,11 +239,11 @@ def configure_styles(doc: Document):
     cover_kicker.paragraph_format.line_spacing = 1.0
 
     cover_title = ensure_style(doc, "CoverTitle")
-    cover_title.font.name = NARRATIVE_PRESET["base_font"]
-    cover_title._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    cover_title._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    cover_title._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
-    cover_title.font.size = Pt(24)
+    cover_title.font.name = REPORT_PRESET["base_font"]
+    cover_title._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    cover_title._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    cover_title._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
+    cover_title.font.size = Pt(25)
     cover_title.font.bold = True
     cover_title.font.color.rgb = rgb("163B64")
     cover_title.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -232,11 +252,11 @@ def configure_styles(doc: Document):
     cover_title.paragraph_format.line_spacing = 1.08
 
     cover_subtitle = ensure_style(doc, "CoverSubtitle")
-    cover_subtitle.font.name = NARRATIVE_PRESET["base_font"]
-    cover_subtitle._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    cover_subtitle._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    cover_subtitle._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
-    cover_subtitle.font.size = Pt(12.5)
+    cover_subtitle.font.name = REPORT_PRESET["base_font"]
+    cover_subtitle._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    cover_subtitle._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    cover_subtitle._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
+    cover_subtitle.font.size = Pt(13)
     cover_subtitle.font.color.rgb = rgb("4B5563")
     cover_subtitle.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
     cover_subtitle.paragraph_format.space_before = Pt(0)
@@ -244,21 +264,21 @@ def configure_styles(doc: Document):
     cover_subtitle.paragraph_format.line_spacing = 1.15
 
     meta_style = ensure_style(doc, "CoverMeta")
-    meta_style.font.name = NARRATIVE_PRESET["base_font"]
-    meta_style._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    meta_style._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    meta_style._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
-    meta_style.font.size = Pt(11)
+    meta_style.font.name = REPORT_PRESET["base_font"]
+    meta_style._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    meta_style._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    meta_style._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
+    meta_style.font.size = Pt(11.5)
     meta_style.font.color.rgb = rgb("202124")
     meta_style.paragraph_format.space_before = Pt(0)
     meta_style.paragraph_format.space_after = Pt(4)
     meta_style.paragraph_format.line_spacing = 1.15
 
     toc_title = ensure_style(doc, "TOCTitle")
-    toc_title.font.name = NARRATIVE_PRESET["base_font"]
-    toc_title._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    toc_title._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    toc_title._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
+    toc_title.font.name = REPORT_PRESET["base_font"]
+    toc_title._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    toc_title._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    toc_title._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
     toc_title.font.size = Pt(18)
     toc_title.font.bold = True
     toc_title.font.color.rgb = rgb("163B64")
@@ -267,10 +287,10 @@ def configure_styles(doc: Document):
     toc_title.paragraph_format.line_spacing = 1.0
 
     toc_item = ensure_style(doc, "TOCItem")
-    toc_item.font.name = NARRATIVE_PRESET["base_font"]
-    toc_item._element.rPr.rFonts.set(qn("w:ascii"), NARRATIVE_PRESET["base_font"])
-    toc_item._element.rPr.rFonts.set(qn("w:hAnsi"), NARRATIVE_PRESET["base_font"])
-    toc_item._element.rPr.rFonts.set(qn("w:eastAsia"), NARRATIVE_PRESET["base_font"])
+    toc_item.font.name = REPORT_PRESET["base_font"]
+    toc_item._element.rPr.rFonts.set(qn("w:ascii"), REPORT_PRESET["base_font"])
+    toc_item._element.rPr.rFonts.set(qn("w:hAnsi"), REPORT_PRESET["base_font"])
+    toc_item._element.rPr.rFonts.set(qn("w:eastAsia"), REPORT_PRESET["base_font"])
     toc_item.font.size = Pt(11.5)
     toc_item.font.color.rgb = rgb("202124")
     toc_item.paragraph_format.space_before = Pt(0)
@@ -307,16 +327,16 @@ def add_cover(doc: Document):
     p.add_run(SUBTITLE)
 
     p = doc.add_paragraph(style="CoverSubtitle")
-    p.add_run("Nội dung triển khai: Chương 1, Chương 2, Chương 3")
+    p.add_run("Phiên bản hoàn chỉnh: Tóm tắt, Lời mở đầu, Chương 1 đến Chương 5, Tài liệu tham khảo và Phụ lục")
 
     table = doc.add_table(rows=4, cols=2)
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.LEFT
     labels = [
-        ("Loại tài liệu", "Bản sạch phục vụ hoàn thiện và nộp báo cáo"),
+        ("Loại tài liệu", "Bản hoàn chỉnh phục vụ in, rà soát và nộp báo cáo"),
         ("Định hướng đề tài", "Mật mã ứng dụng và bảo mật RESTful API"),
-        ("Công nghệ trọng tâm", "JWT, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS, Swagger"),
-        ("Ngày cập nhật", "25 tháng 06 năm 2026"),
+        ("Công nghệ trọng tâm", "JWT, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS, Swagger/OpenAPI"),
+        ("Ngày xuất tài liệu", EXPORT_DATE_TEXT),
     ]
     widths = [2700, 6660]
     for row_index, (label, value) in enumerate(labels):
@@ -331,13 +351,13 @@ def add_cover(doc: Document):
                 para.runs[0].bold = True
                 set_run_font(para.runs[0], size=11, color="163B64", bold=True)
             else:
-                set_run_font(para.runs[0], size=11, color="202124")
+                set_run_font(para.runs[0], size=11.5, color="202124")
     apply_table_geometry(table, widths, table_width_dxa=sum(widths), indent_dxa=120)
     for row in table.rows:
         for cell in row.cells:
             for p in cell.paragraphs:
                 for run in p.runs:
-                    set_run_font(run, size=11)
+                    set_run_font(run, size=11.5)
     for cell in table.columns[0].cells:
         add_shading(cell._tc, "F8FAFC")
 
@@ -353,21 +373,29 @@ def add_toc_page(doc: Document, chapter_titles: Iterable[str]):
 
     intro = doc.add_paragraph(style="TOCItem")
     set_paragraph_spacing(intro, before=0, after=10, line_spacing=1.15, alignment=WD_ALIGN_PARAGRAPH.LEFT)
-    intro.add_run("Tài liệu này trình bày ba chương chính của báo cáo theo hướng đồ án Mật mã ứng dụng.")
+    intro.add_run("Tài liệu này trình bày bản báo cáo hoàn chỉnh theo hướng đồ án môn Mật mã ứng dụng và bảo mật API.")
 
-    for title in chapter_titles:
+    for level, title in chapter_titles:
         p = doc.add_paragraph(style="TOCItem")
         set_paragraph_spacing(p, before=0, after=6, line_spacing=1.15, alignment=WD_ALIGN_PARAGRAPH.LEFT)
-        p.paragraph_format.left_indent = Inches(0.15)
+        p.paragraph_format.left_indent = Inches(0.15 + (0.28 * level))
         run = p.add_run(title)
-        set_run_font(run, size=11.5, color="202124", bold=False)
+        set_run_font(
+            run,
+            size=11.5 if level == 0 else 11,
+            color="202124",
+            bold=level == 0,
+        )
 
 
-def extract_chapter_titles(markdown_text: str) -> list[str]:
-    titles: list[str] = []
+def extract_toc_titles(markdown_text: str) -> list[tuple[int, str]]:
+    titles: list[tuple[int, str]] = []
     for line in markdown_text.splitlines():
-        if line.startswith("## Chương "):
-            titles.append(line.replace("## ", "", 1).strip())
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            titles.append((0, stripped.replace("## ", "", 1).strip()))
+        elif stripped.startswith("### "):
+            titles.append((1, stripped.replace("### ", "", 1).strip()))
     return titles
 
 
@@ -376,7 +404,7 @@ def render_inline(paragraph, node):
         text = str(node)
         if text:
             run = paragraph.add_run(text)
-            set_run_font(run, size=11, color="202124")
+            set_run_font(run, size=REPORT_PRESET["body_size"], color="202124")
         return
 
     if not isinstance(node, Tag):
@@ -390,14 +418,14 @@ def render_inline(paragraph, node):
         text = node.get_text()
         if text:
             run = paragraph.add_run(text)
-            set_run_font(run, size=11, color="202124", bold=True)
+            set_run_font(run, size=REPORT_PRESET["body_size"], color="202124", bold=True)
         return
 
     if node.name in {"em", "i"}:
         text = node.get_text()
         if text:
             run = paragraph.add_run(text)
-            set_run_font(run, size=11, color="202124", italic=True)
+            set_run_font(run, size=REPORT_PRESET["body_size"], color="202124", italic=True)
         return
 
     if node.name == "code":
@@ -449,11 +477,11 @@ def add_html_table(doc: Document, element: Tag):
             set_paragraph_spacing(para, before=0, after=0, line_spacing=1.1, alignment=alignment)
             run = para.add_run(value)
             if row_index == 0:
-                set_run_font(run, size=10.5, color="163B64", bold=True)
+                set_run_font(run, size=11, color="163B64", bold=True)
             else:
-                set_run_font(run, size=10.5, color="202124")
+                set_run_font(run, size=11, color="202124")
             if row_index == 0:
-                add_shading(cell._tc, NARRATIVE_PRESET["table_header_fill"])
+                add_shading(cell._tc, REPORT_PRESET["table_header_fill"])
 
     apply_table_geometry(table, widths, table_width_dxa=sum(widths), indent_dxa=120)
 
@@ -472,7 +500,7 @@ def add_html_table(doc: Document, element: Tag):
                 border.set(qn("w:val"), "single")
                 border.set(qn("w:sz"), "6")
                 border.set(qn("w:space"), "0")
-                border.set(qn("w:color"), NARRATIVE_PRESET["table_border"])
+                border.set(qn("w:color"), REPORT_PRESET["table_border"])
 
     after = doc.add_paragraph()
     set_paragraph_spacing(after, before=2, after=2, line_spacing=1.0, alignment=WD_ALIGN_PARAGRAPH.LEFT)
@@ -544,7 +572,7 @@ def add_heading(doc: Document, level: int, text: str, *, insert_break: bool):
 def build_document(markdown_path: Path, output_path: Path):
     markdown_text = markdown_path.read_text(encoding="utf-8")
     markdown_text = re.sub(r"(?m)^(\d+)\.(\S)", r"\1. \2", markdown_text)
-    chapter_titles = extract_chapter_titles(markdown_text)
+    toc_titles = extract_toc_titles(markdown_text)
 
     html = markdown.markdown(
         markdown_text,
@@ -558,13 +586,15 @@ def build_document(markdown_path: Path, output_path: Path):
     doc.core_properties.subject = "Báo cáo đồ án Mật mã ứng dụng"
     doc.core_properties.author = ""
     doc.core_properties.last_modified_by = ""
-    doc.core_properties.comments = "Bản sạch Chương 1-2-3"
+    doc.core_properties.comments = "Báo cáo hoàn chỉnh phục vụ nộp môn Mật mã ứng dụng"
 
     configure_styles(doc)
-    configure_section(doc.sections[0])
+    configure_section(doc.sections[0], running_header_footer=False)
     add_cover(doc)
-    doc.add_page_break()
-    add_toc_page(doc, chapter_titles)
+    body_section = doc.add_section(WD_SECTION.NEW_PAGE)
+    configure_section(body_section, running_header_footer=True)
+    set_page_number_start(body_section, 1)
+    add_toc_page(doc, toc_titles)
     doc.add_page_break()
 
     chapter_index = -1
@@ -597,8 +627,8 @@ def build_document(markdown_path: Path, output_path: Path):
             set_paragraph_spacing(
                 p,
                 before=0,
-                after=NARRATIVE_PRESET["body_after"],
-                line_spacing=NARRATIVE_PRESET["body_line"],
+                after=REPORT_PRESET["body_after"],
+                line_spacing=REPORT_PRESET["body_line"],
                 alignment=alignment,
             )
             for child in element.children:

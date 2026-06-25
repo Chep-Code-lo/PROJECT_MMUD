@@ -1,5 +1,27 @@
 # BÁO CÁO THEO CHƯƠNG
 
+## Tóm tắt
+
+Đề tài “Bảo mật hệ thống RESTful API cho dịch vụ khóa học online nhỏ” được thực hiện với mục tiêu xây dựng một hệ thống đủ gọn để phù hợp phạm vi môn Mật mã ứng dụng, nhưng vẫn thể hiện rõ các kỹ thuật bảo mật cốt lõi trong môi trường API hiện đại. Hệ thống được xây dựng với backend `Spring Boot`, `Spring Security`, frontend `NextJS`, cơ sở dữ liệu `MySQL`, reverse proxy `Nginx` và đóng gói bằng `Docker Compose`.
+
+Trọng tâm kỹ thuật của đề tài không nằm ở việc mở rộng nhiều nghiệp vụ, mà tập trung vào việc áp dụng đúng các cơ chế mật mã và bảo mật API vào các tình huống có thể kiểm thử được. Cụ thể, hệ thống sử dụng `bcrypt` để băm mật khẩu, `JWT` để xác thực request, `refresh token` để quay vòng phiên đăng nhập, `AES-GCM` để mã hóa dữ liệu nhạy cảm trong cơ sở dữ liệu, `HMAC-SHA256` để xác thực webhook thanh toán mô phỏng, `HTTPS/TLS` để bảo vệ dữ liệu khi truyền trên mạng, đồng thời bổ sung `rate limiting`, `audit log`, `RBAC` và `ownership check` để chống các rủi ro phổ biến như brute-force, BOLA/IDOR, replay attack và truy cập trái phép.
+
+Kết quả thực nghiệm cho thấy hệ thống đáp ứng tốt các mục tiêu đề ra. Mật khẩu không được lưu dưới dạng rõ; token bị sửa payload hoặc hết hạn bị từ chối; sinh viên không thể truy cập tài nguyên của sinh viên khác; webhook sai chữ ký hoặc gửi lặp lại cùng `eventId` đều bị chặn; dữ liệu nhạy cảm trong database được lưu dưới dạng ciphertext; các hành vi bất thường được ghi nhận qua audit log; các endpoint nhạy cảm bị giới hạn tốc độ truy cập; toàn bộ hệ thống chạy ổn định qua `https://localhost` và có thể kiểm thử bằng Swagger, Postman, OWASP ZAP.
+
+Từ kết quả trên có thể khẳng định rằng đề tài đã đạt được yêu cầu cốt lõi của môn học: hiểu đúng kỹ thuật mật mã, sử dụng đúng ngữ cảnh và chứng minh được hiệu quả bảo vệ trong một hệ thống RESTful API thu gọn nhưng vận hành được.
+
+**Từ khóa:** Mật mã ứng dụng, RESTful API, Spring Boot, JWT, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS, BOLA/IDOR, audit log, rate limiting.
+
+## Lời mở đầu
+
+Trong bối cảnh hiện nay, phần lớn các hệ thống web hiện đại đều tách frontend và backend, giao tiếp với nhau chủ yếu qua API. Điều đó khiến RESTful API trở thành bề mặt tấn công rất quan trọng. Khi API không được bảo vệ đúng cách, kẻ tấn công có thể bỏ qua giao diện người dùng và tác động trực tiếp vào request HTTP để brute-force mật khẩu, giả mạo token, thay đổi định danh tài nguyên hoặc gọi trái phép các endpoint nhạy cảm.
+
+Với sinh viên ngành An toàn thông tin, việc chỉ học lý thuyết về mật mã là chưa đủ. Điều quan trọng hơn là phải hiểu mỗi kỹ thuật mật mã được dùng để bảo vệ loại dữ liệu nào, đặt ở lớp nào trong hệ thống và chứng minh được hiệu quả của nó thông qua mã nguồn và thực nghiệm. Từ yêu cầu đó, nhóm lựa chọn xây dựng một hệ thống khóa học online nhỏ theo hướng bảo mật API, trong đó mọi thành phần đều được thu gọn vừa đủ để dễ cài đặt, dễ demo và dễ giải thích trước giảng viên.
+
+Điểm đặc biệt của đề tài là không sa đà vào việc làm một sản phẩm công nghệ phần mềm hoàn chỉnh với quá nhiều nghiệp vụ. Thay vào đó, nhóm tập trung vào các nội dung có tính “Mật mã ứng dụng” rõ rệt như băm mật khẩu bằng bcrypt, mã hóa dữ liệu nhạy cảm bằng AES-GCM, xác thực webhook bằng HMAC-SHA256, xác thực request bằng JWT, bảo vệ kênh truyền bằng TLS, kiểm tra quyền sở hữu tài nguyên để chống BOLA/IDOR, giới hạn tần suất truy cập và ghi nhận audit log để hỗ trợ giám sát.
+
+Báo cáo này được xây dựng với định hướng vừa mang tính học thuật, vừa mang tính thực hành. Ngoài phần cơ sở lý thuyết, báo cáo còn trình bày cách thiết kế hệ thống, tổ chức mã nguồn, mô hình dữ liệu, quy trình kiểm thử và các kịch bản demo tấn công/phòng thủ. Mục tiêu cuối cùng là chứng minh rằng các kỹ thuật mật mã không chỉ tồn tại ở mức khái niệm, mà có thể được tích hợp đúng cách vào một hệ thống chạy thật, có thể quan sát, đo kiểm và đánh giá.
+
 ## Chương 1. Tổng quan đề tài
 
 ### 1.1. Đặt vấn đề
@@ -2087,3 +2109,89 @@ Tổng thể, đề tài đã đạt được mục tiêu đề ra: xây dựng 
 - và giám sát hành vi bất thường.
 
 Điểm quan trọng nhất là toàn bộ các nội dung này không chỉ dừng ở mô tả lý thuyết. Chúng đã được hiện thực thành mã nguồn, được đóng gói bằng Docker, được kiểm thử bằng nhiều công cụ và có thể trình diễn trực tiếp. Do đó, đề tài có thể xem là một mô hình học tập và thực hành có giá trị cho sinh viên An toàn thông tin trong giai đoạn đầu tiếp cận Mật mã ứng dụng, bảo mật API và tư duy phòng thủ hệ thống web hiện đại.
+
+## Tài liệu tham khảo
+
+[1] T. Jones, M. M. N. Khamis, D. R. Wallace et al., *OWASP API Security Top 10 - 2023*, OWASP Foundation, 2023.
+
+[2] M. Jones, J. Bradley và N. Sakimura, *RFC 7519: JSON Web Token (JWT)*, IETF, 2015.
+
+[3] D. Hardt, *RFC 6749: The OAuth 2.0 Authorization Framework*, IETF, 2012.
+
+[4] M. Jones và D. Hardt, *RFC 6750: The OAuth 2.0 Authorization Framework: Bearer Token Usage*, IETF, 2012.
+
+[5] NIST, *SP 800-38D: Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM) and GMAC*, National Institute of Standards and Technology, 2007.
+
+[6] M. Bellare, R. Canetti và H. Krawczyk, *Keying Hash Functions for Message Authentication*, 1996; tham chiếu nền tảng cho cơ chế HMAC.
+
+[7] NIST, *FIPS 198-1: The Keyed-Hash Message Authentication Code (HMAC)*, National Institute of Standards and Technology, 2008.
+
+[8] N. Provos và D. Mazières, *A Future-Adaptable Password Scheme*, USENIX Annual Technical Conference, 1999.
+
+[9] NIST, *Digital Identity Guidelines - SP 800-63B: Authentication and Lifecycle Management*, National Institute of Standards and Technology.
+
+[10] Spring Team, *Spring Security Reference Documentation*, tài liệu kỹ thuật chính thức của Spring Security.
+
+[11] OpenAPI Initiative, *OpenAPI Specification*, tài liệu đặc tả chuẩn mô tả RESTful API.
+
+[12] OWASP Foundation, *OWASP Zed Attack Proxy (ZAP) Documentation*, tài liệu công cụ quét bảo mật ứng dụng web.
+
+## Phụ lục A. Danh mục hình và vị trí chèn đề xuất
+
+Phụ lục này giúp sắp xếp ảnh minh họa vào đúng vị trí trong báo cáo để mạch trình bày rõ ràng hơn. Nguyên tắc chung là:
+
+- Chương 1 và Chương 2 ưu tiên lý thuyết, hầu như không cần ảnh chụp màn hình.
+- Chương 3 chỉ nên chèn ít ảnh tổng quan để minh họa kiến trúc và môi trường kiểm thử.
+- Chương 4 là nơi tập trung phần lớn hình thực nghiệm, vì đây là chương demo và đánh giá hệ thống.
+- Chương 5 chủ yếu là tổng kết, không cần chèn thêm ảnh nếu không có yêu cầu riêng từ giảng viên.
+
+### A.1. Hình nên chèn trong Chương 3
+
+| Số hình | Nội dung | Nên chèn tại mục | Mục đích |
+| --- | --- | --- | --- |
+| Hình 1 | Giao diện tổng quan của hệ thống | Sau mục `3.13. Thiết kế giao diện frontend phục vụ demo` | Minh họa frontend tối giản và bối cảnh sử dụng hệ thống |
+| Hình 2 | Giao diện Swagger/OpenAPI | Sau mục `3.16.2. Kiểm thử bằng Swagger` | Minh họa công cụ kiểm thử API nội bộ |
+
+### A.2. Hình nên chèn trong Chương 4
+
+| Số hình | Nội dung | Nên chèn tại mục | Mục đích |
+| --- | --- | --- | --- |
+| Hình 3 | Đăng nhập thành công và nhận JWT | Sau mục `4.5.3` | Chứng minh hệ thống phát hành JWT và refresh token |
+| Hình 4 | Gọi endpoint bảo vệ bằng Bearer token | Sau mục `4.5.3` | Minh họa xác thực request protected |
+| Hình 5 | Mật khẩu được lưu dưới dạng bcrypt hash | Sau mục `4.4.3` | Chứng minh không lưu plaintext password |
+| Hình 6 | Dữ liệu nhạy cảm được mã hóa AES-GCM | Sau mục `4.7.4` | Chứng minh dữ liệu trong DB được mã hóa |
+| Hình 7 | Danh sách chứng chỉ của chính người dùng | Sau mục `4.8.2` | Chuẩn bị cho kịch bản BOLA/IDOR |
+| Hình 8 | Tấn công BOLA/IDOR vào chứng chỉ người khác | Sau mục `4.8.2` | Minh họa request tấn công |
+| Hình 9 | Hệ thống chặn BOLA/IDOR bằng 403 | Sau mục `4.8.3` | Minh họa kết quả phòng thủ |
+| Hình 10 | Bài học bị khóa trước khi ghi danh | Sau mục `4.8.3` | Minh họa kiểm soát quyền xem lesson |
+| Hình 11 | Tạo giao dịch checkout mô phỏng | Sau mục `4.9.2` | Minh họa bước tạo enrollment `PENDING` |
+| Hình 12 | Webhook thanh toán sai chữ ký HMAC | Sau mục `4.9.3` | Minh họa request webhook bị từ chối |
+| Hình 13 | Webhook thanh toán hợp lệ | Sau mục `4.9.3` | Minh họa webhook được chấp nhận |
+| Hình 14 | Webhook replay bị từ chối | Sau mục `4.9.3` | Minh họa cơ chế chống replay attack |
+| Hình 15 | Bài học được mở khóa sau thanh toán | Sau mục `4.9.3` | Chứng minh nghiệp vụ thay đổi sau webhook hợp lệ |
+| Hình 16 | Payment reference được mã hóa trong DB | Sau mục `4.7.4` hoặc `4.9.3` | Minh họa dữ liệu giao dịch được mã hóa |
+| Hình 17 | Certificate code được mã hóa trong DB | Sau mục `4.7.4` | Minh họa dữ liệu chứng chỉ được mã hóa |
+| Hình 18 | JWT bị sửa payload hoặc chữ ký | Sau mục `4.5.3` | Minh họa token tampering bị từ chối |
+| Hình 19 | JWT hết hạn bị từ chối | Sau mục `4.5.3` | Minh họa cơ chế kiểm tra thời gian sống token |
+| Hình 20 | Sinh viên không được truy cập API quản trị | Sau mục `4.8.3` hoặc `4.12` | Minh họa phân quyền theo role |
+| Hình 21 | Quản trị viên xem audit log | Sau mục `4.10` | Minh họa khả năng giám sát của admin |
+| Hình 22 | Audit log ghi nhận hành vi bất thường | Sau mục `4.10` | Minh họa các sự kiện bảo mật được ghi log |
+| Hình 23 | Rate limiting đối với đăng nhập | Sau mục `4.10.3` | Minh họa phản hồi `429 Too Many Requests` |
+| Hình 24 | Chuyển hướng từ HTTP sang HTTPS | Sau mục `4.11.2` | Minh họa ép dùng HTTPS |
+| Hình 25 | Kiểm tra sức khỏe hệ thống qua HTTPS | Sau mục `4.11.2` | Minh họa stack chạy ổn định qua TLS |
+| Hình 26 | Kết quả quét OWASP ZAP baseline | Sau mục `4.11.4` | Minh họa kết quả kiểm thử DAST |
+| Hình 27 | Giao diện quên mật khẩu | Sau mục `4.6.3` | Minh họa luồng yêu cầu reset password |
+| Hình 28 | Đặt lại mật khẩu bằng reset token hợp lệ | Sau mục `4.6.3` | Minh họa luồng đổi mật khẩu thành công |
+
+### A.3. Gợi ý thứ tự chụp hình để hoàn thiện báo cáo nhanh
+
+Nếu cần chụp hình theo một vòng ngắn, nên ưu tiên theo thứ tự sau:
+
+1. Hình 1, Hình 2 để có bối cảnh hệ thống.
+2. Hình 3, Hình 4, Hình 18, Hình 19 để hoàn thiện nhóm xác thực.
+3. Hình 5, Hình 6, Hình 16, Hình 17 để hoàn thiện nhóm mật mã học dữ liệu.
+4. Hình 7, Hình 8, Hình 9, Hình 10, Hình 20 để hoàn thiện nhóm phân quyền và BOLA/IDOR.
+5. Hình 11, Hình 12, Hình 13, Hình 14, Hình 15 để hoàn thiện nhóm webhook HMAC.
+6. Hình 21, Hình 22, Hình 23 để hoàn thiện nhóm audit log và rate limiting.
+7. Hình 24, Hình 25, Hình 26 để hoàn thiện nhóm TLS và OWASP ZAP.
+8. Hình 27, Hình 28 để hoàn thiện nhóm quên mật khẩu và đặt lại mật khẩu.

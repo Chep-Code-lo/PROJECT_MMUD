@@ -7,27 +7,30 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { authService } from "@/services/authService";
 import type { UserProfile } from "@/types/auth";
 
-const quickLinks = [
-  {
-    title: "Course Catalogue",
-    href: "/courses",
-    text: "Kiem tra public courses, lesson preview va checkout mock.",
-  },
-  {
-    title: "Profile + Certificates",
-    href: "/profile",
-    text: "Xem thong tin da giai ma va danh sach enrollment/certificate cua chinh minh.",
-  },
-  {
-    title: "Swagger UI",
-    href: "/swagger-ui.html",
-    text: "Dang token vao Swagger de goi API va test role-based access.",
-  },
-];
-
 export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [error, setError] = useState("");
+
+  const quickLinks = [
+    {
+      title: "Khoa hoc",
+      href: "/courses",
+      text: "Xem danh muc khoa hoc va tiep tuc hanh trinh hoc tap cua ban.",
+    },
+    {
+      title: "Ho so",
+      href: "/profile",
+      text: "Theo doi thong tin tai khoan, cac khoa hoc da dang ky va chung chi.",
+    },
+  ];
+
+  if (currentUser?.role === "ADMIN") {
+    quickLinks.push({
+      title: "Quan tri",
+      href: "/admin/audit-logs",
+      text: "Theo doi nguoi dung, thong ke va nhat ky hoat dong cua he thong.",
+    });
+  }
 
   useEffect(() => {
     authService
@@ -41,21 +44,20 @@ export default function DashboardPage() {
       <main className="space-y-6">
         <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-            Security Dashboard
+            Tong quan tai khoan
           </p>
           <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-            Tong quan flow demo bao mat
+            Chao mung ban quay tro lai
           </h1>
           <p className="max-w-3xl text-sm leading-7 text-[#526059]">
-            Dashboard nay khong tap trung UI. Muc tieu la giup giang vien nhin nhanh
-            cac flow: login JWT, lesson locked/unlocked, certificate ownership, audit
-            log va webhook thanh toan.
+            Day la khu vuc tong quan de ban truy cap nhanh vao khoa hoc, ho so va
+            mot so chuc nang quan tri neu tai khoan cua ban duoc cap quyen.
           </p>
 
           {currentUser && (
             <div className="mt-6 rounded-[26px] border border-[#1f2a24]/8 bg-[#f4ecdf] p-5">
               <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[#6c655a]">
-                Session hien tai
+                Tai khoan hien tai
               </div>
               <div className="mt-3 text-lg font-semibold text-[#17352d]">
                 {currentUser.fullName} / {currentUser.role}

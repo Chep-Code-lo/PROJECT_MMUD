@@ -58,7 +58,7 @@ flowchart LR
 - `Rate limiting`: login, register, webhook, admin APIs tra `429` khi vuot nguong
 - `Audit log`: ghi nhan login success/failed, access denied, token rejected, webhook accepted/rejected
 - `HTTPS/TLS`: Nginx terminate TLS, HTTP -> HTTPS redirect
-- `Swagger`: ho tro Bearer JWT de test protected APIs
+- `Swagger`: ho tro Bearer JWT de test protected APIs, chi mo tren may chu local
 
 ## 6. Cau truc thu muc
 
@@ -121,19 +121,21 @@ docker compose up --build
 URL sau khi len:
 
 - Frontend: `https://localhost`
-- Swagger: `https://localhost/swagger-ui.html`
-- OpenAPI JSON: `https://localhost/v3/api-docs`
+- Swagger local-only: `https://localhost:8444/swagger-ui.html`
+- OpenAPI JSON local-only: `https://localhost:8444/v3/api-docs`
 - Health: `https://localhost/api/health`
 
 Mac dinh:
 
 - Nginx nghe `80` va `443` tren host
+- Swagger chi bind vao `127.0.0.1:8444` tren host, khong di ra cong public `443`
 - MySQL nghe `3307` tren host
 
 Neu `80` / `443` dang bi Apache, XAMPP hoac IIS chiem, co the doi trong `.env`:
 
 - `LOCAL_HTTP_PORT=<port-http-khac>`
 - `LOCAL_HTTPS_PORT=<port-https-khac>`
+- `LOCAL_SWAGGER_HTTPS_PORT=<port-swagger-local-khac>`
 - `APP_API_BASE_URL=https://localhost:<port-https-khac>`
 - `CORS_ALLOWED_ORIGINS=https://localhost:<port-https-khac>,http://localhost:3000`
 
@@ -189,7 +191,7 @@ Du lieu seed:
 
 ## 11. Huong dan test nhanh bang Swagger
 
-1. Mo `https://localhost/swagger-ui.html`
+1. Mo `https://localhost:8444/swagger-ui.html` tren chinh may chu
 2. Goi `POST /api/auth/login`
 3. Copy `accessToken`
 4. Bam `Authorize`
@@ -226,7 +228,7 @@ Collection co cac request:
 - Huong dan: `docs/owasp-zap-testing.md`
 - Muc tieu de scan:
   - `https://localhost`
-  - `https://localhost/swagger-ui.html`
+  - `https://localhost:8444/swagger-ui.html` neu scan tren chinh may host
 
 ## 14. Demo attack / defense
 

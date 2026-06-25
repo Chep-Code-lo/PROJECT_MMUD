@@ -1,11 +1,14 @@
 package com.company.securityapp.controller;
 
 import com.company.securityapp.dto.AuthResponse;
+import com.company.securityapp.dto.ForgotPasswordRequest;
+import com.company.securityapp.dto.ForgotPasswordResponse;
 import com.company.securityapp.dto.LoginRequest;
 import com.company.securityapp.dto.LogoutRequest;
 import com.company.securityapp.dto.MessageResponse;
 import com.company.securityapp.dto.RefreshTokenRequest;
 import com.company.securityapp.dto.RegisterRequest;
+import com.company.securityapp.dto.ResetPasswordRequest;
 import com.company.securityapp.dto.UserResponse;
 import com.company.securityapp.service.AuthService;
 import com.company.securityapp.service.RateLimitService;
@@ -24,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api")
-@Tag(name = "Auth API", description = "JWT authentication, refresh token rotation, and protected user profile endpoints.")
+@Tag(name = "Auth API", description = "JWT authentication, password reset, refresh token rotation, and protected user profile endpoints.")
 public class AuthController {
 
     private final AuthService authService;
@@ -54,6 +57,22 @@ public class AuthController {
     @Operation(summary = "Exchange a valid refresh token for a new access token")
     public AuthResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return authService.refresh(request);
+    }
+
+    @PostMapping("/auth/forgot-password")
+    @Operation(summary = "Request a password reset token. In demo mode, the response returns a reset token preview instead of sending email.")
+    public ForgotPasswordResponse forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest) {
+        rateLimitService.checkPasswordResetLimit(httpRequest, request.email());
+        return authService.requestPasswordReset(request);
+    }
+
+    @PostMapping("/auth/reset-password")
+    @Operation(summary = "Reset the password with a valid reset token and revoke active refresh tokens")
+    public MessageResponse resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return new MessageResponse("Password reset completed successfully.");
     }
 
     @PostMapping("/auth/logout")

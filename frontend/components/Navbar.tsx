@@ -48,27 +48,25 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Link href="/" className="shrink-0">
           <span className="block text-xs font-semibold uppercase tracking-[0.34em] text-[#8b5e34]">
-            Applied Cryptography
+            Online Learning
           </span>
-          <span className="text-xl font-bold text-[#12372f]">
-            Online Course Security Lab
-          </span>
+          <span className="text-xl font-bold text-[#12372f]">CourseHub</span>
         </Link>
 
         <div className="flex flex-col gap-3 text-sm font-medium text-[#30413a] md:flex-row md:items-center md:gap-5">
           <Link href="/courses" className="transition hover:text-[#0f766e]">
-            Courses
+            Khoa hoc
           </Link>
 
           {currentUser && (
             <Link href="/dashboard" className="transition hover:text-[#0f766e]">
-              Dashboard
+              Tong quan
             </Link>
           )}
 
           {currentUser && (
             <Link href="/profile" className="transition hover:text-[#0f766e]">
-              Profile
+              Ho so
             </Link>
           )}
 
@@ -77,13 +75,9 @@ export default function Navbar() {
               href="/admin/audit-logs"
               className="transition hover:text-[#0f766e]"
             >
-              Audit Logs
+              Quan tri
             </Link>
           )}
-
-          <a href="/swagger-ui.html" className="transition hover:text-[#0f766e]">
-            Swagger
-          </a>
 
           {currentUser ? (
             <>
@@ -95,7 +89,7 @@ export default function Navbar() {
                 onClick={() => authService.logout()}
                 className="rounded-full bg-[#b45309] px-4 py-2 text-sm font-semibold text-[#fffaf2] shadow-[0_16px_30px_rgba(180,83,9,0.18)] transition hover:bg-[#92400e]"
               >
-                Logout
+                Dang xuat
               </button>
             </>
           ) : (
@@ -104,13 +98,13 @@ export default function Navbar() {
                 href="/login"
                 className="rounded-full border border-[#1f2a24]/12 px-4 py-2 transition hover:bg-white/70"
               >
-                Login
+                Dang nhap
               </Link>
               <Link
                 href="/register"
                 className="rounded-full bg-[#0f766e] px-4 py-2 text-[#f7faf8] shadow-[0_16px_30px_rgba(15,118,110,0.2)] transition hover:bg-[#115e59]"
               >
-                Register
+                Dang ky
               </Link>
             </div>
           )}

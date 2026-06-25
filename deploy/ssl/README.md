@@ -22,7 +22,7 @@ Reverse proxy được mô tả tại [deploy/nginx/securityapp.conf](/E:/PROJEC
 3. `Nginx` terminate TLS rồi proxy:
    - `/` -> frontend
    - `/api/*` -> backend
-   - `/swagger-ui/*` và `/v3/api-docs/*` -> backend
+   - cổng `8444` local-only -> Swagger/OpenAPI -> backend
 
 ## 4. Tạo cert self-signed cho local
 

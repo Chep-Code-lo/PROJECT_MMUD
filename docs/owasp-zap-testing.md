@@ -3,23 +3,17 @@
 ## 1. Muc tieu scan
 
 - Frontend local: `https://localhost`
-- Swagger UI: `https://localhost/swagger-ui.html`
-- API docs: `https://localhost/v3/api-docs`
+- Swagger UI local-only: `https://localhost:8444/swagger-ui.html`
+- API docs local-only: `https://localhost:8444/v3/api-docs`
 
-## 2. Chay ZAP baseline bang Docker
+## 2. Cach chay phu hop voi cau hinh hien tai
 
-Tren Windows, neu ZAP chay trong container va stack chay tren host:
+Do Swagger chi bind vao `127.0.0.1` cua may host, may khac va container khac se khong truy cap duoc cong nay.
 
-```powershell
-docker run --rm -t ghcr.io/zaproxy/zaproxy:stable `
-  zap-baseline.py `
-  -t https://host.docker.internal/swagger-ui.html `
-  -r zap-report.html `
-  -J zap-report.json `
-  -z "-config connection.timeoutInSecs=120 -config api.disablekey=true"
-```
+Khuyen nghi:
 
-Neu mo ZAP tren may host, scan truc tiep `https://localhost/swagger-ui.html`.
+- Chay OWASP ZAP Desktop tren chinh may host va scan `https://localhost:8444/swagger-ui.html`.
+- Neu muon quet bang container ZAP, can tam thoi doi cau hinh bind cong Swagger de phuc vu kiem thu noi bo.
 
 ## 3. Dieu can quan sat
 

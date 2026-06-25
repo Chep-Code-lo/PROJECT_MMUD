@@ -17,7 +17,7 @@ export default function AuditLogTable({
   if (logs.length === 0) {
     return (
       <div className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-center text-sm text-[#5b675f] shadow-[0_18px_40px_rgba(31,42,36,0.08)]">
-        Chua co audit log nao.
+        Chua co nhat ky nao.
       </div>
     );
   }
@@ -27,12 +27,12 @@ export default function AuditLogTable({
       <table className="w-full border-collapse text-left text-sm text-[#1f2a24]">
         <thead className="bg-[#f4ecdf] text-xs uppercase tracking-[0.18em] text-[#6d6358]">
           <tr>
-            <th className="px-4 py-4">Project Time</th>
-            <th className="px-4 py-4">Action</th>
-            <th className="px-4 py-4">Actor</th>
-            <th className="px-4 py-4">Target</th>
+            <th className="px-4 py-4">Thoi gian</th>
+            <th className="px-4 py-4">Hanh dong</th>
+            <th className="px-4 py-4">Nguoi thuc hien</th>
+            <th className="px-4 py-4">Doi tuong</th>
             <th className="px-4 py-4">Status</th>
-            <th className="px-4 py-4">Message</th>
+            <th className="px-4 py-4">Noi dung</th>
           </tr>
         </thead>
         <tbody>

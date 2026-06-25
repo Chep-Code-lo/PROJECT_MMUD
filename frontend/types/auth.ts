@@ -13,6 +13,25 @@ export type RegisterRequest = {
   billingAddress?: string;
 };
 
+export type ForgotPasswordRequest = {
+  email: string;
+};
+
+export type ForgotPasswordResponse = {
+  message: string;
+  demoResetToken?: string | null;
+  expiresInSeconds: number;
+};
+
+export type ResetPasswordRequest = {
+  token: string;
+  newPassword: string;
+};
+
+export type MessageResponse = {
+  message: string;
+};
+
 export type UserProfile = {
   id: number;
   fullName: string;

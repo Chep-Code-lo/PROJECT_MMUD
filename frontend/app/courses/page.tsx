@@ -27,14 +27,14 @@ export default function CoursesPage() {
     <main className="space-y-6">
       <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-          Public Course API
+          Danh muc khoa hoc
         </p>
         <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-          Danh sach khoa hoc cong khai
+          Kham pha cac khoa hoc hien co
         </h1>
         <p className="max-w-3xl text-sm leading-7 text-[#536059]">
-          Student co the xem public courses ma chua can dang nhap. Muon xem full lesson
-          content thi phai co enrollment ACTIVE hoac la instructor/admin.
+          Ban co the xem thong tin tong quan, hoc phi va noi dung khai giang truoc
+          khi dang ky hoc.
         </p>
       </section>
 
@@ -66,7 +66,7 @@ export default function CoursesPage() {
                 </h2>
               </div>
               <span className="rounded-full bg-[#eff8f4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#14532d]">
-                public
+                cong khai
               </span>
             </div>
 

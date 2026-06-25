@@ -29,7 +29,7 @@ export default function AdminAuditLogsPage() {
         setLogs(logsData);
       })
       .catch((err) =>
-        setError(getApiErrorMessage(err, "Khong tai duoc admin security data."))
+        setError(getApiErrorMessage(err, "Khong tai duoc du lieu quan tri."))
       )
       .finally(() => setLoading(false));
   }, []);
@@ -39,20 +39,20 @@ export default function AdminAuditLogsPage() {
       <main className="space-y-6">
         <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-            Admin Audit API
+            Quan tri he thong
           </p>
           <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-            Audit logs va thong ke bao mat
+            Nhat ky hoat dong va thong ke
           </h1>
           <p className="max-w-3xl text-sm leading-7 text-[#536059]">
-            Trang nay chi cho ADMIN. Day la man hinh de demo giam sat: login success,
-            login failed, access denied, token rejected va webhook accepted/rejected.
+            Khu vuc nay danh cho quan tri vien de theo doi tinh hinh van hanh, nguoi
+            dung va nhat ky he thong.
           </p>
         </section>
 
         {loading && (
           <div className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
-            Dang tai du lieu admin...
+            Dang tai du lieu quan tri...
           </div>
         )}
 
@@ -87,7 +87,7 @@ export default function AdminAuditLogsPage() {
 
         <section className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
           <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
-            Demo users
+            Danh sach nguoi dung
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm text-[#1f2a24]">

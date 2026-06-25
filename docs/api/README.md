@@ -4,8 +4,10 @@ Swagger/OpenAPI duoc sinh runtime tu backend Spring Boot.
 
 ## URL de mo
 
-- `https://localhost/swagger-ui.html`
-- `https://localhost/v3/api-docs`
+- `https://localhost:8444/swagger-ui.html`
+- `https://localhost:8444/v3/api-docs`
+
+Ghi chu: hai URL nay chi duoc bind vao `127.0.0.1` cua may host. Cac may khac truy cap cong public `443` se khong mo duoc Swagger/OpenAPI.
 
 ## Cac nhom API chinh
 

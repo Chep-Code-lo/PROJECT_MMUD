@@ -8,11 +8,6 @@ import Input from "@/components/Input";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { authService } from "@/services/authService";
 
-const demoAccounts = [
-  { label: "Student 1", email: "student1@example.com", password: "Password123!" },
-  { label: "Admin", email: "admin@example.com", password: "Admin123!" },
-];
-
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -42,38 +37,20 @@ export default function LoginPage() {
       <div className="grid gap-6 md:grid-cols-[0.95fr_1.05fr]">
         <section className="rounded-[32px] border border-[#1f2a24]/10 bg-[#12372f] p-8 text-[#f7f5ef] shadow-[0_24px_60px_rgba(18,55,47,0.24)]">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#cddbd2]">
-            JWT Authentication
+            Chao mung quay tro lai
           </p>
-          <h1 className="mb-4 text-3xl font-bold">Dang nhap de goi API bao mat</h1>
+          <h1 className="mb-4 text-3xl font-bold">Dang nhap tai khoan hoc vien</h1>
           <p className="mb-6 text-sm leading-7 text-[#dbe4de]">
-            Sau khi dang nhap, frontend luu access token va refresh token de demo
-            Bearer authentication, role-based access control va 403 khi truy cap sai.
+            Dang nhap de tiep tuc hoc tap, xem khoa hoc da dang ky va theo doi ket qua
+            cua ban tren he thong.
           </p>
-
-          <div className="space-y-3">
-            {demoAccounts.map((account) => (
-              <button
-                key={account.label}
-                type="button"
-                onClick={() =>
-                  setForm({
-                    email: account.email,
-                    password: account.password,
-                  })
-                }
-                className="flex w-full items-center justify-between rounded-2xl border border-white/15 bg-white/8 px-4 py-3 text-left transition hover:bg-white/12"
-              >
-                <span>{account.label}</span>
-                <span className="text-xs uppercase tracking-[0.18em] text-[#dbe4de]">
-                  Auto fill
-                </span>
-              </button>
-            ))}
+          <div className="rounded-2xl border border-white/15 bg-white/8 px-4 py-4 text-sm leading-7 text-[#dbe4de]">
+            Neu ban quen mat khau, co the dat lai trong vai buoc ngay tren ung dung.
           </div>
         </section>
 
         <section className="rounded-[32px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
             <Input
               label="Email"
               type="email"
@@ -82,6 +59,7 @@ export default function LoginPage() {
                 setForm((current) => ({ ...current, email: event.target.value }))
               }
               placeholder="student1@example.com"
+              autoComplete="off"
               required
             />
 
@@ -92,7 +70,7 @@ export default function LoginPage() {
               onChange={(event) =>
                 setForm((current) => ({ ...current, password: event.target.value }))
               }
-              placeholder="Password123!"
+              autoComplete="off"
               required
             />
 
@@ -107,12 +85,18 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-6 text-sm text-[#526059]">
-            Chua co tai khoan?{" "}
-            <Link href="/register" className="font-semibold text-[#0f766e]">
-              Dang ky student moi
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-[#526059]">
+            <Link href="/forgot-password" className="font-semibold text-[#0f766e]">
+              Quen mat khau?
             </Link>
-          </p>
+            <span className="text-[#9aa29d]">/</span>
+            <p>
+              Chua co tai khoan?{" "}
+              <Link href="/register" className="font-semibold text-[#0f766e]">
+                Dang ky ngay
+              </Link>
+            </p>
+          </div>
         </section>
       </div>
     </main>

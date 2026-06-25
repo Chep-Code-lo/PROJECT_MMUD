@@ -47,7 +47,7 @@ export default function CourseDetailPage() {
       const updatedCourse = await courseService.getCourse(courseId);
       setCourse(updatedCourse);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong tao duoc checkout mock."));
+      setError(getApiErrorMessage(err, "Khong the xu ly yeu cau dang ky."));
     } finally {
       setCheckingOut(false);
     }
@@ -90,7 +90,7 @@ export default function CourseDetailPage() {
 
           <div className="rounded-[28px] border border-[#1f2a24]/10 bg-[#f4ecdf] p-5">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6c655a]">
-              Lesson access
+              Trang thai tham gia
             </div>
             <div
               className={`mt-3 rounded-full px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] ${
@@ -99,15 +99,14 @@ export default function CourseDetailPage() {
                   : "bg-[#fff4ea] text-[#9a3412]"
               }`}
             >
-              {course.enrolled ? "Unlocked" : "Preview only"}
+              {course.enrolled ? "Da ghi danh" : "Chua ghi danh"}
             </div>
             <p className="mt-4 text-sm leading-7 text-[#536059]">
-              Neu chua co enrollment ACTIVE, frontend chi hien preview va backend se
-              tra 403 khi goi lesson endpoint.
+              Sau khi hoan tat dang ky, ban co the mo day du tat ca bai hoc trong khoa hoc nay.
             </p>
             <div className="mt-5">
               <Button onClick={handleCheckout} disabled={checkingOut}>
-                {checkingOut ? "Dang tao checkout..." : "Checkout mock"}
+                {checkingOut ? "Dang xu ly..." : "Dang ky hoc"}
               </Button>
             </div>
           </div>
@@ -123,31 +122,28 @@ export default function CourseDetailPage() {
       {checkout && (
         <section className="rounded-[30px] border border-[#0f766e]/15 bg-[#eef7f4] p-6 shadow-[0_18px_40px_rgba(15,118,110,0.08)]">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
-            Checkout created
+            Yeu cau da duoc ghi nhan
           </p>
           <h2 className="mb-3 text-xl font-semibold text-[#16443a]">
-            Enrollment #{checkout.enrollmentId} / {checkout.status}
+            {checkout.courseTitle}
           </h2>
           <div className="space-y-2 text-sm leading-7 text-[#426158]">
-            <p>Payment reference: {checkout.paymentReference}</p>
-            <p>Suggested event id: {checkout.suggestedEventId}</p>
-            <p>Suggested timestamp: {checkout.suggestedTimestampEpochSeconds}</p>
-            <p>Webhook path: {checkout.webhookPath}</p>
-            <p>{checkout.message}</p>
+            <p>
+              Yeu cau tham gia khoa hoc da duoc ghi nhan. Trang thai hien tai:
+              {" "}
+              {checkout.status === "ACTIVE" ? "Dang hoc" : "Dang xu ly"}.
+            </p>
           </div>
-          <p className="mt-4 text-sm text-[#0f766e]">
-            Dung Postman hoac docs webhook de goi payment-success webhook voi HMAC hop le.
-          </p>
         </section>
       )}
 
       <section className="space-y-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8b5e34]">
-            Lessons
+            Bai hoc
           </p>
           <h2 className="mt-2 text-2xl font-bold text-[#12372f]">
-            Preview / unlocked content
+            Noi dung khoa hoc
           </h2>
         </div>
 
@@ -173,7 +169,7 @@ export default function CourseDetailPage() {
                       : "bg-[#fff4ea] text-[#9a3412]"
                   }`}
                 >
-                  {lesson.unlocked ? "unlocked" : "preview"}
+                  {lesson.unlocked ? "Co the xem" : "Xem truoc"}
                 </span>
               </div>
 
@@ -187,11 +183,11 @@ export default function CourseDetailPage() {
                     href={`/courses/${course.id}/lessons/${lesson.id}`}
                     className="inline-flex rounded-full bg-[#12372f] px-4 py-2.5 text-sm font-semibold text-[#f7faf8]"
                   >
-                    Xem full lesson
+                    Xem bai hoc
                   </Link>
                 ) : (
                   <div className="text-sm text-[#8c5b3c]">
-                    Chua mo khoa. Full content se tra ve 403 neu goi truc tiep lesson endpoint.
+                    Dang ky khoa hoc de mo noi dung day du.
                   </div>
                 )}
               </div>

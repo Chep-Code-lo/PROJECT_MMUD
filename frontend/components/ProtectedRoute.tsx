@@ -74,21 +74,21 @@ export default function ProtectedRoute({
       <main className="flex min-h-[55vh] items-center justify-center text-[#1f2a24]">
         <div className="max-w-xl rounded-[32px] border border-[#1f2a24]/10 bg-white/90 p-8 text-center shadow-[0_22px_50px_rgba(31,42,36,0.09)]">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#b45309]">
-            Broken Object Level Authorization demo
+            Truy cap bi tu choi
           </p>
           <h1 className="mb-4 text-2xl font-bold text-[#9a3412]">
-            403 Forbidden
+            Ban khong co quyen xem noi dung nay
           </h1>
 
           <p className="mb-6 text-sm leading-7 text-[#4f5b54]">
-            Backend da chan truy cap vi role hoac ownership khong hop le.
+            Vui long quay lai trang phu hop hoac dang nhap bang tai khoan khac.
           </p>
 
           <Link
             href="/courses"
             className="inline-flex rounded-full bg-[#0f766e] px-5 py-3 text-sm font-semibold text-[#f7faf8] shadow-[0_16px_32px_rgba(15,118,110,0.22)]"
           >
-            Quay ve danh sach khoa hoc
+            Quay ve khoa hoc
           </Link>
         </div>
       </main>

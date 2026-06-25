@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.company.securityapp.entity.User;
 import com.company.securityapp.repository.AuditLogRepository;
+import com.company.securityapp.repository.PasswordResetTokenRepository;
 import com.company.securityapp.repository.RefreshTokenRepository;
 import com.company.securityapp.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -50,10 +51,14 @@ class AuthSecurityIntegrationTest {
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Autowired
     private AuditLogRepository auditLogRepository;
 
     @BeforeEach
     void setUp() {
+        passwordResetTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         auditLogRepository.deleteAll();
         userRepository.deleteAll();
@@ -140,6 +145,121 @@ class AuthSecurityIntegrationTest {
                         .header("Authorization", "Bearer " + tamperedToken))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("JWT signature is invalid."));
+    }
+
+    @Test
+    void forgotPasswordResetFlowChangesPasswordAndRevokesRefreshTokens() throws Exception {
+        Map<String, Object> registerPayload = Map.of(
+                "fullName", "Reset Student",
+                "email", "resetstudent@example.test",
+                "password", "Password123!");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerPayload)))
+                .andExpect(status().isCreated());
+
+        String loginResponse = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", "resetstudent@example.test",
+                                "password", "Password123!"))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String originalRefreshToken = objectMapper.readTree(loginResponse).get("refreshToken").asText();
+
+        String forgotPasswordResponse = mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", "resetstudent@example.test"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("If the email exists, a password reset instruction has been issued."))
+                .andExpect(jsonPath("$.demoResetToken").isString())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String resetToken = objectMapper.readTree(forgotPasswordResponse).get("demoResetToken").asText();
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "token", resetToken,
+                                "newPassword", "NewPassword123!"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Password reset completed successfully."));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", "resetstudent@example.test",
+                                "password", "Password123!"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid email or password."));
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", originalRefreshToken))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Refresh token has been revoked."));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", "resetstudent@example.test",
+                                "password", "NewPassword123!"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isString());
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "token", resetToken,
+                                "newPassword", "AnotherPassword123!"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Password reset token is invalid, expired, or already used."));
+    }
+
+    @Test
+    void forgotPasswordResponseIsUniformForKnownAndUnknownEmails() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "fullName", "Known Student",
+                                "email", "knownstudent@example.test",
+                                "password", "Password123!"))))
+                .andExpect(status().isCreated());
+
+        String knownResponse = mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", "knownstudent@example.test"))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String unknownResponse = mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", "unknown@example.test"))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode knownJson = objectMapper.readTree(knownResponse);
+        JsonNode unknownJson = objectMapper.readTree(unknownResponse);
+
+        assertThat(knownJson.get("message").asText())
+                .isEqualTo("If the email exists, a password reset instruction has been issued.");
+        assertThat(unknownJson.get("message").asText())
+                .isEqualTo(knownJson.get("message").asText());
+        assertThat(knownJson.get("expiresInSeconds").asLong())
+                .isEqualTo(unknownJson.get("expiresInSeconds").asLong());
+        assertThat(knownJson.get("demoResetToken").asText()).isNotBlank();
+        assertThat(unknownJson.get("demoResetToken").asText()).isNotBlank();
     }
 
     private String tamperPayload(String token) throws Exception {

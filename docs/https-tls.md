@@ -36,8 +36,13 @@ docker compose up --build
 Sau do truy cap:
 
 - `https://localhost`
-- `https://localhost/swagger-ui.html`
+- `https://localhost:8444/swagger-ui.html` tren chinh may host
 - `https://localhost/api/health`
+
+Luu y:
+
+- Cong `443` chi phuc vu frontend va API cho nguoi dung.
+- Swagger/OpenAPI duoc tach ra cong `8444` va chi bind local host de tranh lo tai lieu API ra ben ngoai.
 
 ## 5. Chung minh HTTP -> HTTPS
 

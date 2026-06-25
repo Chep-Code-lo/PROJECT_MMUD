@@ -1,29 +1,28 @@
 import Link from "next/link";
 
-const features = [
+const highlights = [
   {
-    title: "JWT + Refresh Token",
-    text: "Client dang nhap, nhan Bearer token, goi API protected va test token tampered.",
+    title: "Khoa hoc gon gang",
+    text: "Noi dung duoc sap xep ngan gon, de theo doi va phu hop cho viec hoc online moi ngay.",
   },
   {
-    title: "bcrypt Password Hashing",
-    text: "Mat khau khong luu plaintext. Backend luon hash bang BCryptPasswordEncoder.",
+    title: "Giang vien dong hanh",
+    text: "Moi khoa hoc deu co mo ta ro rang, bai hoc tung buoc va muc tieu cu the.",
   },
   {
-    title: "AES-GCM Data Protection",
-    text: "Phone, billing address, certificate code va payment reference duoc ma hoa khi luu DB.",
+    title: "Theo doi tien do",
+    text: "Hoc vien co the xem khoa hoc da dang ky, ket qua va chung chi ngay trong tai khoan.",
   },
   {
-    title: "HMAC Webhook + Audit Log",
-    text: "Webhook thanh toan duoc ky HMAC-SHA256, chong replay va ghi audit log khi rejected.",
+    title: "Quan tri tap trung",
+    text: "He thong co khu vuc rieng cho quan tri vien de theo doi nhat ky va nguoi dung.",
   },
 ];
 
-const accounts = [
-  "student1@example.com / Password123!",
-  "student2@example.com / Password123!",
-  "instructor@example.com / Password123!",
-  "admin@example.com / Admin123!",
+const learningTopics = [
+  "Java Security Basics",
+  "Applied Cryptography for Beginners",
+  "Secure RESTful API with Spring Boot",
 ];
 
 export default function HomePage() {
@@ -33,15 +32,15 @@ export default function HomePage() {
         <div className="grid gap-8 px-7 py-10 md:grid-cols-[1.2fr_0.8fr] md:px-10 md:py-12">
           <div className="space-y-5">
             <p className="text-xs font-semibold uppercase tracking-[0.36em] text-[#8b5e34]">
-              Do an Mat ma ung dung / Cryptography
+              Nen tang hoc truc tuyen
             </p>
             <h1 className="max-w-3xl text-4xl font-bold leading-tight text-[#12372f] md:text-5xl">
-              Bao mat he thong RESTful API cho dich vu khoa hoc online nho
+              Hoc online gon gang, de dang bat dau va theo doi tien do
             </h1>
             <p className="max-w-2xl text-base leading-8 text-[#4e5a53]">
-              Frontend nay duoc giu toi gian de demo ro cac luong bao mat:
-              dang nhap JWT, lesson locked/unlocked, certificate ownership,
-              admin audit logs va webhook thanh toan ky HMAC.
+              CourseHub tap trung vao cac chuc nang can thiet: dang ky, dang nhap,
+              xem danh sach khoa hoc, hoc bai hoc da duoc mo khoa va theo doi ket
+              qua hoc tap ngay tren tai khoan cua ban.
             </p>
 
             <div className="flex flex-wrap gap-3">
@@ -49,34 +48,28 @@ export default function HomePage() {
                 href="/courses"
                 className="rounded-full bg-[#0f766e] px-5 py-3 text-sm font-semibold text-[#f7faf8] shadow-[0_18px_34px_rgba(15,118,110,0.22)]"
               >
-                Xem danh sach khoa hoc
+                Kham pha khoa hoc
               </Link>
               <Link
                 href="/login"
                 className="rounded-full border border-[#1f2a24]/12 bg-white/70 px-5 py-3 text-sm font-semibold"
               >
-                Dang nhap de test API
+                Dang nhap
               </Link>
-              <a
-                href="/swagger-ui.html"
-                className="rounded-full border border-[#b45309]/20 bg-[#fff3e6] px-5 py-3 text-sm font-semibold text-[#9a3412]"
-              >
-                Swagger UI
-              </a>
             </div>
           </div>
 
           <div className="rounded-[28px] border border-[#1f2a24]/8 bg-[#f5efe4] p-6">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#6b705d]">
-              Tai khoan mau
+              Chu de noi bat
             </p>
             <div className="space-y-3 text-sm leading-7 text-[#33433c]">
-              {accounts.map((account) => (
+              {learningTopics.map((topic) => (
                 <div
-                  key={account}
+                  key={topic}
                   className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3"
                 >
-                  {account}
+                  {topic}
                 </div>
               ))}
             </div>
@@ -85,7 +78,7 @@ export default function HomePage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {features.map((feature) => (
+        {highlights.map((feature) => (
           <article
             key={feature.title}
             className="rounded-[28px] border border-[#1f2a24]/8 bg-white/78 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]"

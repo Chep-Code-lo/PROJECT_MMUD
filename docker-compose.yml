@@ -84,6 +84,7 @@ services:
     ports:
       - "${LOCAL_HTTP_PORT:-80}:80"
       - "${LOCAL_HTTPS_PORT:-443}:443"
+      - "127.0.0.1:${LOCAL_SWAGGER_HTTPS_PORT:-8444}:8444"
     volumes:
       - ./deploy/ssl:/etc/nginx/ssl:ro
     depends_on:

@@ -2,8 +2,12 @@ import axiosClient from "@/lib/axiosClient";
 import { tokenStorage } from "@/lib/tokenStorage";
 import type {
   AuthResponse,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
   LoginRequest,
+  MessageResponse,
   RegisterRequest,
+  ResetPasswordRequest,
   UserProfile,
 } from "@/types/auth";
 
@@ -51,6 +55,22 @@ export const authService = {
       user: res.data.user,
     });
 
+    return res.data;
+  },
+
+  requestPasswordReset: async (data: ForgotPasswordRequest) => {
+    const res = await axiosClient.post<ForgotPasswordResponse>(
+      "/api/auth/forgot-password",
+      data
+    );
+    return res.data;
+  },
+
+  resetPassword: async (data: ResetPasswordRequest) => {
+    const res = await axiosClient.post<MessageResponse>(
+      "/api/auth/reset-password",
+      data
+    );
     return res.data;
   },
 

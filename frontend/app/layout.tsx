@@ -3,9 +3,8 @@ import Navbar from "@/components/Navbar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Online Course Security Lab",
-  description:
-    "Frontend demo for JWT, bcrypt, AES-GCM, HMAC webhook verification, audit logging, and OWASP API testing.",
+  title: "CourseHub",
+  description: "Nen tang khoa hoc online nho de hoc tap va quan ly khoa hoc.",
 };
 
 export default function RootLayout({

@@ -27,7 +27,9 @@ axiosClient.interceptors.response.use(
     const isAuthRequest =
       requestUrl.includes("/api/auth/login") ||
       requestUrl.includes("/api/auth/register") ||
-      requestUrl.includes("/api/auth/refresh");
+      requestUrl.includes("/api/auth/refresh") ||
+      requestUrl.includes("/api/auth/forgot-password") ||
+      requestUrl.includes("/api/auth/reset-password");
 
     if (error.response?.status === 401 && !isAuthRequest) {
       tokenStorage.clearSession();

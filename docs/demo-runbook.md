@@ -9,7 +9,7 @@ docker compose up --build -d
 Mac dinh local demo:
 
 - Frontend: `https://localhost`
-- Swagger: `https://localhost/swagger-ui.html`
+- Swagger local-only: `https://localhost:8444/swagger-ui.html`
 - Health: `https://localhost/api/health`
 
 ## 2. Chay script demo tu dong

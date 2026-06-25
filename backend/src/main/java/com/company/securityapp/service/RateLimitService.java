@@ -20,6 +20,7 @@ public class RateLimitService {
     private final AuditLogService auditLogService;
     private final int loginLimit;
     private final int registerLimit;
+    private final int passwordResetLimit;
     private final int webhookLimit;
     private final int adminLimit;
 
@@ -27,11 +28,13 @@ public class RateLimitService {
             AuditLogService auditLogService,
             @Value("${app.rate-limit.login-limit}") int loginLimit,
             @Value("${app.rate-limit.register-limit}") int registerLimit,
+            @Value("${app.rate-limit.password-reset-limit}") int passwordResetLimit,
             @Value("${app.rate-limit.webhook-limit}") int webhookLimit,
             @Value("${app.rate-limit.admin-limit}") int adminLimit) {
         this.auditLogService = auditLogService;
         this.loginLimit = loginLimit;
         this.registerLimit = registerLimit;
+        this.passwordResetLimit = passwordResetLimit;
         this.webhookLimit = webhookLimit;
         this.adminLimit = adminLimit;
     }
@@ -46,6 +49,14 @@ public class RateLimitService {
                 resolveIp(request) + "|" + normalize(email),
                 registerLimit,
                 "Registration rate limit exceeded.");
+    }
+
+    public void checkPasswordResetLimit(HttpServletRequest request, String email) {
+        enforceLimit(
+                "password-reset",
+                resolveIp(request) + "|" + normalize(email),
+                passwordResetLimit,
+                "Password reset rate limit exceeded.");
     }
 
     public void checkWebhookLimit(HttpServletRequest request) {

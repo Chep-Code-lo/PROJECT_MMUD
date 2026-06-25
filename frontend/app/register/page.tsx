@@ -39,14 +39,14 @@ export default function RegisterPage() {
     <main className="mx-auto max-w-3xl">
       <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_26px_60px_rgba(31,42,36,0.08)] md:p-10">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-          Student Registration
+          Dang ky tai khoan
         </p>
         <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-          Tao tai khoan de test JWT, bcrypt va AES-GCM
+          Tao tai khoan hoc vien moi
         </h1>
         <p className="mb-8 max-w-2xl text-sm leading-7 text-[#546159]">
-          Tai khoan dang ky moi mac dinh la STUDENT. Phone number va billing address
-          duoc backend ma hoa truoc khi luu vao database.
+          Dien thong tin can thiet de bat dau hoc tap, theo doi khoa hoc va quan ly
+          tai khoan ca nhan tren he thong.
         </p>
 
         <form onSubmit={handleRegister} className="grid gap-5 md:grid-cols-2">
@@ -74,6 +74,7 @@ export default function RegisterPage() {
             onChange={(event) =>
               setForm((current) => ({ ...current, password: event.target.value }))
             }
+            autoComplete="new-password"
             required
           />
           <Input

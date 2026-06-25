@@ -36,7 +36,7 @@ export default function LessonDetailPage() {
 
         {!loading && error && (
           <section className="rounded-[30px] border border-[#b45309]/15 bg-[#fff4ea] p-6 text-sm text-[#9a3412]">
-            <div className="font-semibold">Request bi tu choi.</div>
+            <div className="font-semibold">Khong the mo bai hoc.</div>
             <p className="mt-2 leading-7">{error}</p>
             <Link
               href={`/courses/${courseId}`}
@@ -61,7 +61,7 @@ export default function LessonDetailPage() {
 
             <section className="rounded-[34px] border border-[#1f2a24]/10 bg-[#f9f7f2] p-8 shadow-[0_24px_60px_rgba(31,42,36,0.06)]">
               <div className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
-                Full content unlocked
+                Noi dung bai hoc
               </div>
               <div className="whitespace-pre-wrap text-sm leading-8 text-[#33433c]">
                 {lesson.content}

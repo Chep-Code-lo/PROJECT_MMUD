@@ -501,8 +501,8 @@ Audit log là lớp ghi nhận các hành vi quan trọng phục vụ giám sát
 
 Swagger/OpenAPI là công cụ tài liệu hóa và kiểm thử API rất phù hợp với đồ án. Hệ thống hiện tại:
 
-- Công bố Swagger UI tại `https://localhost/swagger-ui.html`.
-- Công bố OpenAPI JSON tại `https://localhost/v3/api-docs`.
+- Công bố Swagger UI tại `https://localhost:8444/swagger-ui.html` trên chính máy chủ local.
+- Công bố OpenAPI JSON tại `https://localhost:8444/v3/api-docs` trên chính máy chủ local.
 - Hỗ trợ nhập `Bearer JWT`.
 - Giúp giảng viên và người kiểm thử dễ quan sát endpoint, request, response, status code.
 
@@ -722,7 +722,7 @@ Nginx proxy:
 
 - `/` sang frontend.
 - `/api/*` sang backend.
-- `/swagger-ui/*` và `/v3/api-docs/*` sang backend.
+- cổng `8444` local-only cho `/swagger-ui/*` và `/v3/api-docs/*` sang backend.
 
 ### 3.6. Thiết kế phân quyền và scope
 
@@ -1204,7 +1204,7 @@ Theo cấu hình hiện tại:
 - HTTP local: `80`
 - HTTPS local: `443`
 - Frontend truy cập qua: `https://localhost`
-- Swagger truy cập qua: `https://localhost/swagger-ui.html`
+- Swagger truy cập qua: `https://localhost:8444/swagger-ui.html` (chỉ mở trên máy chủ local)
 - MySQL host port: `3307`
 
 #### 3.14.2. Biến môi trường chính
@@ -1253,7 +1253,7 @@ Backend đã được tổ chức test để kiểm chứng các nhóm chức n�
 
 #### 3.16.2. Kiểm thử bằng Swagger
 
-Swagger UI rất hữu ích trong lúc báo cáo vì:
+Swagger UI rất hữu ích trong lúc báo cáo khi mở ngay trên máy chủ vì:
 
 - Có thể đăng nhập để lấy JWT.
 - Có thể nhập Bearer token trực tiếp.
@@ -1287,7 +1287,7 @@ Script `scripts/demo-security.ps1` được dùng để chạy hàng loạt các
 
 #### 3.16.5. Kiểm thử bằng OWASP ZAP
 
-OWASP ZAP baseline được chạy trên bề mặt `Swagger UI` qua reverse proxy HTTPS. Kết quả gần nhất:
+OWASP ZAP baseline trong các artifact hiện có được chạy trên bề mặt `Swagger UI` qua reverse proxy HTTPS. Ở cấu hình hiện tại, Swagger đã được khóa về cổng local-only để tránh lộ tài liệu API ra ngoài. Kết quả artifact gần nhất:
 
 - `FAIL = 0`
 - `WARN = 2`

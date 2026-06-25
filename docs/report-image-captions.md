@@ -16,7 +16,7 @@ Hình ảnh minh họa giao diện frontend NextJS của hệ thống khi đư�
 Hình 2. Giao diện Swagger UI hỗ trợ kiểm thử các RESTful API của hệ thống.
 
 **Mô tả gợi ý**  
-Swagger UI được cấu hình tại `https://localhost/swagger-ui.html`, cho phép mô tả cấu trúc API, request body, response và mã lỗi. Đây là công cụ quan trọng để kiểm thử JWT, phân quyền, webhook HMAC và các endpoint bảo mật mà không cần viết thêm giao diện.
+Swagger UI được cấu hình tại `https://localhost:8444/swagger-ui.html` và chỉ mở trên chính máy chủ local, cho phép mô tả cấu trúc API, request body, response và mã lỗi. Đây là công cụ quan trọng để kiểm thử JWT, phân quyền, webhook HMAC và các endpoint bảo mật mà không cần viết thêm giao diện.
 
 ## Hình 3. Đăng nhập thành công và nhận JWT
 

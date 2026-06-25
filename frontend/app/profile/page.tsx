@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Button from "@/components/Button";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { formatLocalDateTime } from "@/lib/dateTime";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -16,7 +15,6 @@ export default function ProfilePage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [error, setError] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     try {
@@ -39,17 +37,10 @@ export default function ProfilePage() {
     loadData();
   }, []);
 
-  const handleRefreshToken = async () => {
-    setRefreshing(true);
-
-    try {
-      await authService.refreshSession();
-      await loadData();
-    } catch (err) {
-      setError(getApiErrorMessage(err, "Lam moi access token that bai."));
-    } finally {
-      setRefreshing(false);
-    }
+  const enrollmentStatusLabel: Record<Enrollment["status"], string> = {
+    ACTIVE: "Dang hoc",
+    PENDING: "Dang xu ly",
+    CANCELLED: "Da huy",
   };
 
   return (
@@ -65,10 +56,10 @@ export default function ProfilePage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-                User Profile API
+                Ho so ca nhan
               </p>
               <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-                Thong tin ca nhan da giai ma
+                Thong tin tai khoan
               </h1>
               {profile && (
                 <div className="space-y-2 text-sm leading-7 text-[#536059]">
@@ -81,27 +72,21 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-
-            <div className="rounded-[28px] border border-[#1f2a24]/8 bg-[#f4ecdf] p-5">
-              <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#6c655a]">
-                Session tools
-              </div>
-              <Button onClick={handleRefreshToken} disabled={refreshing}>
-                {refreshing ? "Dang refresh..." : "Refresh access token"}
-              </Button>
-              <p className="mt-4 max-w-sm text-sm leading-7 text-[#5d645b]">
-                Nut nay goi /api/auth/refresh de doi access token moi tu refresh token.
-              </p>
-            </div>
           </div>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-2">
           <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
             <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
-              Enrollments
+              Khoa hoc da dang ky
             </h2>
             <div className="space-y-3">
+              {enrollments.length === 0 && (
+                <div className="rounded-2xl border border-[#1f2a24]/8 bg-[#faf6ee] px-4 py-4 text-sm text-[#536059]">
+                  Ban chua co khoa hoc nao.
+                </div>
+              )}
+
               {enrollments.map((enrollment) => (
                 <div
                   key={enrollment.id}
@@ -118,11 +103,13 @@ export default function ProfilePage() {
                           : "bg-[#fff4ea] text-[#9a3412]"
                       }`}
                     >
-                      {enrollment.status}
+                      {enrollmentStatusLabel[enrollment.status]}
                     </span>
                   </div>
                   <div className="mt-2 text-sm leading-7 text-[#526059]">
-                    Enrollment ID: {enrollment.id}
+                    {enrollment.activatedAt
+                      ? `Kich hoat luc: ${formatLocalDateTime(enrollment.activatedAt)}`
+                      : "Dang cho xac nhan."}
                   </div>
                 </div>
               ))}
@@ -131,7 +118,7 @@ export default function ProfilePage() {
 
           <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
             <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
-              Certificates / Score
+              Chung chi va diem so
             </h2>
             <div className="space-y-3">
               {certificates.length === 0 && (
@@ -149,11 +136,11 @@ export default function ProfilePage() {
                     {certificate.courseTitle}
                   </div>
                   <div className="mt-2 text-sm leading-7 text-[#526059]">
-                    Certificate ID: {certificate.id}
-                    <br />
                     Code: {certificate.certificateCode}
                     <br />
                     Score: {certificate.score}
+                    <br />
+                    Cap luc: {formatLocalDateTime(certificate.issuedAt)}
                   </div>
                 </div>
               ))}

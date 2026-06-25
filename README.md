@@ -1,107 +1,243 @@
-# Bao mat he thong RESTful API cho dich vu khoa hoc online nho
+# Bảo mật hệ thống RESTful API cho dịch vụ khóa học online nhỏ
 
-Do an dinh huong mon Mat ma ung dung / Cryptography cho sinh vien nam 2 An toan thong tin.
+Đây là đồ án định hướng môn **Mật mã ứng dụng / Cryptography** cho sinh viên năm 2 ngành An toàn thông tin. Hệ thống mô phỏng một nền tảng khóa học online quy mô nhỏ, trong đó trọng tâm không nằm ở giao diện hay nghiệp vụ phức tạp mà tập trung vào các kỹ thuật bảo mật và mật mã ứng dụng trong môi trường RESTful API.
 
-## 1. Muc tieu
+## 1. Mục tiêu đề tài
 
-- Xay dung RESTful API bang Spring Boot va Spring Security.
-- Xay dung frontend demo toi gian bang Next.js.
-- Ap dung JWT, refresh token, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS.
-- Demo duoc BOLA/IDOR, Broken Authentication, Excessive Data Exposure, Rate Limiting va Security Misconfiguration.
-- Ho tro test bang Swagger, Postman va OWASP ZAP.
-- Dockerize de co the chay local qua HTTPS va de mo rong deploy sau nay.
+- Xây dựng backend RESTful API bằng Spring Boot và Spring Security.
+- Xây dựng frontend NextJS tối giản để minh họa luồng sử dụng thực tế.
+- Áp dụng các kỹ thuật bảo mật quan trọng: JWT, refresh token, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS, RBAC, audit log, rate limiting.
+- Minh họa và kiểm thử được các rủi ro phổ biến trong OWASP API Security Top 10 như BOLA/IDOR, Broken Authentication, Excessive Data Exposure, Unrestricted Resource Consumption và Security Misconfiguration.
+- Hỗ trợ demo, kiểm thử và chụp minh chứng bằng Swagger, Postman, OWASP ZAP và Docker.
 
-## 2. Cong nghe chinh
-
-- Backend: Spring Boot 3, Spring Security, Spring Data JPA, Hibernate
-- Frontend: Next.js 14
-- Database: MySQL qua Docker, H2 cho local test
-- Authentication: JWT access token + refresh token hash trong database
-- Password hashing: BCryptPasswordEncoder
-- Encryption at rest: AES-GCM
-- Webhook signing: HMAC-SHA256
-- API docs: Swagger / OpenAPI
-- Reverse proxy TLS: Nginx
-
-## 3. Kien truc he thong
+## 2. Kiến trúc hệ thống
 
 ```mermaid
 flowchart LR
-    Browser[Next.js Client] -->|HTTPS + Bearer JWT| Nginx[Nginx TLS Reverse Proxy]
+    Browser[NextJS Client] -->|HTTPS + Bearer JWT| Nginx[Nginx TLS Reverse Proxy]
     Tester[Postman / OWASP ZAP] -->|HTTPS API calls| Nginx
     Gateway[Mock Payment Sender] -->|HMAC-SHA256 Webhook| Nginx
-    Nginx --> Spring[Spring Boot REST API]
-    Spring --> Security[JWT Filter + Spring Security]
-    Spring --> Crypto[AES-GCM Encryption Service]
-    Spring --> Audit[Audit Log Service]
-    Spring --> DB[(MySQL / H2)]
+    Nginx --> Backend[Spring Boot REST API]
+    Backend --> Security[Spring Security + JWT Filter]
+    Backend --> Crypto[AES-GCM Encryption Service]
+    Backend --> Audit[Audit Log Service]
+    Backend --> DB[(MySQL / H2)]
 ```
 
-## 4. Tinh nang chinh
+Luồng triển khai mặc định:
 
-- Auth: register, login, current user, refresh token, logout/revoke refresh token
-- Courses: danh sach khoa hoc public, chi tiet khoa hoc, CRUD course cho instructor/admin
-- Lessons: preview public, full lesson chi cho user da enroll hoac course owner
-- Enrollment: checkout mock de tao enrollment pending
-- Certificates: student chi xem certificate cua chinh minh, admin co the audit
-- Admin: xem users, summary, audit logs
-- Payment webhook: webhook thanh toan thanh cong duoc ky HMAC-SHA256
+- Người dùng truy cập giao diện tại `https://localhost`
+- Tất cả API đi qua Nginx, sau đó được chuyển tiếp vào Spring Boot
+- Swagger/OpenAPI **không lộ ở cổng public** mà chỉ mở cục bộ qua `127.0.0.1:8444`
+- Dữ liệu nhạy cảm khi lưu xuống cơ sở dữ liệu được mã hóa bằng AES-GCM
+- Webhook thanh toán giả lập được xác thực bằng HMAC-SHA256
 
-## 5. Tinh nang bao mat
+## 3. Công nghệ sử dụng
 
-- `bcrypt`: hash password khi register, khong luu plaintext, khong tra hash ra API
-- `JWT`: access token ngan han, co `sub`, `email`, `role`, `scope`, `iat`, `exp`
-- `Refresh token`: token ngau nhien, luu hash SHA-256 trong database, revoke khi logout
-- `AES-GCM`: ma hoa `phoneNumber`, `billingAddress`, `paymentReference`, `certificateCode`
-- `HMAC-SHA256`: bao ve webhook thanh toan, kiem tra signature, timestamp va replay event
-- `BOLA/IDOR defense`: ownership check cho profile, enrollment, certificate, lesson
-- `Rate limiting`: login, register, webhook, admin APIs tra `429` khi vuot nguong
-- `Audit log`: ghi nhan login success/failed, access denied, token rejected, webhook accepted/rejected
-- `HTTPS/TLS`: Nginx terminate TLS, HTTP -> HTTPS redirect
-- `Swagger`: ho tro Bearer JWT de test protected APIs, chi mo tren may chu local
+- Backend: Spring Boot 3, Spring Security, Spring Data JPA, Hibernate
+- Frontend: NextJS 14
+- Cơ sở dữ liệu: MySQL qua Docker, H2 dùng cho kiểm thử cục bộ
+- Xác thực: JWT access token, refresh token
+- Băm mật khẩu: BCryptPasswordEncoder
+- Mã hóa dữ liệu lưu trữ: AES-GCM
+- Chữ ký webhook: HMAC-SHA256
+- Tài liệu API: Swagger / OpenAPI
+- Reverse proxy HTTPS: Nginx
+- Kiểm thử bảo mật: Postman, OWASP ZAP
 
-## 6. Cau truc thu muc
+## 4. Chức năng chính của hệ thống
 
-- `backend/`: Spring Boot source code
-- `frontend/`: Next.js source code
-- `database/`: schema MySQL
-- `deploy/nginx/`: Nginx reverse proxy + TLS config
-- `deploy/ssl/`: self-signed certificate local
-- `docs/`: huong dan test, demo attack/defense, HTTPS/TLS
-- `postman/`: Postman collection
+### 4.1. Nhóm Auth và User
 
-## 7. Bien moi truong
+- Đăng ký tài khoản sinh viên
+- Đăng nhập bằng email và mật khẩu
+- Lấy thông tin người dùng hiện tại qua `GET /api/auth/me`
+- Làm mới access token qua `POST /api/auth/refresh`
+- Đăng xuất và thu hồi refresh token qua `POST /api/auth/logout`
+- Quên mật khẩu qua `POST /api/auth/forgot-password`
+- Đặt lại mật khẩu qua `POST /api/auth/reset-password`
+- Xem hồ sơ người dùng theo `userId` nhưng có kiểm tra ownership ở phía server
 
-Tao file `.env` tu `.env.example`.
+### 4.2. Nhóm Course, Lesson và Enrollment
+
+- Xem danh sách khóa học public
+- Xem chi tiết khóa học
+- Tạo, sửa, xóa khóa học cho vai trò phù hợp
+- Xem bài học theo khóa học
+- Ghi danh thanh toán giả lập qua `POST /api/courses/{courseId}/checkout`
+- Xem danh sách ghi danh của chính mình
+- Xem chi tiết enrollment nhưng không thể xem enrollment của người khác
+
+### 4.3. Nhóm Certificate và Admin
+
+- Sinh viên xem chứng chỉ của chính mình
+- Sinh viên không thể đổi `certificateId` để xem chứng chỉ của tài khoản khác
+- Admin xem danh sách người dùng
+- Admin xem thống kê tóm tắt
+- Admin xem audit log bảo mật
+
+### 4.4. Nhóm Webhook
+
+- Nhận webhook thanh toán thành công tại `POST /api/webhooks/payment-success`
+- Kiểm tra chữ ký HMAC-SHA256
+- Kiểm tra `X-Timestamp` để giảm replay attack
+- Kiểm tra `X-Event-Id` để từ chối xử lý lặp lại
+
+## 5. Các kỹ thuật mật mã và bảo mật đã áp dụng
+
+### 5.1. bcrypt cho mật khẩu
+
+- Mật khẩu được băm bằng `BCryptPasswordEncoder`
+- Không lưu mật khẩu dạng plaintext
+- Không trả `passwordHash` ra API response
+- Không hiển thị thông tin băm mật khẩu lên giao diện người dùng
+
+`bcrypt` là hàm băm một chiều, có salt tự động, phù hợp để lưu mật khẩu. Hệ thống chỉ dùng `passwordEncoder.matches(rawPassword, passwordHash)` khi đăng nhập, không có cơ chế giải mã ngược.
+
+### 5.2. JWT và Bearer Token
+
+- Sau khi đăng nhập thành công, backend trả về `accessToken` và `refreshToken`
+- Access token có thời gian sống ngắn
+- JWT chứa các thông tin như `sub`, `email`, `role`, `scope`, `iat`, `exp`
+- Mọi request protected phải gửi header `Authorization: Bearer <token>`
+- Token sai chữ ký, bị sửa payload, hết hạn hoặc sai định dạng đều bị từ chối
+
+### 5.3. Refresh token
+
+- Refresh token được sinh ngẫu nhiên
+- Chỉ lưu bản băm trong cơ sở dữ liệu
+- Có thể bị thu hồi khi logout hoặc sau khi đặt lại mật khẩu
+
+### 5.4. AES-GCM cho dữ liệu nhạy cảm
+
+Hệ thống mã hóa các trường sau trước khi lưu database:
+
+- `users.phone_number_encrypted`
+- `users.billing_address_encrypted`
+- `enrollments.payment_reference_encrypted`
+- `certificates.certificate_code_encrypted`
+
+Đặc điểm chính:
+
+- Dùng AES-GCM, không dùng ECB
+- Mỗi lần mã hóa sinh IV ngẫu nhiên
+- Có kiểm tra toàn vẹn dữ liệu
+- Nếu ciphertext bị sửa, quá trình giải mã sẽ thất bại
+
+### 5.5. HMAC-SHA256 cho webhook thanh toán
+
+- Webhook dùng các header `X-Signature`, `X-Timestamp`, `X-Event-Id`
+- Chữ ký được tạo theo công thức:
+
+```text
+hex(HMAC_SHA256(eventId + "." + timestamp + "." + rawBody, HMAC_WEBHOOK_SECRET))
+```
+
+- Nếu chữ ký sai: hệ thống từ chối
+- Nếu timestamp quá cũ hoặc quá xa thời điểm hiện tại: hệ thống từ chối
+- Nếu `eventId` đã xử lý trước đó: hệ thống từ chối để chống replay
+
+### 5.6. Chống BOLA / IDOR
+
+Các endpoint có kiểm tra ownership ở phía backend:
+
+- `GET /api/certificates/{certificateId}`
+- `GET /api/enrollments/{enrollmentId}`
+- `GET /api/users/{userId}/profile`
+- `GET /api/courses/{courseId}/lessons/{lessonId}`
+
+Sinh viên chỉ xem được dữ liệu thuộc về chính mình. Nếu đổi `id` trên URL để truy cập dữ liệu của tài khoản khác, backend trả `403 Forbidden` và ghi audit log.
+
+### 5.7. Rate limiting
+
+Đã cấu hình giới hạn tốc độ cho:
+
+- `POST /api/auth/login`
+- `POST /api/auth/register`
+- `POST /api/auth/forgot-password`
+- `POST /api/webhooks/payment-success`
+- `GET /api/admin/**`
+
+Khi vượt ngưỡng, backend trả `429 Too Many Requests` và ghi nhận sự kiện bất thường.
+
+### 5.8. HTTPS/TLS và Swagger local-only
+
+- Nginx ép `HTTP -> HTTPS`
+- Ứng dụng chính chạy qua `https://localhost`
+- Swagger không hiển thị trên cổng public `443`
+- Swagger chỉ mở cục bộ trên máy host qua `https://localhost:8444/swagger-ui.html`
+
+Điểm này giúp tránh việc tài liệu API và endpoint thử nghiệm bị lộ ra bên ngoài trong lúc demo.
+
+### 5.9. Audit log
+
+Audit log ghi nhận các sự kiện:
+
+- Đăng nhập thành công
+- Đăng nhập thất bại
+- Truy cập bị từ chối do sai quyền
+- Webhook hợp lệ
+- Webhook sai chữ ký
+- Replay webhook
+- Vượt rate limit
+- Admin xem audit log
+
+## 6. Cấu trúc thư mục
+
+- `backend/`: mã nguồn Spring Boot
+- `frontend/`: mã nguồn NextJS
+- `database/`: dữ liệu khởi tạo và script liên quan database
+- `deploy/nginx/`: cấu hình reverse proxy HTTPS
+- `deploy/ssl/`: certificate tự ký dùng cho demo local
+- `docs/`: tài liệu kiểm thử, demo tấn công/phòng thủ, HTTPS/TLS, báo cáo
+- `postman/`: collection Postman
+- `scripts/`: script hỗ trợ demo và rà nhanh hệ thống
+
+Lưu ý:
+
+- Các tài liệu kiểm thử nằm trong thư mục `docs/`
+- Frontend **không hiển thị** các nội dung kỹ thuật như Swagger, OWASP ZAP, checklist bảo mật hay tài liệu demo trên màn hình người dùng
+
+## 7. Biến môi trường
+
+Tạo file `.env` từ `.env.example`:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Can dien it nhat:
+Các biến quan trọng cần cấu hình:
 
-- `MYSQL_ROOT_PASSWORD`
-- `MYSQL_APP_PASSWORD`
+- `LOCAL_HTTP_PORT=80`
+- `LOCAL_HTTPS_PORT=443`
+- `LOCAL_SWAGGER_HTTPS_PORT=8444`
+- `LOCAL_DB_PORT=3307`
+- `DATABASE_URL`
+- `DATABASE_USERNAME`
 - `DATABASE_PASSWORD`
 - `JWT_SECRET`
+- `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`
+- `JWT_REFRESH_TOKEN_EXPIRE_DAYS`
+- `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`
+- `PASSWORD_RESET_DEMO_MODE`
 - `ENCRYPTION_KEY`
 - `HMAC_WEBHOOK_SECRET`
+- `WEBHOOK_MAX_AGE_SECONDS`
+- `CORS_ALLOWED_ORIGINS`
+- `APP_API_BASE_URL`
 
-Luu y:
+Không commit secret thật vào Git.
 
-- `DATABASE_USERNAME` mac dinh la `securityapp`
-- `DATABASE_PASSWORD` phai khop voi `MYSQL_APP_PASSWORD`
-- Khong nen cho backend dang nhap MySQL bang `root` trong compose demo
+## 8. Chạy hệ thống bằng Docker và HTTPS
 
-Khong commit secret that vao git.
+### 8.1. Chuẩn bị certificate local
 
-## 8. Cach chay khuyen nghi: Docker + HTTPS
+Project đã kèm sẵn cặp file:
 
-### 8.1. Tao / cap nhat cert local
+- `deploy/ssl/fullchain.pem`
+- `deploy/ssl/privkey.pem`
 
-Project da kem `deploy/ssl/fullchain.pem` va `deploy/ssl/privkey.pem` de demo local.
-
-Neu muon tao cert moi:
+Nếu muốn tạo mới:
 
 ```powershell
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 `
@@ -110,51 +246,45 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 `
   -subj "/CN=localhost"
 ```
 
-Chi tiet them xem `docs/https-tls.md`.
+Chi tiết thêm xem `docs/https-tls.md`.
 
-### 8.2. Khoi dong stack
+### 8.2. Khởi động toàn bộ stack
 
 ```powershell
-docker compose up --build
+docker compose up --build -d
 ```
 
-URL sau khi len:
+Các địa chỉ sau khi chạy:
 
-- Frontend: `https://localhost`
+- Ứng dụng frontend: `https://localhost`
+- Health check: `https://localhost/api/health`
 - Swagger local-only: `https://localhost:8444/swagger-ui.html`
 - OpenAPI JSON local-only: `https://localhost:8444/v3/api-docs`
-- Health: `https://localhost/api/health`
 
-Mac dinh:
+Hành vi bảo vệ cần nhớ:
 
-- Nginx nghe `80` va `443` tren host
-- Swagger chi bind vao `127.0.0.1:8444` tren host, khong di ra cong public `443`
-- MySQL nghe `3307` tren host
+- `https://localhost/swagger-ui.html` trả `404`
+- `https://localhost/v3/api-docs` trả `404`
+- Cổng `8444` chỉ bind vào `127.0.0.1`, nên máy khác không truy cập được nếu bạn không tự mở thêm
 
-Neu `80` / `443` dang bi Apache, XAMPP hoac IIS chiem, co the doi trong `.env`:
+### 8.3. Dừng và reset dữ liệu
 
-- `LOCAL_HTTP_PORT=<port-http-khac>`
-- `LOCAL_HTTPS_PORT=<port-https-khac>`
-- `LOCAL_SWAGGER_HTTPS_PORT=<port-swagger-local-khac>`
-- `APP_API_BASE_URL=https://localhost:<port-https-khac>`
-- `CORS_ALLOWED_ORIGINS=https://localhost:<port-https-khac>,http://localhost:3000`
-
-### 8.3. Dung stack
+Dừng stack:
 
 ```powershell
 docker compose down
 ```
 
-Reset data:
+Xóa volume để reset dữ liệu demo:
 
 ```powershell
 docker compose down -v
-docker compose up --build
+docker compose up --build -d
 ```
 
-## 9. Cach chay thu cong de lap trinh
+## 9. Chạy thủ công để phát triển
 
-### Backend
+### 9.1. Backend
 
 ```powershell
 cd backend
@@ -165,9 +295,9 @@ $env:HMAC_WEBHOOK_SECRET="dev-hmac-secret-please-change"
 mvn spring-boot:run
 ```
 
-Khi chay profile `local`, backend dung H2 in-memory va HTTP `http://localhost:8080`.
+Khi chạy profile `local`, backend mặc định dùng H2 in-memory và HTTP `http://localhost:8080`.
 
-### Frontend
+### 9.2. Frontend
 
 ```powershell
 cd frontend
@@ -176,42 +306,66 @@ npm install
 npm run dev
 ```
 
-## 10. Tai khoan seed de demo
+## 10. Tài khoản mẫu để demo
 
 - `student1@example.com / Password123!`
 - `student2@example.com / Password123!`
 - `instructor@example.com / Password123!`
 - `admin@example.com / Admin123!`
 
-Du lieu seed:
+Dữ liệu seed dùng cho demo:
 
-- `student1` da enroll `Java Security Basics`
-- `student2` da enroll `Applied Cryptography for Beginners`
-- `student1` co mot enrollment `PENDING` cho `Secure RESTful API with Spring Boot` de demo webhook
+- `student1` đã ghi danh khóa `Java Security Basics`
+- `student2` đã ghi danh khóa `Applied Cryptography for Beginners`
+- `student1` có một enrollment `PENDING` cho khóa `Secure RESTful API with Spring Boot` để demo webhook
 
-## 11. Huong dan test nhanh bang Swagger
+## 11. Các màn hình frontend tối giản
 
-1. Mo `https://localhost:8444/swagger-ui.html` tren chinh may chu
-2. Goi `POST /api/auth/login`
-3. Copy `accessToken`
-4. Bam `Authorize`
-5. Nhap `Bearer <accessToken>`
-6. Test:
+Frontend chỉ giữ các màn hình đủ để demo luồng bảo mật:
+
+- Đăng nhập
+- Đăng ký
+- Quên mật khẩu
+- Đặt lại mật khẩu
+- Danh sách khóa học
+- Chi tiết khóa học
+- Bài học
+- Chứng chỉ / hồ sơ cá nhân
+- Audit log dành cho admin
+
+Giao diện không hiển thị các thông tin kiểm thử nội bộ như:
+
+- Swagger UI
+- Gợi ý tấn công BOLA/IDOR
+- Kịch bản kiểm thử HMAC
+- Checklist OWASP ZAP
+
+## 12. Kiểm thử nhanh bằng Swagger
+
+Swagger chỉ dùng tại máy host:
+
+1. Mở `https://localhost:8444/swagger-ui.html`
+2. Gọi `POST /api/auth/login`
+3. Sao chép `accessToken`
+4. Chọn `Authorize`
+5. Nhập `Bearer <accessToken>`
+6. Thử các API:
    - `GET /api/auth/me`
    - `GET /api/certificates/me`
-   - `GET /api/admin/audit-logs` voi tai khoan admin
    - `POST /api/courses/{courseId}/checkout`
    - `GET /api/courses/{courseId}/lessons/{lessonId}`
+   - `GET /api/admin/audit-logs` với tài khoản admin
 
-## 12. Test bang Postman
+## 13. Kiểm thử bằng Postman
 
 - Collection: `postman/online-course-security.postman_collection.json`
-- Huong dan chi tiet: `docs/postman-testing.md`
+- Hướng dẫn chi tiết: `docs/postman-testing.md`
 
-Collection co cac request:
+Collection đã có sẵn các request:
 
 - Register
-- Login Student
+- Login Student 1
+- Login Student 2
 - Login Admin
 - Get Courses
 - Checkout Course
@@ -223,14 +377,16 @@ Collection co cac request:
 - Webhook Invalid HMAC
 - Rate Limit Test - Wrong Login
 
-## 13. Test bang OWASP ZAP
+## 14. Kiểm thử bằng OWASP ZAP
 
-- Huong dan: `docs/owasp-zap-testing.md`
-- Muc tieu de scan:
-  - `https://localhost`
-  - `https://localhost:8444/swagger-ui.html` neu scan tren chinh may host
+Hướng dẫn chi tiết xem `docs/owasp-zap-testing.md`.
 
-## 14. Demo attack / defense
+Các mục tiêu quét chính:
+
+- `https://localhost`
+- `https://localhost:8444/swagger-ui.html` nếu quét trên chính máy host
+
+## 15. Bộ tài liệu demo tấn công và phòng thủ
 
 - `docs/demo-runbook.md`
 - `docs/demo-01-password-bcrypt.md`
@@ -241,46 +397,46 @@ Collection co cac request:
 - `docs/demo-06-rate-limit.md`
 - `docs/demo-07-https-tls.md`
 
-## 15. Mapping toi OWASP API Security Top 10
+## 16. Mapping với OWASP API Security Top 10
 
 - `API1: Broken Object Level Authorization`
-  - `GET /api/certificates/{id}`
-  - `GET /api/enrollments/{id}`
-  - `GET /api/users/{userId}/profile`
-  - `GET /api/courses/{courseId}/lessons/{lessonId}`
+  - Ownership check cho certificate, enrollment, profile và lesson
 - `API2: Broken Authentication`
-  - JWT signature / expiry validation
-  - bcrypt password hashing
-  - refresh token revoke
+  - JWT có kiểm tra chữ ký và thời hạn
+  - bcrypt cho mật khẩu
+  - refresh token có thể bị thu hồi
 - `API3: Broken Object Property Level Authorization / Excessive Data Exposure`
-  - DTO responses, khong tra `passwordHash`, khong tra ciphertext khong can thiet
+  - Dùng DTO response, không lộ `passwordHash` hay ciphertext nội bộ
 - `API4: Unrestricted Resource Consumption`
-  - rate limit login/register/webhook/admin APIs
+  - Rate limit cho login, register, forgot-password, webhook, admin API
 - `API8: Security Misconfiguration`
-  - CORS ro rang, TLS, khong hard-code secret, stacktrace an o production profile
+  - CORS cấu hình rõ
+  - HTTPS/TLS
+  - Không hard-code secret
+  - Swagger không lộ trên cổng public
 
-## 16. Kiem tra va xac nhan da chay
+## 17. Kiểm thử và xác nhận đã chạy
 
-Da chay thanh cong:
+Đã có các bước kiểm tra phù hợp trong project:
 
-- `backend`: `mvn clean test`
-- `frontend`: `npm run build`
-- `demo script`: `& .\scripts\demo-security.ps1`
-- `ZAP baseline`: artifact moi nhat trong `docs/security/` ngay `2026-06-25`
+- Backend test: `mvn test`
+- Frontend build: `npm run build`
+- Demo script: `.\scripts\demo-security.ps1`
+- Tài liệu kết quả và hướng dẫn nằm trong `docs/`
 
-## 17. Luu y / gioi han
+## 18. Giới hạn hiện tại
 
-- Frontend luu token trong `localStorage` de phuc vu demo mon hoc. Day khong phai cach tot nhat cho production.
-- Webhook HMAC la mo phong payment gateway noi bo, khong ket noi cong thanh toan that.
-- TLS local dung self-signed certificate. Khi deploy public nen dung reverse proxy va cert hop le, vi du Let's Encrypt.
+- Frontend đang lưu token theo hướng đơn giản để phục vụ demo học phần, chưa phải phương án tối ưu cho production.
+- Chức năng webhook là mô phỏng cổng thanh toán nội bộ, không kết nối nhà cung cấp thanh toán thật.
+- TLS local đang dùng self-signed certificate; khi triển khai Internet nên dùng reverse proxy với chứng chỉ hợp lệ, ví dụ Let's Encrypt.
+- Chức năng quên mật khẩu trong chế độ demo có thể trả về `demoResetToken` để thuận tiện kiểm thử. Khi triển khai thực tế cần tắt `PASSWORD_RESET_DEMO_MODE` và gửi token qua email thay vì trả về API.
 
-## 18. Tai lieu lien quan
+## 19. Tài liệu liên quan
 
+- `docs/bao-cao-chuong-1-2-3.md`
+- `docs/report-image-captions.md`
 - `docs/https-tls.md`
 - `docs/postman-testing.md`
 - `docs/owasp-zap-testing.md`
 - `docs/demo-runbook.md`
 - `docs/security-testing/README.md`
-- `docs/demo-05-webhook-hmac.md`
-- `docs/bao-cao-chuong-1-2-3.md`
-- `docs/report-image-captions.md`

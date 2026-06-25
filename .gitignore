@@ -22,12 +22,17 @@ deploy/cloudflared/*.json
 deploy/cloudflared/config.local.yml
 deploy/cloudflared/*.local.yml
 deploy/cloudflared/*.log
+deploy/cloudflared/credentials/*.json
 
 # IDE
 .idea/
 .vscode/
+.history/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Local scratch
+tmp/
 

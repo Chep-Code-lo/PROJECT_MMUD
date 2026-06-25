@@ -59,10 +59,11 @@ Các mục tiêu cụ thể của đề tài gồm:
 - Xây dựng frontend tối giản bằng `NextJS` để phục vụ trình diễn.
 - Sử dụng `JWT` làm access token theo mô hình `Authorization: Bearer <token>`.
 - Cung cấp `refresh token`, lưu trong database dưới dạng hash để giảm rủi ro lộ token.
+- Bổ sung luồng quên mật khẩu và đặt lại mật khẩu để hoàn thiện vòng đời xác thực tài khoản.
 - Băm mật khẩu bằng `BCryptPasswordEncoder`, không lưu plaintext password.
 - Mã hóa dữ liệu nhạy cảm bằng `AES-GCM`.
 - Xác thực webhook thanh toán giả lập bằng `HMAC-SHA256`.
-- Tổ chức quyền theo `STUDENT`, `INSTRUCTOR`, `ADMIN`.
+- Tổ chức quyền tối giản, tập trung vào hai vai trò demo chính là `STUDENT` và `ADMIN`.
 - Chặn `BOLA/IDOR` bằng kiểm tra ownership ở phía backend.
 - Giới hạn tần suất truy cập với các endpoint nhạy cảm để chống brute-force và spam.
 - Ghi `audit log` cho các sự kiện bảo mật quan trọng.
@@ -173,7 +174,7 @@ Hệ thống được đánh giá bằng nhiều lớp:
 Sau khi hoàn thành, hệ thống cần đạt các kết quả sau:
 
 - Chạy được frontend và backend qua `https://localhost`.
-- Người dùng có thể đăng ký, đăng nhập, làm mới token và đăng xuất.
+- Người dùng có thể đăng ký, đăng nhập, làm mới token, đăng xuất, quên mật khẩu và đặt lại mật khẩu.
 - Password lưu trong database ở dạng bcrypt hash.
 - Các trường nhạy cảm lưu ở dạng ciphertext AES-GCM.
 - Sinh viên không thể xem dữ liệu của sinh viên khác bằng cách sửa ID trên URL.
@@ -446,8 +447,8 @@ RBAC là mô hình phân quyền theo vai trò. Tuy nhiên, chỉ dùng RBAC là
 Ví dụ:
 
 - `ADMIN` được xem audit log.
-- `INSTRUCTOR` được tạo và sửa khóa học của mình.
 - `STUDENT` chỉ được xem enrollment, certificate và profile của chính mình.
+- Hệ thống chỉ trình diễn hai vai trò chính là `STUDENT` và `ADMIN` để giữ đúng trọng tâm mật mã ứng dụng và bảo mật API.
 
 Lỗi BOLA/IDOR xảy ra khi backend chỉ dựa vào ID trên URL mà không kiểm tra ID đó có thuộc về người dùng hiện tại hay không. Đây là một trong những nội dung được nhấn mạnh nhất trong dự án.
 
@@ -501,8 +502,8 @@ Audit log là lớp ghi nhận các hành vi quan trọng phục vụ giám sát
 
 Swagger/OpenAPI là công cụ tài liệu hóa và kiểm thử API rất phù hợp với đồ án. Hệ thống hiện tại:
 
-- Công bố Swagger UI tại `https://localhost:8444/swagger-ui.html` trên chính máy chủ local.
-- Công bố OpenAPI JSON tại `https://localhost:8444/v3/api-docs` trên chính máy chủ local.
+- Công bố Swagger UI tại `https://localhost/swagger-ui.html`.
+- Công bố OpenAPI JSON tại `https://localhost/v3/api-docs`.
 - Hỗ trợ nhập `Bearer JWT`.
 - Giúp giảng viên và người kiểm thử dễ quan sát endpoint, request, response, status code.
 
@@ -567,8 +568,8 @@ Bảng 3.1 trình bày tóm tắt kết quả khảo sát và hướng xử lý.
 Hệ thống mô phỏng một dịch vụ khóa học online nhỏ. Các tác nhân chính gồm:
 
 - `STUDENT`: đăng ký, đăng nhập, xem khóa học, checkout, xem bài học đã mở khóa, xem certificate của chính mình.
-- `INSTRUCTOR`: tạo và chỉnh sửa khóa học, bài học thuộc phạm vi của mình.
-- `ADMIN`: xem người dùng, xem thống kê, xem audit log, có toàn quyền hệ thống.
+- `ADMIN`: duyệt ghi danh học viên, quản lý học viên theo khóa học và xem audit log.
+- Các khóa học mẫu được gắn với tài khoản quản trị nội bộ để cắt bỏ phần nghiệp vụ quản lý giảng viên không cần thiết.
 - `Payment Gateway (giả lập)`: gửi webhook xác nhận thanh toán thành công.
 
 Mục tiêu của hệ thống không phải làm nghiệp vụ nhiều, mà là tạo ra các điểm minh họa rõ ràng cho các cơ chế:
@@ -597,12 +598,11 @@ Hệ thống cần đáp ứng các nhóm chức năng sau:
 
 - Xem danh sách khóa học công khai.
 - Xem chi tiết khóa học.
-- Tạo, sửa, xóa khóa học.
 
 **Nhóm Lesson**
 
 - Xem bài học cụ thể trong một khóa học.
-- Chỉ người đã enroll hoặc chủ sở hữu khóa học mới xem được nội dung đầy đủ.
+- Chỉ sinh viên đã enroll mới xem được nội dung đầy đủ.
 
 **Nhóm Enrollment**
 
@@ -617,8 +617,8 @@ Hệ thống cần đáp ứng các nhóm chức năng sau:
 
 **Nhóm Admin**
 
-- Xem danh sách user.
-- Xem summary.
+- Xem danh sách khóa học để kiểm duyệt.
+- Duyệt công khai hoặc ẩn khóa học.
 - Xem audit log.
 
 **Nhóm System**
@@ -652,24 +652,23 @@ Hệ thống cần đáp ứng các nhóm chức năng sau:
 | Tác nhân | Vai trò |
 | --- | --- |
 | Student | Học viên sử dụng hệ thống để đăng ký, mua khóa học, xem bài học và chứng chỉ |
-| Instructor | Người tạo và quản lý nội dung khóa học |
-| Admin | Quản trị hệ thống, xem dữ liệu giám sát |
+| Admin | Quản trị hệ thống, duyệt ghi danh học viên, quản lý học viên theo khóa học và xem dữ liệu giám sát an ninh |
 | Payment Gateway giả lập | Gửi webhook xác nhận thanh toán |
 
 #### 3.4.2. Use case chính
 
-| Use case | Student | Instructor | Admin | Gateway |
-| --- | --- | --- | --- | --- |
-| Đăng ký tài khoản | Có | Không | Không | Không |
-| Đăng nhập | Có | Có | Có | Không |
-| Xem khóa học public | Có | Có | Có | Không |
-| Tạo khóa học | Không | Có | Có | Không |
-| Sửa khóa học | Không | Có | Có | Không |
-| Checkout khóa học | Có | Không | Có | Không |
-| Xem lesson đã mở khóa | Có | Có | Có | Không |
-| Xem certificate của mình | Có | Có thể xem của mình nếu có | Có | Không |
-| Xem audit log | Không | Không | Có | Không |
-| Gửi webhook thanh toán | Không | Không | Không | Có |
+| Use case | Student | Admin | Gateway |
+| --- | --- | --- | --- |
+| Đăng ký tài khoản | Có | Không | Không |
+| Đăng nhập | Có | Có | Không |
+| Xem khóa học public | Có | Có | Không |
+| Checkout khóa học | Có | Không | Không |
+| Xem lesson đã mở khóa | Có | Không | Không |
+| Xem certificate của mình | Có | Không | Không |
+| Duyệt yêu cầu ghi danh | Không | Có | Không |
+| Thêm hoặc xóa học viên khỏi khóa học | Không | Có | Không |
+| Xem audit log | Không | Có | Không |
+| Gửi webhook thanh toán | Không | Không | Có |
 
 ### 3.5. Kiến trúc tổng thể của hệ thống
 
@@ -697,7 +696,8 @@ Frontend cung cấp các màn hình:
 - Danh sách khóa học.
 - Chi tiết khóa học.
 - Hồ sơ người dùng.
-- Khu vực admin.
+- Khu vực admin duyệt khóa học.
+- Khu vực admin xem audit log.
 
 Frontend chỉ đóng vai trò minh họa luồng sử dụng, còn các kiểm tra bảo mật bắt buộc được đặt ở backend.
 
@@ -722,19 +722,18 @@ Nginx proxy:
 
 - `/` sang frontend.
 - `/api/*` sang backend.
-- cổng `8444` local-only cho `/swagger-ui/*` và `/v3/api-docs/*` sang backend.
+- cùng cổng `443`, nhưng chỉ cho `/swagger-ui/*` và `/v3/api-docs/*` phản hồi khi truy cập bằng hostname local như `localhost`, `127.0.0.1` hoặc `host.docker.internal`.
 
 ### 3.6. Thiết kế phân quyền và scope
 
-Hệ thống sử dụng ba role chính: `STUDENT`, `INSTRUCTOR`, `ADMIN`.
+Phiên bản rút gọn của đồ án tập trung hai vai trò demo chính là `STUDENT` và `ADMIN`. Các khóa học mẫu được gắn với tài khoản quản trị nội bộ để tránh làm hệ thống mang dáng dấp của một nền tảng đào tạo hoàn chỉnh.
 
 #### 3.6.1. Role và phạm vi quyền
 
 | Role | Quyền chính |
 | --- | --- |
 | STUDENT | `course:read`, `lesson:read`, `enrollment:read`, `certificate:read`, `profile:read`, `checkout:create` |
-| INSTRUCTOR | `course:read`, `course:write`, `lesson:read`, `lesson:write`, `enrollment:read`, `certificate:read`, `profile:read` |
-| ADMIN | Toàn bộ quyền của instructor và thêm `admin:read`, `admin:write`, `audit:read`, `checkout:create` |
+| ADMIN | `course:read`, `course:moderate`, `admin:read`, `audit:read` |
 
 #### 3.6.2. Kiểm tra ở SecurityConfig
 
@@ -743,8 +742,8 @@ Tại lớp cấu hình bảo mật:
 - `GET /api/courses` và `GET /api/courses/{id}` được mở public.
 - `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh` được phép truy cập công khai.
 - `POST /api/webhooks/payment-success` được mở nhưng có xác thực HMAC riêng.
-- `POST /api/courses`, `PUT /api/courses/{id}`, `DELETE /api/courses/{id}` yêu cầu `ADMIN` hoặc `INSTRUCTOR`.
-- `POST /api/courses/{courseId}/lessons` và `PUT /api/courses/{courseId}/lessons/{lessonId}` yêu cầu `ADMIN` hoặc `INSTRUCTOR`.
+- `POST /api/courses/{courseId}/checkout` chỉ dành cho `STUDENT`.
+- `GET /api/users/{userId}/profile`, `GET /api/enrollments/{enrollmentId}`, `GET /api/certificates/{certificateId}` và `GET /api/courses/{courseId}/lessons/{lessonId}` chỉ dành cho `STUDENT`.
 - `/api/admin/**` chỉ dành cho `ADMIN`.
 
 #### 3.6.3. Kiểm tra ownership ở AuthorizationService
@@ -887,9 +886,11 @@ Lưu lịch sử sự kiện an ninh:
 | POST | `/api/auth/register` | Đăng ký tài khoản student | Public |
 | POST | `/api/auth/login` | Đăng nhập | Public |
 | POST | `/api/auth/refresh` | Đổi refresh token lấy access token mới | Public |
+| POST | `/api/auth/forgot-password` | Yêu cầu cấp token đặt lại mật khẩu | Public |
+| POST | `/api/auth/reset-password` | Đặt lại mật khẩu bằng reset token hợp lệ | Public |
 | POST | `/api/auth/logout` | Revoke refresh token | Đã đăng nhập |
 | GET | `/api/auth/me` | Xem hồ sơ hiện tại | Đã đăng nhập |
-| GET | `/api/users/{userId}/profile` | Xem hồ sơ theo ID | Chủ sở hữu hoặc admin |
+| GET | `/api/users/{userId}/profile` | Xem hồ sơ theo ID | Chủ sở hữu |
 
 #### 3.8.2. Nhóm Course API
 
@@ -897,39 +898,38 @@ Lưu lịch sử sự kiện an ninh:
 | --- | --- | --- | --- |
 | GET | `/api/courses` | Danh sách khóa học public | Public |
 | GET | `/api/courses/{courseId}` | Chi tiết khóa học | Public |
-| POST | `/api/courses` | Tạo khóa học | Instructor/Admin |
-| PUT | `/api/courses/{courseId}` | Cập nhật khóa học | Instructor/Admin đúng quyền |
-| DELETE | `/api/courses/{courseId}` | Xóa khóa học | Instructor/Admin đúng quyền |
 
 #### 3.8.3. Nhóm Lesson API
 
 | Method | Endpoint | Mục đích | Quyền |
 | --- | --- | --- | --- |
-| GET | `/api/courses/{courseId}/lessons/{lessonId}` | Xem bài học | Student đã enroll hoặc chủ course hoặc admin |
-| POST | `/api/courses/{courseId}/lessons` | Tạo bài học | Instructor/Admin |
-| PUT | `/api/courses/{courseId}/lessons/{lessonId}` | Sửa bài học | Instructor/Admin đúng quyền |
+| GET | `/api/courses/{courseId}/lessons/{lessonId}` | Xem bài học | Student đã enroll |
 
 #### 3.8.4. Nhóm Enrollment API
 
 | Method | Endpoint | Mục đích | Quyền |
 | --- | --- | --- | --- |
-| POST | `/api/courses/{courseId}/checkout` | Tạo enrollment `PENDING` | Đã đăng nhập |
-| GET | `/api/enrollments/me` | Xem enrollments của mình | Đã đăng nhập |
-| GET | `/api/enrollments/{enrollmentId}` | Xem chi tiết enrollment | Chủ sở hữu hoặc admin |
+| POST | `/api/courses/{courseId}/checkout` | Tạo enrollment `PENDING` | Student |
+| GET | `/api/enrollments/me` | Xem enrollments của mình | Student |
+| GET | `/api/enrollments/{enrollmentId}` | Xem chi tiết enrollment | Chủ sở hữu |
 
 #### 3.8.5. Nhóm Certificate API
 
 | Method | Endpoint | Mục đích | Quyền |
 | --- | --- | --- | --- |
-| GET | `/api/certificates/me` | Xem certificate của mình | Đã đăng nhập |
-| GET | `/api/certificates/{certificateId}` | Xem một certificate | Chủ sở hữu hoặc admin |
+| GET | `/api/certificates/me` | Xem certificate của mình | Student |
+| GET | `/api/certificates/{certificateId}` | Xem một certificate | Chủ sở hữu |
 
 #### 3.8.6. Nhóm Admin API
 
 | Method | Endpoint | Mục đích | Quyền |
 | --- | --- | --- | --- |
-| GET | `/api/admin/users` | Xem danh sách người dùng | Admin |
-| GET | `/api/admin/summary` | Xem thống kê đơn giản | Admin |
+| GET | `/api/admin/courses` | Xem danh sách khóa học kèm số học viên và số yêu cầu chờ duyệt | Admin |
+| GET | `/api/admin/courses/{courseId}/enrollments` | Xem danh sách học viên và yêu cầu ghi danh của một khóa học | Admin |
+| POST | `/api/admin/enrollments/{enrollmentId}/approve` | Duyệt yêu cầu ghi danh | Admin |
+| POST | `/api/admin/courses/{courseId}/students` | Thêm trực tiếp học viên vào khóa học | Admin |
+| DELETE | `/api/admin/enrollments/{enrollmentId}` | Xóa học viên khỏi khóa học hoặc từ chối yêu cầu chờ duyệt | Admin |
+| GET | `/api/admin/users/{userId}` | Xem hồ sơ học viên trong khu vực quản trị | Admin |
 | GET | `/api/admin/audit-logs` | Xem audit log | Admin |
 
 #### 3.8.7. Nhóm Webhook và System API
@@ -1000,7 +1000,31 @@ Khi client gọi refresh:
 
 Luồng này giúp hạn chế việc một refresh token bị tái sử dụng nhiều lần.
 
-#### 3.9.5. Luồng checkout và webhook thanh toán
+#### 3.9.5. Luồng quên mật khẩu và đặt lại mật khẩu
+
+Khi người dùng quên mật khẩu:
+
+1. Người dùng gửi email tới `POST /api/auth/forgot-password`.
+2. Backend áp dụng rate limit cho endpoint này để tránh spam.
+3. Hệ thống tìm tài khoản theo email.
+4. Nếu tài khoản tồn tại, backend sinh một reset token ngẫu nhiên.
+5. Reset token được băm `SHA-256` trước khi lưu vào bảng `password_reset_tokens`.
+6. Ở chế độ demo local, hệ thống trả thêm `demoResetToken` để thuận tiện kiểm thử; ở môi trường production, token này cần được gửi qua email thay vì trả thẳng ra API.
+7. Audit log ghi sự kiện `PASSWORD_RESET_REQUESTED`.
+
+Khi người dùng đặt lại mật khẩu:
+
+1. Frontend gửi `token` và `newPassword` tới `POST /api/auth/reset-password`.
+2. Backend băm lại token nhận được và tìm trong bảng `password_reset_tokens`.
+3. Hệ thống kiểm tra token còn hạn, chưa bị dùng và chưa bị thu hồi.
+4. Mật khẩu mới được băm bằng `BCryptPasswordEncoder`.
+5. Các refresh token đang còn hiệu lực của tài khoản đó bị revoke để tránh tiếp tục sử dụng phiên cũ.
+6. Reset token được đánh dấu đã dùng.
+7. Audit log ghi `PASSWORD_RESET_CONFIRMED`; nếu token sai hoặc hết hạn thì ghi `PASSWORD_RESET_FAILED`.
+
+Luồng này giúp hoàn thiện vòng đời quản lý tài khoản và cũng là một phần dễ kiểm thử trong đồ án vì kết hợp cả token ngẫu nhiên, hashing, revoke token và audit log.
+
+#### 3.9.6. Luồng checkout và webhook thanh toán
 
 Khi sinh viên checkout khóa học:
 
@@ -1025,15 +1049,13 @@ Khi webhook thanh toán đến:
 
 Nếu một trong các bước trên thất bại, request bị từ chối và ghi `WEBHOOK_REJECTED` hoặc `WEBHOOK_REPLAY_REJECTED`.
 
-#### 3.9.6. Luồng chống BOLA/IDOR
+#### 3.9.7. Luồng chống BOLA/IDOR
 
 Ví dụ với `GET /api/certificates/{certificateId}`:
 
 1. Người dùng đã đăng nhập gửi request với `certificateId`.
 2. Backend lấy certificate theo ID.
-3. `AuthorizationService.assertCanViewCertificate()` kiểm tra:
-   - Người dùng là admin, hoặc
-   - `certificate.student.id == currentUser.id`
+3. `AuthorizationService.assertCanViewCertificate()` kiểm tra `certificate.student.id == currentUser.id`.
 4. Nếu không thỏa, ghi `ACCESS_DENIED`.
 5. Trả `403 Forbidden`.
 
@@ -1043,12 +1065,12 @@ Luồng tương tự được áp dụng cho:
 - `enrollment`
 - `lesson`
 
-#### 3.9.7. Luồng xem bài học
+#### 3.9.8. Luồng xem bài học
 
 Đối với endpoint lesson:
 
 1. Backend xác định bài học thuộc khóa học nào.
-2. Kiểm tra người dùng hiện tại đã có enrollment `ACTIVE` chưa hoặc có phải instructor/admin sở hữu khóa học không.
+2. Kiểm tra người dùng hiện tại đã có enrollment `ACTIVE` hay chưa.
 3. Nếu chưa đủ quyền, chỉ cho phép xem preview ở chi tiết khóa học, còn truy cập trực tiếp lesson sẽ bị từ chối `403`.
 4. Nếu đủ quyền, trả đầy đủ `content`.
 
@@ -1173,18 +1195,24 @@ Các header này góp phần xử lý nhóm lỗi Security Misconfiguration.
 
 Frontend được xây dựng tối giản để tập trung vào việc trình diễn luồng bảo mật. Các trang chính gồm:
 
+- `Home page`
 - `Login page`
 - `Register page`
+- `Forgot password page`
+- `Reset password page`
 - `Courses page`
 - `Course detail page`
-- `Profile page`
-- `Admin page`
+- `Lesson detail page`
+- `Profile / Certificate page`
+- `Admin Course Moderation page`
+- `Admin Audit Logs page`
 
 Một số điểm thiết kế:
 
 - Token được lưu ở mức demo để dễ kiểm thử.
 - Các request đi qua cùng origin `https://localhost`.
-- Frontend hiển thị rõ lỗi `401`, `403`, `429` để hỗ trợ trình diễn.
+- Giao diện ưu tiên thông báo dễ hiểu cho người dùng thay vì phơi bày trực tiếp các mã lỗi kỹ thuật như `401`, `403`, `429`.
+- Frontend không hiển thị các nội dung kiểm thử nội bộ như Swagger, checklist OWASP ZAP, gợi ý BOLA/IDOR, HMAC hay các nhãn kỹ thuật chỉ phục vụ demo bảo mật.
 
 Tuy nhiên, báo cáo cần nhấn mạnh rằng frontend không phải lớp bảo vệ chính. Các kiểm tra quan trọng đều đặt ở backend.
 
@@ -1204,7 +1232,7 @@ Theo cấu hình hiện tại:
 - HTTP local: `80`
 - HTTPS local: `443`
 - Frontend truy cập qua: `https://localhost`
-- Swagger truy cập qua: `https://localhost:8444/swagger-ui.html` (chỉ mở trên máy chủ local)
+- Swagger truy cập qua: `https://localhost/swagger-ui.html`
 - MySQL host port: `3307`
 
 #### 3.14.2. Biến môi trường chính
@@ -1229,8 +1257,9 @@ Hệ thống có dữ liệu seed để tiết kiệm thời gian trình bày:
 | --- | --- | --- |
 | `student1@example.com` | STUDENT | `Password123!` |
 | `student2@example.com` | STUDENT | `Password123!` |
-| `instructor@example.com` | INSTRUCTOR | `Password123!` |
 | `admin@example.com` | ADMIN | `Admin123!` |
+
+Nguồn seed hiện chỉ giữ các tài khoản `STUDENT` và `ADMIN`. Các khóa học mẫu được gắn trực tiếp với tài khoản quản trị nội bộ để mô hình dữ liệu gọn hơn và đúng trọng tâm bảo mật.
 
 Dữ liệu nghiệp vụ seed:
 
@@ -1245,6 +1274,7 @@ Dữ liệu nghiệp vụ seed:
 Backend đã được tổ chức test để kiểm chứng các nhóm chức năng quan trọng như:
 
 - bảo mật xác thực,
+- quên mật khẩu và đặt lại mật khẩu,
 - AES encryption,
 - BOLA/IDOR,
 - webhook HMAC.
@@ -1255,6 +1285,7 @@ Backend đã được tổ chức test để kiểm chứng các nhóm chức n�
 
 Swagger UI rất hữu ích trong lúc báo cáo khi mở ngay trên máy chủ vì:
 
+- Có thể mở tại `https://localhost/swagger-ui.html`.
 - Có thể đăng nhập để lấy JWT.
 - Có thể nhập Bearer token trực tiếp.
 - Có thể cho giảng viên thấy request/response và status code.
@@ -1265,6 +1296,7 @@ Postman collection của dự án bao phủ các tình huống:
 
 - Register.
 - Login.
+- Forgot password và reset password thủ công.
 - Gọi protected API bằng Bearer token.
 - Sửa token để kiểm tra bị từ chối.
 - Tấn công BOLA/IDOR.
@@ -1280,6 +1312,7 @@ Script `scripts/demo-security.ps1` được dùng để chạy hàng loạt các
 - bcrypt hashing.
 - AES-GCM encryption.
 - JWT invalid/expired.
+- forgot/reset password.
 - BOLA blocked.
 - webhook invalid signature.
 - webhook replay.
@@ -1287,7 +1320,7 @@ Script `scripts/demo-security.ps1` được dùng để chạy hàng loạt các
 
 #### 3.16.5. Kiểm thử bằng OWASP ZAP
 
-OWASP ZAP baseline trong các artifact hiện có được chạy trên bề mặt `Swagger UI` qua reverse proxy HTTPS. Ở cấu hình hiện tại, Swagger đã được khóa về cổng local-only để tránh lộ tài liệu API ra ngoài. Kết quả artifact gần nhất:
+OWASP ZAP baseline trong các artifact hiện có được chạy trên bề mặt `Swagger UI` qua reverse proxy HTTPS. Ở cấu hình hiện tại, nhóm phát triển ưu tiên quét bằng hostname local để ổn định hơn, đồng thời vẫn có thể mở Swagger public khi cần demo từ xa. Kết quả artifact gần nhất:
 
 - `FAIL = 0`
 - `WARN = 2`
@@ -1302,6 +1335,7 @@ OWASP ZAP baseline trong các artifact hiện có được chạy trên bề m�
 | Xem password trong database | Chứng minh không lưu plaintext | Thấy bcrypt hash |
 | Sửa payload JWT | Kiểm tra tính toàn vẹn token | Backend trả `401` |
 | Dùng JWT hết hạn | Kiểm tra expiry | Backend trả `401` |
+| Yêu cầu quên mật khẩu và đặt lại bằng token hợp lệ | Hoàn thiện vòng đời tài khoản | Mật khẩu mới có hiệu lực, refresh token cũ bị revoke |
 | Đổi `certificateId` sang dữ liệu người khác | Demo BOLA/IDOR | Backend trả `403` và ghi audit log |
 | Gửi webhook sai HMAC | Demo xác thực message | Backend trả `401` hoặc `400` |
 | Gửi lại cùng `eventId` | Demo chống replay | Backend trả `409` |
@@ -1314,6 +1348,7 @@ Qua quá trình phân tích, thiết kế và triển khai, hệ thống đã đ
 
 - Hoàn thiện domain khóa học online tối giản, phù hợp đề tài.
 - Tích hợp JWT access token và refresh token hash.
+- Bổ sung luồng quên mật khẩu và đặt lại mật khẩu với reset token hash và revoke phiên cũ.
 - Áp dụng bcrypt đúng mục đích cho mật khẩu.
 - Áp dụng AES-GCM cho nhiều loại dữ liệu nhạy cảm.
 - Áp dụng HMAC-SHA256 cho webhook thanh toán mô phỏng.
@@ -1330,6 +1365,7 @@ Mặc dù đạt mục tiêu môn học, hệ thống vẫn còn một số hạ
 - Rate limit hiện dùng bộ nhớ trong tiến trình, chưa phù hợp hệ phân tán nhiều node.
 - TLS local đang dùng self-signed certificate.
 - Frontend lưu token theo cách thuận tiện cho demo, chưa phải mô hình tối ưu production.
+- Chế độ `PASSWORD_RESET_DEMO_MODE` trả `demoResetToken` trong môi trường local để tiện kiểm thử, chưa phù hợp khi triển khai production.
 - Chưa tích hợp cổng thanh toán thật.
 - Chưa có key rotation cho JWT và AES.
 - Chưa có hệ thống giám sát thời gian thực hoặc SIEM.
@@ -1342,7 +1378,7 @@ Nếu tiếp tục mở rộng, hệ thống có thể phát triển theo các h
 - Dùng HTTP-only cookies hoặc cơ chế lưu token an toàn hơn.
 - Triển khai key rotation cho secret.
 - Tích hợp cổng thanh toán thật.
-- Bổ sung dashboard trực quan cho audit log.
+- Bổ sung cơ chế tổng hợp và trực quan hóa audit log ở tầng giám sát riêng nếu cần mở rộng sau này.
 - Tích hợp pipeline CI/CD có SAST và DAST.
 
 ### 3.21. Kết luận chương

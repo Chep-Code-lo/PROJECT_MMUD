@@ -1,5 +1,30 @@
 services:
   backend:
     environment:
-      APP_API_BASE_URL: https://demo.example.com
-      CORS_ALLOWED_ORIGINS: https://demo.example.com,https://localhost,http://localhost:3000
+      APP_API_BASE_URL: ${PUBLIC_BASE_URL:-https://localhost}
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_BASE_URL:-https://localhost},https://localhost,http://localhost:3000
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: securityapp-cloudflared
+    command: tunnel --config /etc/cloudflared/config.yml run
+    restart: unless-stopped
+    depends_on:
+      nginx:
+        condition: service_started
+    volumes:
+      - ./deploy/cloudflared/config.local.yml:/etc/cloudflared/config.yml:ro
+      - ./deploy/cloudflared/credentials:/etc/cloudflared/credentials:ro
+    profiles:
+      - public-tunnel
+
+  cloudflared-quick:
+    image: cloudflare/cloudflared:latest
+    container_name: securityapp-cloudflared-quick
+    command: tunnel --url https://nginx:443 --no-tls-verify
+    restart: unless-stopped
+    depends_on:
+      nginx:
+        condition: service_started
+    profiles:
+      - quick-tunnel

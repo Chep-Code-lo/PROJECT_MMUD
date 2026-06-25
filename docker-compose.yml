@@ -45,7 +45,6 @@ services:
       APP_API_BASE_URL: ${APP_API_BASE_URL:-https://localhost}
       APP_SEED_ENABLED: ${APP_SEED_ENABLED:-true}
       APP_SEED_STUDENT_PASSWORD: ${APP_SEED_STUDENT_PASSWORD:-Password123!}
-      APP_SEED_INSTRUCTOR_PASSWORD: ${APP_SEED_INSTRUCTOR_PASSWORD:-Password123!}
       APP_SEED_ADMIN_PASSWORD: ${APP_SEED_ADMIN_PASSWORD:-Admin123!}
     depends_on:
       database:
@@ -84,7 +83,6 @@ services:
     ports:
       - "${LOCAL_HTTP_PORT:-80}:80"
       - "${LOCAL_HTTPS_PORT:-443}:443"
-      - "127.0.0.1:${LOCAL_SWAGGER_HTTPS_PORT:-8444}:8444"
     volumes:
       - ./deploy/ssl:/etc/nginx/ssl:ro
     depends_on:

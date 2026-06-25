@@ -1,18 +1,38 @@
-import type { UserRole } from "./auth";
+import type { UserProfile } from "@/types/auth";
 
-export type AdminUser = {
+export type AdminEnrollment = {
+  enrollmentId: number;
+  studentId: number;
+  studentName: string;
+  studentEmail: string;
+  courseId: number;
+  courseTitle: string;
+  status: "PENDING" | "ACTIVE" | "CANCELLED";
+  createdAt?: string;
+  activatedAt?: string | null;
+  certificateIssued: boolean;
+};
+
+export type AdminCourseOverview = {
   id: number;
-  fullName: string;
-  email: string;
-  role: UserRole;
-  createdAt: string;
+  title: string;
+  summary: string;
+  price: number;
+  instructorName: string;
+  activeStudentCount: number;
+  pendingRequestCount: number;
 };
 
-export type AdminSummary = {
-  users: number;
-  courses: number;
-  activeEnrollments: number;
-  certificates: number;
-  auditLogs: number;
-  publishedCourses: number;
+export type AdminCourseRoster = {
+  courseId: number;
+  courseTitle: string;
+  courseSummary: string;
+  price: number;
+  instructorName: string;
+  activeStudentCount: number;
+  pendingRequestCount: number;
+  activeStudents: AdminEnrollment[];
+  pendingRequests: AdminEnrollment[];
 };
+
+export type AdminStudentProfile = UserProfile;

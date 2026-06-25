@@ -100,17 +100,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/courses", "/api/courses/*")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/courses/*/checkout")
-                        .authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/courses")
-                        .hasAnyRole("ADMIN", "INSTRUCTOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/courses/*")
-                        .hasAnyRole("ADMIN", "INSTRUCTOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/courses/*")
-                        .hasAnyRole("ADMIN", "INSTRUCTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/courses/*/lessons")
-                        .hasAnyRole("ADMIN", "INSTRUCTOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/courses/*/lessons/*")
-                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .hasRole("STUDENT")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/users/*/profile",
+                                "/api/courses/*/lessons/*",
+                                "/api/enrollments/*",
+                                "/api/certificates/*")
+                        .hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.GET, "/api/enrollments/me", "/api/certificates/me")
+                        .hasRole("STUDENT")
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
                         .anyRequest()

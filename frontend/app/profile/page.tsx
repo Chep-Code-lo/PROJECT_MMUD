@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { formatLocalDateTime } from "@/lib/dateTime";
@@ -15,21 +16,32 @@ export default function ProfilePage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
-      const [user, enrollmentList, certificateList] = await Promise.all([
-        authService.getCurrentUser(),
+      const user = await authService.getCurrentUser();
+      setProfile(user);
+
+      if (user.role === "ADMIN") {
+        setEnrollments([]);
+        setCertificates([]);
+        setError("");
+        return;
+      }
+
+      const [enrollmentList, certificateList] = await Promise.all([
         enrollmentService.getMine(),
         certificateService.getMine(),
       ]);
 
-      setProfile(user);
       setEnrollments(enrollmentList);
       setCertificates(certificateList);
       setError("");
     } catch (err) {
       setError(getApiErrorMessage(err, "Khong tai duoc thong tin ca nhan."));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,6 +58,12 @@ export default function ProfilePage() {
   return (
     <ProtectedRoute>
       <main className="space-y-6">
+        {loading && (
+          <div className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
+            Dang tai thong tin tai khoan...
+          </div>
+        )}
+
         {error && (
           <div className="rounded-[28px] border border-[#b45309]/15 bg-[#fff4ea] p-6 text-sm text-[#9a3412]">
             {error}
@@ -75,7 +93,45 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        {profile?.role === "ADMIN" ? (
+          <section className="grid gap-6 lg:grid-cols-2">
+            <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
+              <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
+                Chuc nang quan tri
+              </h2>
+              <p className="mb-5 text-sm leading-7 text-[#536059]">
+                Tai khoan admin khong su dung luong hoc vien. Admin tap trung
+                duyet ghi danh, quan ly hoc vien theo tung khoa hoc va giam sat nhat ky an ninh.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/admin/courses"
+                  className="inline-flex rounded-full bg-[#12372f] px-4 py-2.5 text-sm font-semibold text-[#f7faf8]"
+                >
+                  Quan ly ghi danh
+                </Link>
+                <Link
+                  href="/admin/audit-logs"
+                  className="inline-flex rounded-full border border-[#1f2a24]/12 bg-white/80 px-4 py-2.5 text-sm font-semibold text-[#12372f]"
+                >
+                  Xem audit log
+                </Link>
+              </div>
+            </article>
+
+            <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
+              <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
+                Vai tro hien tai
+              </h2>
+              <div className="space-y-3 text-sm leading-7 text-[#536059]">
+                <p>Admin co the duyet yeu cau dang ky hoc va them hoc vien vao khoa hoc.</p>
+                <p>Admin co the xem danh sach hoc vien cua tung khoa hoc va ho so hoc vien.</p>
+                <p>Admin co the theo doi cac su kien bao mat trong audit log.</p>
+              </div>
+            </article>
+          </section>
+        ) : (
+          <section className="grid gap-6 lg:grid-cols-2">
           <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
             <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
               Khoa hoc da dang ky
@@ -146,7 +202,8 @@ export default function ProfilePage() {
               ))}
             </div>
           </article>
-        </section>
+          </section>
+        )}
       </main>
     </ProtectedRoute>
   );

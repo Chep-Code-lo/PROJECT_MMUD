@@ -13,9 +13,11 @@
     { "key": "adminAccessToken", "value": "" },
     { "key": "studentUserId", "value": "1" },
     { "key": "courseId", "value": "1" },
+    { "key": "adminCourseId", "value": "1" },
     { "key": "lessonId", "value": "1" },
     { "key": "pendingCourseId", "value": "3" },
     { "key": "pendingEnrollmentId", "value": "3" },
+    { "key": "managedEnrollmentId", "value": "" },
     { "key": "victimCertificateId", "value": "1" },
     { "key": "courseAmount", "value": "299000.00" },
     { "key": "paymentReference", "value": "PAY-POSTMAN-001" },
@@ -225,6 +227,107 @@
           "raw": "{{baseUrl}}/api/certificates/{{victimCertificateId}}",
           "host": ["{{baseUrl}}"],
           "path": ["api", "certificates", "{{victimCertificateId}}"]
+        }
+      }
+    },
+    {
+      "name": "Admin Get Courses",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/courses",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "courses"]
+        }
+      }
+    },
+    {
+      "name": "Admin Get Course Roster",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/courses/{{pendingCourseId}}/enrollments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "courses", "{{pendingCourseId}}", "enrollments"]
+        }
+      }
+    },
+    {
+      "name": "Admin Approve Pending Enrollment",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/enrollments/{{pendingEnrollmentId}}/approve",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "enrollments", "{{pendingEnrollmentId}}", "approve"]
+        }
+      }
+    },
+    {
+      "name": "Admin Add Student To Course",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('managedEnrollmentId', String(data.enrollmentId));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student2@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/courses/{{pendingCourseId}}/students",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "courses", "{{pendingCourseId}}", "students"]
+        }
+      }
+    },
+    {
+      "name": "Admin Get Student Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/users/{{studentUserId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "users", "{{studentUserId}}"]
+        }
+      }
+    },
+    {
+      "name": "Admin Remove Enrollment",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/enrollments/{{managedEnrollmentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "enrollments", "{{managedEnrollmentId}}"]
         }
       }
     },

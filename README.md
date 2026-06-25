@@ -28,7 +28,7 @@ Luồng triển khai mặc định:
 
 - Người dùng truy cập giao diện tại `https://localhost`
 - Tất cả API đi qua Nginx, sau đó được chuyển tiếp vào Spring Boot
-- Swagger/OpenAPI **không lộ ở cổng public** mà chỉ mở cục bộ qua `127.0.0.1:8444`
+- Swagger/OpenAPI dùng **cùng cổng HTTPS 443** và hiện có thể truy cập công khai qua domain demo `hackerlo.online`
 - Dữ liệu nhạy cảm khi lưu xuống cơ sở dữ liệu được mã hóa bằng AES-GCM
 - Webhook thanh toán giả lập được xác thực bằng HMAC-SHA256
 
@@ -62,7 +62,6 @@ Luồng triển khai mặc định:
 
 - Xem danh sách khóa học public
 - Xem chi tiết khóa học
-- Tạo, sửa, xóa khóa học cho vai trò phù hợp
 - Xem bài học theo khóa học
 - Ghi danh thanh toán giả lập qua `POST /api/courses/{courseId}/checkout`
 - Xem danh sách ghi danh của chính mình
@@ -72,8 +71,10 @@ Luồng triển khai mặc định:
 
 - Sinh viên xem chứng chỉ của chính mình
 - Sinh viên không thể đổi `certificateId` để xem chứng chỉ của tài khoản khác
-- Admin xem danh sách người dùng
-- Admin xem thống kê tóm tắt
+- Admin xem từng khóa học có bao nhiêu học viên và bao nhiêu yêu cầu chờ duyệt
+- Admin duyệt yêu cầu ghi danh của học viên
+- Admin thêm hoặc xóa học viên khỏi khóa học
+- Admin xem hồ sơ học viên từ khu vực quản trị
 - Admin xem audit log bảo mật
 
 ### 4.4. Nhóm Webhook
@@ -147,6 +148,7 @@ Các endpoint có kiểm tra ownership ở phía backend:
 - `GET /api/courses/{courseId}/lessons/{lessonId}`
 
 Sinh viên chỉ xem được dữ liệu thuộc về chính mình. Nếu đổi `id` trên URL để truy cập dữ liệu của tài khoản khác, backend trả `403 Forbidden` và ghi audit log.
+Tài khoản admin trong phiên bản rút gọn không dùng các endpoint riêng tư của sinh viên như `profile`, `enrollment`, `certificate` hay `lesson`.
 
 ### 5.7. Rate limiting
 
@@ -160,14 +162,14 @@ Sinh viên chỉ xem được dữ liệu thuộc về chính mình. Nếu đổ
 
 Khi vượt ngưỡng, backend trả `429 Too Many Requests` và ghi nhận sự kiện bất thường.
 
-### 5.8. HTTPS/TLS và Swagger local-only
+### 5.8. HTTPS/TLS và Swagger/OpenAPI
 
 - Nginx ép `HTTP -> HTTPS`
 - Ứng dụng chính chạy qua `https://localhost`
-- Swagger không hiển thị trên cổng public `443`
-- Swagger chỉ mở cục bộ trên máy host qua `https://localhost:8444/swagger-ui.html`
+- Swagger dùng cùng cổng `443` để tránh lỗi lệch cổng khi bấm `Execute`
+- Swagger có thể mở tại `https://localhost/swagger-ui.html` hoặc qua domain public đang cấu hình tunnel
 
-Điểm này giúp tránh việc tài liệu API và endpoint thử nghiệm bị lộ ra bên ngoài trong lúc demo.
+Điểm này giúp tránh việc tài liệu API và endpoint thử nghiệm bị lộ ra ngoài bằng IP hoặc domain public trong lúc demo.
 
 ### 5.9. Audit log
 
@@ -210,7 +212,6 @@ Các biến quan trọng cần cấu hình:
 
 - `LOCAL_HTTP_PORT=80`
 - `LOCAL_HTTPS_PORT=443`
-- `LOCAL_SWAGGER_HTTPS_PORT=8444`
 - `LOCAL_DB_PORT=3307`
 - `DATABASE_URL`
 - `DATABASE_USERNAME`
@@ -225,6 +226,7 @@ Các biến quan trọng cần cấu hình:
 - `WEBHOOK_MAX_AGE_SECONDS`
 - `CORS_ALLOWED_ORIGINS`
 - `APP_API_BASE_URL`
+- `PUBLIC_BASE_URL`
 
 Không commit secret thật vào Git.
 
@@ -258,14 +260,18 @@ Các địa chỉ sau khi chạy:
 
 - Ứng dụng frontend: `https://localhost`
 - Health check: `https://localhost/api/health`
-- Swagger local-only: `https://localhost:8444/swagger-ui.html`
-- OpenAPI JSON local-only: `https://localhost:8444/v3/api-docs`
+- Swagger: `https://localhost/swagger-ui.html`
+- OpenAPI JSON: `https://localhost/v3/api-docs`
+- Swagger public demo: `https://hackerlo.online/swagger-ui.html`
+- OpenAPI public demo: `https://hackerlo.online/v3/api-docs`
 
-Hành vi bảo vệ cần nhớ:
+Hành vi hiện tại:
 
-- `https://localhost/swagger-ui.html` trả `404`
-- `https://localhost/v3/api-docs` trả `404`
-- Cổng `8444` chỉ bind vào `127.0.0.1`, nên máy khác không truy cập được nếu bạn không tự mở thêm
+- `https://localhost/swagger-ui.html` mở được trên máy host
+- `https://localhost/v3/api-docs` mở được trên máy host
+- `https://hackerlo.online/swagger-ui.html` mở được qua public domain
+- `https://hackerlo.online/v3/api-docs` mở được qua public domain
+- Nếu cần quét từ container trên cùng máy host, vẫn có thể dùng `https://host.docker.internal/swagger-ui.html`
 
 ### 8.3. Dừng và reset dữ liệu
 
@@ -282,7 +288,38 @@ docker compose down -v
 docker compose up --build -d
 ```
 
-## 9. Chạy thủ công để phát triển
+## 9. Bật tunnel để truy cập domain public
+
+Project hỗ trợ thêm lớp tunnel tách riêng khỏi luồng `https://localhost`.
+
+### 9.1. Quick tunnel ra domain public tạm thời
+
+```powershell
+.\scripts\start-public-tunnel.ps1 -Quick
+docker logs -f securityapp-cloudflared-quick
+```
+
+Log sẽ trả về một domain public tạm thời dạng `trycloudflare.com`.
+
+### 9.2. Named tunnel với domain riêng
+
+1. Tạo tunnel và DNS trên Cloudflare
+2. Copy credential JSON vào `deploy/cloudflared/credentials/`
+3. Tạo `deploy/cloudflared/config.local.yml` từ file mẫu
+4. Đặt `PUBLIC_BASE_URL=https://your-domain.example`
+5. Chạy:
+
+```powershell
+.\scripts\start-public-tunnel.ps1
+```
+
+Hướng dẫn chi tiết nằm tại `docs/public-domain-tunnel.md`.
+
+Lưu ý:
+
+- Tunnel public không làm thay đổi luồng local `https://localhost`
+- Khi tunnel đang bật, Swagger/OpenAPI hiện có thể truy cập qua domain public để demo từ xa
+## 10. Chạy thủ công để phát triển
 
 ### 9.1. Backend
 
@@ -306,20 +343,25 @@ npm install
 npm run dev
 ```
 
-## 10. Tài khoản mẫu để demo
+## 11. Tài khoản mẫu để demo
 
 - `student1@example.com / Password123!`
 - `student2@example.com / Password123!`
-- `instructor@example.com / Password123!`
 - `admin@example.com / Admin123!`
+
+Lưu ý:
+
+- Luồng demo chính của đồ án rút gọn chỉ tập trung vào `STUDENT` và `ADMIN`
+- Các khóa học mẫu được gắn với tài khoản quản trị nội bộ để tránh làm project nghiêng sang hướng quản lý đào tạo đầy đủ
 
 Dữ liệu seed dùng cho demo:
 
 - `student1` đã ghi danh khóa `Java Security Basics`
 - `student2` đã ghi danh khóa `Applied Cryptography for Beginners`
 - `student1` có một enrollment `PENDING` cho khóa `Secure RESTful API with Spring Boot` để demo webhook
+- `admin` dùng để duyệt ghi danh, quản lý học viên theo từng khóa học và xem audit log, không tham gia luồng học viên
 
-## 11. Các màn hình frontend tối giản
+## 12. Các màn hình frontend tối giản
 
 Frontend chỉ giữ các màn hình đủ để demo luồng bảo mật:
 
@@ -331,7 +373,10 @@ Frontend chỉ giữ các màn hình đủ để demo luồng bảo mật:
 - Chi tiết khóa học
 - Bài học
 - Chứng chỉ / hồ sơ cá nhân
+- Quản lý ghi danh và học viên cho admin
 - Audit log dành cho admin
+
+Project đã chủ động bỏ bớt các phần dễ làm đồ án bị nghiêng sang hướng Công nghệ phần mềm như dashboard tổng quan, danh sách user quản trị, thống kê vận hành và CRUD nội dung trên giao diện.
 
 Giao diện không hiển thị các thông tin kiểm thử nội bộ như:
 
@@ -340,11 +385,11 @@ Giao diện không hiển thị các thông tin kiểm thử nội bộ như:
 - Kịch bản kiểm thử HMAC
 - Checklist OWASP ZAP
 
-## 12. Kiểm thử nhanh bằng Swagger
+## 13. Kiểm thử nhanh bằng Swagger
 
-Swagger chỉ dùng tại máy host:
+Swagger chỉ dùng tại máy host hoặc container trên cùng máy host:
 
-1. Mở `https://localhost:8444/swagger-ui.html`
+1. Mở `https://localhost/swagger-ui.html`
 2. Gọi `POST /api/auth/login`
 3. Sao chép `accessToken`
 4. Chọn `Authorize`
@@ -354,9 +399,10 @@ Swagger chỉ dùng tại máy host:
    - `GET /api/certificates/me`
    - `POST /api/courses/{courseId}/checkout`
    - `GET /api/courses/{courseId}/lessons/{lessonId}`
+   - `GET /api/admin/courses` với tài khoản admin
    - `GET /api/admin/audit-logs` với tài khoản admin
 
-## 13. Kiểm thử bằng Postman
+## 14. Kiểm thử bằng Postman
 
 - Collection: `postman/online-course-security.postman_collection.json`
 - Hướng dẫn chi tiết: `docs/postman-testing.md`
@@ -367,6 +413,12 @@ Collection đã có sẵn các request:
 - Login Student 1
 - Login Student 2
 - Login Admin
+- Admin Get Courses
+- Admin Get Course Roster
+- Admin Approve Pending Enrollment
+- Admin Add Student To Course
+- Admin Get Student Profile
+- Admin Remove Enrollment
 - Get Courses
 - Checkout Course
 - Get Lesson With Token
@@ -377,16 +429,17 @@ Collection đã có sẵn các request:
 - Webhook Invalid HMAC
 - Rate Limit Test - Wrong Login
 
-## 14. Kiểm thử bằng OWASP ZAP
+## 15. Kiểm thử bằng OWASP ZAP
 
 Hướng dẫn chi tiết xem `docs/owasp-zap-testing.md`.
 
 Các mục tiêu quét chính:
 
 - `https://localhost`
-- `https://localhost:8444/swagger-ui.html` nếu quét trên chính máy host
+- `https://localhost/swagger-ui.html` nếu quét trên chính máy host
+- `https://host.docker.internal/swagger-ui.html` nếu quét bằng container ZAP trên cùng máy host
 
-## 15. Bộ tài liệu demo tấn công và phòng thủ
+## 16. Bộ tài liệu demo tấn công và phòng thủ
 
 - `docs/demo-runbook.md`
 - `docs/demo-01-password-bcrypt.md`
@@ -396,8 +449,9 @@ Các mục tiêu quét chính:
 - `docs/demo-05-webhook-hmac.md`
 - `docs/demo-06-rate-limit.md`
 - `docs/demo-07-https-tls.md`
+- `docs/public-domain-tunnel.md`
 
-## 16. Mapping với OWASP API Security Top 10
+## 17. Mapping với OWASP API Security Top 10
 
 - `API1: Broken Object Level Authorization`
   - Ownership check cho certificate, enrollment, profile và lesson
@@ -413,9 +467,9 @@ Các mục tiêu quét chính:
   - CORS cấu hình rõ
   - HTTPS/TLS
   - Không hard-code secret
-  - Swagger không lộ trên cổng public
+  - Swagger/OpenAPI chạy sau HTTPS và chỉ nên mở public khi cần demo
 
-## 17. Kiểm thử và xác nhận đã chạy
+## 18. Kiểm thử và xác nhận đã chạy
 
 Đã có các bước kiểm tra phù hợp trong project:
 
@@ -424,14 +478,15 @@ Các mục tiêu quét chính:
 - Demo script: `.\scripts\demo-security.ps1`
 - Tài liệu kết quả và hướng dẫn nằm trong `docs/`
 
-## 18. Giới hạn hiện tại
+## 19. Giới hạn hiện tại
 
 - Frontend đang lưu token theo hướng đơn giản để phục vụ demo học phần, chưa phải phương án tối ưu cho production.
 - Chức năng webhook là mô phỏng cổng thanh toán nội bộ, không kết nối nhà cung cấp thanh toán thật.
 - TLS local đang dùng self-signed certificate; khi triển khai Internet nên dùng reverse proxy với chứng chỉ hợp lệ, ví dụ Let's Encrypt.
+- Nếu bật public tunnel, ứng dụng sẽ truy cập được từ Internet; chỉ nên mở trong thời gian cần demo và nên tắt tunnel sau khi sử dụng.
 - Chức năng quên mật khẩu trong chế độ demo có thể trả về `demoResetToken` để thuận tiện kiểm thử. Khi triển khai thực tế cần tắt `PASSWORD_RESET_DEMO_MODE` và gửi token qua email thay vì trả về API.
 
-## 19. Tài liệu liên quan
+## 20. Tài liệu liên quan
 
 - `docs/bao-cao-chuong-1-2-3.md`
 - `docs/report-image-captions.md`

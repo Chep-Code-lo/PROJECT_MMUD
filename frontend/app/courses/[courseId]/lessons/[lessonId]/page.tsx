@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -21,7 +22,14 @@ export default function LessonDetailPage() {
     courseService
       .getLesson(courseId, lessonId)
       .then(setLesson)
-      .catch((err) => setError(getApiErrorMessage(err, "Khong tai duoc lesson.")))
+      .catch((err) => {
+        if (axios.isAxiosError(err) && [401, 403].includes(err.response?.status ?? 0)) {
+          setError("Ban khong co quyen truy cap bai hoc nay.");
+          return;
+        }
+
+        setError(getApiErrorMessage(err, "Khong tai duoc bai hoc."));
+      })
       .finally(() => setLoading(false));
   }, [courseId, lessonId]);
 

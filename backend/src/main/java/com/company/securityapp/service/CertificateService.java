@@ -36,6 +36,11 @@ public class CertificateService {
     @Transactional(readOnly = true)
     public List<CertificateResponse> getMyCertificates() {
         User currentUser = currentUserService.getRequiredUser();
+        authorizationService.assertStudentOnly(
+                currentUser,
+                "Certificate",
+                null,
+                "Administrator accounts do not use the student certificate area.");
         return certificateRepository.findAllByStudentIdOrderByIssuedAtDesc(currentUser.getId())
                 .stream()
                 .map(this::toResponse)

@@ -42,141 +42,179 @@ docker compose up --build -d
 
 - `student1@example.com / Password123!`
 
-### 3.3. Dữ liệu seed hữu ích
+### 3.3. Thực hiện demo này ở đâu
 
-Trong dữ liệu mẫu đã có sẵn:
+Demo 05 nên dùng **Postman** là chính, vì:
 
-- `student1` có một enrollment `PENDING` cho khóa `Secure RESTful API with Spring Boot`
+- request hợp lệ cần tự tính HMAC;
+- collection đã có sẵn pre-request script tự tạo chữ ký;
+- thuận tiện hơn Swagger rất nhiều trong trường hợp webhook.
 
-Bạn có thể dùng trực tiếp enrollment chờ này hoặc tự tạo lại bằng API checkout.
+File collection:
 
-## 4. Cách chuẩn bị enrollment chờ thanh toán
-
-### Cách 1: Dùng dữ liệu seed có sẵn
-
-Gọi:
-
-```http
-GET /api/enrollments/me
-Authorization: Bearer <student1-accessToken>
+```text
+postman/online-course-security.postman_collection.json
 ```
 
-Tìm enrollment có `status = PENDING`.
+Swagger vẫn hữu ích để kiểm tra kết quả sau webhook, nhưng **không phải công cụ chính** cho bước gửi webhook.
 
-### Cách 2: Tự tạo mới bằng checkout
+## 4. Chuẩn bị Postman
 
-Đăng nhập `student1`, sau đó gọi:
+### Bước 1: Mở Postman
 
-```http
-POST /api/courses/3/checkout
-Authorization: Bearer <student1-accessToken>
+Nếu Postman đang bật kiểm tra SSL nghiêm ngặt:
+
+1. Vào `Settings`
+2. Tắt `SSL certificate verification`
+
+### Bước 2: Import collection
+
+Import file:
+
+```text
+postman/online-course-security.postman_collection.json
 ```
+
+### Bước 3: Kiểm tra biến collection
+
+Kiểm tra ít nhất 2 biến:
+
+- `baseUrl = https://localhost`
+- `webhookSecret = giá trị HMAC_WEBHOOK_SECRET trong file .env`
+
+Nếu `webhookSecret` sai, request `Webhook Valid HMAC` cũng sẽ bị backend từ chối.
+
+## 5. Các bước thực hiện
+
+### Bước 1: Đăng nhập Student 1
+
+Chạy request:
+
+- `Login Student 1`
 
 Kết quả mong đợi:
 
-- Nhận được `enrollmentId`
-- Nhận được `paymentReference`
-- Nhận được trạng thái `PENDING`
+- Trả `200 OK`
+- Collection tự lưu `accessToken`
 
-## 5. Demo webhook hợp lệ
+### Bước 2: Tạo enrollment chờ thanh toán
 
-### 5.1. Tạo body mẫu
+Chạy request:
 
-Ví dụ:
+- `Checkout Course`
 
-```json
-{
-  "enrollmentId": 3,
-  "userId": 1,
-  "courseId": 3,
-  "paymentReference": "PAY-PENDING-DEMO",
-  "amount": 299000.00
-}
-```
+Kết quả mong đợi:
 
-Lưu ý:
+- Trả `200 OK`
+- Collection tự lưu:
+  - `pendingEnrollmentId`
+  - `paymentReference`
 
-- `enrollmentId`, `userId`, `courseId`, `paymentReference`, `amount` phải khớp với enrollment thực tế
-- `amount` phải đúng bằng giá khóa học
+Ý nghĩa:
 
-### 5.2. Tính chữ ký bằng PowerShell
+- Hệ thống tạo ra enrollment ở trạng thái chờ thanh toán để webhook sau đó kích hoạt
 
-```powershell
-$eventId = "evt_demo_valid_001"
-$timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds().ToString()
-$rawBody = '{"enrollmentId":3,"userId":1,"courseId":3,"paymentReference":"PAY-PENDING-DEMO","amount":299000.00}'
-$secret = "<HMAC_WEBHOOK_SECRET>"
-$payloadToSign = "$eventId.$timestamp.$rawBody"
-$hmac = [System.Security.Cryptography.HMACSHA256]::new([System.Text.Encoding]::UTF8.GetBytes($secret))
-$signature = ([Convert]::ToHexString($hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($payloadToSign)))).ToLower()
-$signature
-```
+### Bước 3: Gửi webhook hợp lệ
 
-### 5.3. Gửi webhook
+Chạy request:
 
-```powershell
-curl.exe -k https://localhost/api/webhooks/payment-success `
-  -H "Content-Type: application/json" `
-  -H "X-Event-Id: $eventId" `
-  -H "X-Timestamp: $timestamp" `
-  -H "X-Signature: $signature" `
-  -d "$rawBody"
-```
+- `Webhook Valid HMAC`
+
+Collection này đã có pre-request script để tự:
+
+- sinh `eventId`;
+- sinh `timestamp`;
+- ghép `eventId.timestamp.rawBody`;
+- ký HMAC-SHA256 bằng `webhookSecret`;
+- chèn đúng các header yêu cầu.
 
 Kết quả mong đợi:
 
 - Trả `200 OK`
 - Message cho biết webhook được chấp nhận
-- Enrollment chuyển từ `PENDING` sang `ACTIVE`
-- Hệ thống cấp certificate cho enrollment đó
+- Enrollment được kích hoạt
+- Certificate được cấp
 
-### 5.4. Kiểm tra sau khi webhook hợp lệ
+### Bước 4: Kiểm tra kết quả sau webhook hợp lệ
 
-Gọi:
+Bạn có hai cách:
+
+#### Cách A: Kiểm tra bằng Swagger
+
+1. Mở `https://localhost/swagger-ui.html`
+2. Đăng nhập `student1@example.com`
+3. Copy `accessToken`
+4. Bấm `Authorize`
+5. Nhập `Bearer <accessToken>`
+6. Gọi:
+   - `GET /api/enrollments/me`
+   - `GET /api/certificates/me`
+
+Kết quả mong đợi:
+
+- Enrollment vừa thanh toán có `status = ACTIVE`
+- Danh sách chứng chỉ có dữ liệu mới hoặc đã được cấp
+
+#### Cách B: Kiểm tra bằng Postman thủ công
+
+Tạo thêm request:
 
 ```http
-GET /api/enrollments/me
-Authorization: Bearer <student1-accessToken>
+GET https://localhost/api/enrollments/me
+Authorization: Bearer <accessToken của student1>
 ```
 
 và:
 
 ```http
-GET /api/certificates/me
-Authorization: Bearer <student1-accessToken>
+GET https://localhost/api/certificates/me
+Authorization: Bearer <accessToken của student1>
 ```
 
-Kết quả mong đợi:
+### Bước 5: Gửi webhook sai chữ ký
 
-- Enrollment đã `ACTIVE`
-- Xuất hiện certificate mới hoặc đã được cấp
+Chạy request:
 
-## 6. Demo chữ ký sai
-
-Gửi lại request nhưng thay `X-Signature` thành giá trị giả, ví dụ:
-
-```text
-bad-signature
-```
+- `Webhook Invalid HMAC`
 
 Kết quả mong đợi:
 
 - Trả `401 Unauthorized`
-- Audit log ghi `WEBHOOK_REJECTED`
+- Backend báo chữ ký không hợp lệ
 
-## 7. Demo replay attack
+### Bước 6: Demo replay attack
 
-Sau khi đã gửi thành công webhook hợp lệ, giữ nguyên `X-Event-Id` và gửi lại đúng request đó thêm một lần nữa.
+Request `Webhook Valid HMAC` trong collection sẽ sinh `eventId` mới mỗi lần, nên để test replay bạn làm như sau:
+
+1. Mở `Postman Console`
+2. Chạy `Webhook Valid HMAC` một lần thành công
+3. Trong console, mở request vừa gửi
+4. Ghi lại chính xác:
+   - `X-Event-Id`
+   - `X-Timestamp`
+   - `X-Signature`
+   - raw body
+5. Tạo một request mới thủ công:
+
+```http
+POST https://localhost/api/webhooks/payment-success
+```
+
+6. Dán lại đúng body cũ
+7. Dán lại đúng ba header cũ
+8. Gửi lại lần nữa
 
 Kết quả mong đợi:
 
 - Trả `409 Conflict`
-- Hệ thống thông báo event đã được xử lý
-- Audit log thể hiện hành vi replay bị từ chối
+- Backend thông báo event đã được xử lý
 
-## 8. Demo timestamp không hợp lệ
+### Bước 7: Demo timestamp không hợp lệ
 
-Thử đặt `X-Timestamp` quá cũ hoặc quá xa thời điểm hiện tại.
+Tạo một request webhook thủ công với:
+
+- `X-Timestamp` là giá trị quá cũ;
+- hoặc quá xa thời điểm hiện tại.
 
 Ví dụ:
 
@@ -187,43 +225,67 @@ Ví dụ:
 Kết quả mong đợi:
 
 - Trả `401 Unauthorized`
-- Hệ thống báo timestamp không hợp lệ hoặc quá cũ
+- Backend từ chối vì timestamp không hợp lệ
 
-## 9. Cách demo nhanh bằng Postman
+## 6. Cách làm thủ công bằng PowerShell nếu cần
 
-Project đã có sẵn request:
+Nếu giảng viên muốn xem cách tự tính HMAC mà không dựa vào Postman script, bạn có thể dùng PowerShell:
 
-- `Webhook Valid HMAC`
-- `Webhook Invalid HMAC`
+Lưu ý trước khi chạy:
 
-trong file:
+- thay `enrollmentId`, `userId`, `courseId`, `paymentReference`, `amount` bằng đúng giá trị thực tế bạn vừa nhận sau bước `Checkout Course`;
+- nếu giữ nguyên ví dụ mẫu nhưng dữ liệu hiện tại không khớp, backend sẽ từ chối webhook.
 
-```text
-postman/online-course-security.postman_collection.json
+```powershell
+$eventId = "evt_demo_valid_001"
+$timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds().ToString()
+$rawBody = '{"enrollmentId":3,"userId":1,"courseId":3,"paymentReference":"PAY-PENDING-DEMO","amount":299000.00}'
+$secret = "<HMAC_WEBHOOK_SECRET>"
+$payloadToSign = "$eventId.$timestamp.$rawBody"
+$hmac = [System.Security.Cryptography.HMACSHA256]::new([System.Text.Encoding]::UTF8.GetBytes($secret))
+$signature = ([Convert]::ToHexString($hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($payloadToSign)))).ToLower()
+curl.exe -k https://localhost/api/webhooks/payment-success `
+  -H "Content-Type: application/json" `
+  -H "X-Event-Id: $eventId" `
+  -H "X-Timestamp: $timestamp" `
+  -H "X-Signature: $signature" `
+  -d "$rawBody"
 ```
 
-Request `Webhook Valid HMAC` đã có pre-request script để tự:
+## 7. Cách trình bày ngắn gọn trước giảng viên
 
-- sinh `eventId`
-- lấy `timestamp`
-- tạo chữ ký HMAC đúng
+Bạn nên trình bày theo đúng thứ tự:
 
-## 10. Giải thích ngắn gọn để trình bày
+1. Mở Postman
+2. Chạy `Login Student 1`
+3. Chạy `Checkout Course`
+4. Chạy `Webhook Valid HMAC`
+5. Mở Swagger hoặc Postman để kiểm tra enrollment đã `ACTIVE`
+6. Chạy `Webhook Invalid HMAC`
+7. Dùng Postman Console để gửi lại cùng `eventId` và minh họa replay bị chặn
 
-- HMAC-SHA256 giúp backend xác minh rằng webhook đến từ nguồn biết secret dùng chung
-- Kẻ tấn công không biết secret thì không thể tạo chữ ký hợp lệ cho body bất kỳ
+Nếu giảng viên hỏi “demo này làm ở đâu”, câu trả lời chuẩn là:
+
+- **Khuyến nghị dùng Postman**
+- **Swagger chỉ dùng để kiểm tra kết quả sau webhook**
+- **PowerShell chỉ là cách minh họa thêm nếu muốn tự tính HMAC bằng tay**
+
+## 8. Giải thích ngắn gọn để trình bày
+
+- HMAC-SHA256 giúp backend xác minh request đến từ nguồn biết secret dùng chung
+- Kẻ tấn công không biết secret thì không thể tạo chữ ký đúng cho body bất kỳ
 - `X-Timestamp` giúp giảm nguy cơ phát lại gói tin cũ
-- `X-Event-Id` giúp phát hiện và chặn request replay
+- `X-Event-Id` giúp phát hiện và chặn replay attack
 
-## 11. Minh chứng nên chụp cho báo cáo
+## 9. Minh chứng nên chụp cho báo cáo
 
-- Ảnh enrollment ở trạng thái `PENDING`
-- Ảnh webhook hợp lệ trả `200`
+- Ảnh `Checkout Course` trả `pendingEnrollmentId`
+- Ảnh `Webhook Valid HMAC` trả `200`
 - Ảnh enrollment chuyển `ACTIVE`
-- Ảnh webhook sai chữ ký trả `401`
+- Ảnh `Webhook Invalid HMAC` trả `401`
 - Ảnh replay cùng `eventId` trả `409`
-- Ảnh audit log của các sự kiện webhook
+- Ảnh audit log của các sự kiện webhook nếu có
 
-## 12. Kết luận
+## 10. Kết luận
 
-Demo này thể hiện rõ phần “mật mã ứng dụng” trong đồ án, vì HMAC-SHA256 được áp dụng trực tiếp vào một tình huống thực tế là xác minh webhook thanh toán và chống replay attack.
+Demo này thể hiện rõ phần “mật mã ứng dụng” trong đồ án vì HMAC-SHA256 được áp dụng trực tiếp vào một tình huống thực tế: xác minh webhook thanh toán và chống replay attack.

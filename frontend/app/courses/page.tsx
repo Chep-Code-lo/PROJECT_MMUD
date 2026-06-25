@@ -1,19 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { authService } from "@/services/authService";
 import { courseService } from "@/services/courseService";
 import type { CourseSummary } from "@/types/course";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
 
 export default function CoursesPage() {
+  const router = useRouter();
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const storedUser = authService.getStoredUser();
+    if (storedUser?.role === "ADMIN") {
+      router.replace("/admin/courses");
+      return;
+    }
+
     courseService
       .getCourses()
       .then(setCourses)
@@ -21,7 +30,7 @@ export default function CoursesPage() {
         setError(getApiErrorMessage(err, "Khong tai duoc danh sach khoa hoc."))
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   return (
     <main className="space-y-6">
@@ -56,19 +65,9 @@ export default function CoursesPage() {
             key={course.id}
             className="rounded-[28px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]"
           >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b5e34]">
-                  {course.instructorName}
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-[#163d35]">
-                  {course.title}
-                </h2>
-              </div>
-              <span className="rounded-full bg-[#eff8f4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#14532d]">
-                cong khai
-              </span>
-            </div>
+            <h2 className="mb-4 text-xl font-semibold text-[#163d35]">
+              {course.title}
+            </h2>
 
             <p className="mb-6 text-sm leading-7 text-[#536059]">{course.summary}</p>
 

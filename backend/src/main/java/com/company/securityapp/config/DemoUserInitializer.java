@@ -36,7 +36,6 @@ public class DemoUserInitializer {
             EncryptionService encryptionService,
             @Value("${app.seed.enabled}") boolean seedEnabled,
             @Value("${app.seed.student-password}") String studentPassword,
-            @Value("${app.seed.instructor-password}") String instructorPassword,
             @Value("${app.seed.admin-password}") String adminPassword) {
         return arguments -> {
             if (!seedEnabled || userRepository.count() > 0) {
@@ -63,17 +62,7 @@ public class DemoUserInitializer {
                     Role.STUDENT,
                     "0902000002",
                     "456 Student Avenue");
-            User instructor = createUser(
-                    userRepository,
-                    passwordEncoder,
-                    encryptionService,
-                    "Instructor Demo",
-                    "instructor@example.com",
-                    instructorPassword,
-                    Role.INSTRUCTOR,
-                    "0903000003",
-                    "789 Instructor Road");
-            createUser(
+            User admin = createUser(
                     userRepository,
                     passwordEncoder,
                     encryptionService,
@@ -86,7 +75,7 @@ public class DemoUserInitializer {
 
             Course course1 = createCourse(
                     courseRepository,
-                    instructor,
+                    admin,
                     "Java Security Basics",
                     "JWT, bcrypt, and secure REST API fundamentals.",
                     "Introductory course showing authentication, hashing, and authorization basics in Spring Boot.",
@@ -94,7 +83,7 @@ public class DemoUserInitializer {
                     true);
             Course course2 = createCourse(
                     courseRepository,
-                    instructor,
+                    admin,
                     "Applied Cryptography for Beginners",
                     "AES-GCM, HMAC-SHA256, and secure key handling for students.",
                     "Focuses on practical cryptography in application code with database encryption and webhook signing.",
@@ -102,7 +91,7 @@ public class DemoUserInitializer {
                     true);
             Course course3 = createCourse(
                     courseRepository,
-                    instructor,
+                    admin,
                     "Secure RESTful API with Spring Boot",
                     "OWASP API Top 10, audit logs, rate limiting, and HTTPS/TLS.",
                     "Security-focused API engineering course for testing with Postman and OWASP ZAP.",

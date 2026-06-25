@@ -27,7 +27,7 @@ Sau khi chạy xong, kiểm tra các địa chỉ:
 
 - Frontend: `https://localhost`
 - API chính: `https://localhost/api`
-- Swagger local-only: `https://localhost:8444/swagger-ui.html`
+- Swagger: `https://localhost/swagger-ui.html`
 - Health check: `https://localhost/api/health`
 
 ### 2.2. Cấu hình Postman cho HTTPS self-signed
@@ -66,8 +66,14 @@ Nếu muốn demo nhanh và ít lỗi nhất, nên chạy theo thứ tự:
 8. `Login Student 2`
 9. `BOLA Attack Attempt`
 10. `Login Admin`
-11. `Admin Audit Logs`
-12. `Rate Limit Test - Wrong Login`
+11. `Admin Get Courses`
+12. `Admin Get Course Roster`
+13. `Admin Approve Pending Enrollment`
+14. `Admin Add Student To Course`
+15. `Admin Get Student Profile`
+16. `Admin Remove Enrollment`
+17. `Admin Audit Logs`
+18. `Rate Limit Test - Wrong Login`
 
 ## 4. Kiểm thử đăng ký tài khoản mới
 
@@ -362,7 +368,27 @@ Nếu `accessToken` hiện tại là của student, kết quả mong đợi:
 
 - HTTP `403 Forbidden`
 
-### 11.2. Tài khoản admin vào API admin
+### 11.2. Tài khoản admin quản lý ghi danh học viên
+
+1. Chạy `Login Admin`
+2. Chạy `Admin Get Courses`
+3. Chạy `Admin Get Course Roster`
+4. Chạy `Admin Approve Pending Enrollment`
+5. Chạy `Admin Add Student To Course`
+6. Chạy `Admin Get Student Profile`
+7. Chạy `Admin Remove Enrollment`
+
+Kết quả mong đợi:
+
+- HTTP `200 OK`
+- nhận được danh sách khóa học kèm số học viên đang học và số yêu cầu chờ duyệt
+- request `Admin Get Course Roster` trả về danh sách học viên đang học và các yêu cầu `PENDING`
+- request `Admin Approve Pending Enrollment` chuyển enrollment sang `ACTIVE`
+- request `Admin Add Student To Course` thêm trực tiếp một tài khoản student vào khóa học
+- request `Admin Get Student Profile` trả về hồ sơ học viên để admin đối chiếu thông tin
+- request `Admin Remove Enrollment` đưa enrollment về trạng thái bị gỡ khỏi khóa học
+
+### 11.3. Tài khoản admin vào API audit log
 
 1. Chạy `Login Admin`
 2. Chạy `Admin Audit Logs`
@@ -371,6 +397,19 @@ Kết quả mong đợi:
 
 - HTTP `200 OK`
 - nhận được danh sách audit log
+
+### 11.4. Tài khoản admin thử đọc dữ liệu riêng tư của student
+
+Tạo thủ công một request:
+
+- Method: `GET`
+- URL: `{{baseUrl}}/api/certificates/{{victimCertificateId}}`
+- Header: `Authorization: Bearer {{adminAccessToken}}`
+
+Kết quả mong đợi:
+
+- HTTP `403 Forbidden`
+- chứng minh admin không được dùng các endpoint riêng tư của sinh viên trong phiên bản rút gọn này
 
 ## 12. Kiểm tra nhanh các mã trạng thái cần nhớ
 

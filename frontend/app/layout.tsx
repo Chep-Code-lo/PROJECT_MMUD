@@ -3,8 +3,8 @@ import Navbar from "@/components/Navbar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CourseHub",
-  description: "Nen tang khoa hoc online nho de hoc tap va quan ly khoa hoc.",
+  title: "Security Course Lab",
+  description: "Mo hinh demo RESTful API an toan cho do an Mat ma ung dung.",
 };
 
 export default function RootLayout({

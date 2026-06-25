@@ -89,7 +89,7 @@ public class AuthController {
     }
 
     @GetMapping("/users/{userId}/profile")
-    @Operation(summary = "Get a specific user profile with server-side ownership checks")
+    @Operation(summary = "Get a specific student profile with server-side ownership checks")
     public UserResponse profile(@PathVariable Long userId) {
         return authService.getUserProfile(userId);
     }

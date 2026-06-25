@@ -10,26 +10,19 @@ public enum Role {
             "certificate:read",
             "profile:read",
             "checkout:create")),
+    // Retained for compatibility with older demo data. The current demo flow does not use this role directly.
     INSTRUCTOR(List.of(
             "course:read",
-            "course:write",
             "lesson:read",
-            "lesson:write",
             "enrollment:read",
             "certificate:read",
             "profile:read")),
     ADMIN(List.of(
             "course:read",
-            "course:write",
-            "lesson:read",
-            "lesson:write",
-            "enrollment:read",
-            "certificate:read",
-            "profile:read",
+            "enrollment:manage",
+            "user:read",
             "admin:read",
-            "admin:write",
-            "audit:read",
-            "checkout:create"));
+            "audit:read"));
 
     private final List<String> scopes;
 

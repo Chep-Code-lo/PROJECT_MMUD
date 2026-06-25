@@ -8,7 +8,7 @@ Tài liệu này dùng để copy trực tiếp caption và phần mô tả ng�
 Hình 1. Giao diện tổng quan của hệ thống khóa học online nhỏ chạy qua giao thức HTTPS.
 
 **Mô tả gợi ý**  
-Hình ảnh minh họa giao diện frontend NextJS của hệ thống khi được truy cập qua `https://localhost`. Đây là điểm vào để người dùng thực hiện các thao tác đăng nhập, xem khóa học, ghi danh khóa học và demo các cơ chế bảo mật được tích hợp trong đồ án.
+Hình ảnh minh họa giao diện frontend NextJS của hệ thống khi được truy cập qua `https://localhost`. Đây là điểm vào để người dùng thực hiện các thao tác đăng nhập, quên mật khẩu, xem khóa học và ghi danh khóa học. Giao diện được giữ tối giản và không phơi bày các công cụ kiểm thử nội bộ như Swagger hay các nhãn kỹ thuật chỉ phục vụ demo bảo mật.
 
 ## Hình 2. Giao diện Swagger/OpenAPI
 
@@ -16,7 +16,7 @@ Hình ảnh minh họa giao diện frontend NextJS của hệ thống khi đư�
 Hình 2. Giao diện Swagger UI hỗ trợ kiểm thử các RESTful API của hệ thống.
 
 **Mô tả gợi ý**  
-Swagger UI được cấu hình tại `https://localhost:8444/swagger-ui.html` và chỉ mở trên chính máy chủ local, cho phép mô tả cấu trúc API, request body, response và mã lỗi. Đây là công cụ quan trọng để kiểm thử JWT, phân quyền, webhook HMAC và các endpoint bảo mật mà không cần viết thêm giao diện.
+Swagger UI được cấu hình tại `https://localhost/swagger-ui.html` trên cùng cổng HTTPS với ứng dụng, nhờ đó việc bấm `Execute` sẽ không bị lệch cổng khi kiểm thử. Reverse proxy chỉ cho phép mở tài liệu này với các hostname local như `localhost`, `127.0.0.1` hoặc `host.docker.internal`, nên người dùng bên ngoài không thể truy cập bằng IP hoặc domain public của máy chủ.
 
 ## Hình 3. Đăng nhập thành công và nhận JWT
 
@@ -176,7 +176,7 @@ Khi đăng nhập bằng tài khoản `ADMIN`, endpoint `GET /api/admin/audit-lo
 Hình 22. Audit log ghi nhận các sự kiện `ACCESS_DENIED`, `TOKEN_REJECTED`, `WEBHOOK_REJECTED` và `RATE_LIMIT_EXCEEDED`.
 
 **Mô tả gợi ý**  
-Hình ảnh này cho thấy hệ thống không chỉ chặn request trái phép mà còn lưu vết đầy đủ để phục vụ điều tra và báo cáo. Đây là thành phần quan trọng trong kiến trúc phòng thủ theo chiều sâu của hệ thống.
+Hình ảnh này cho thấy hệ thống không chỉ chặn request trái phép mà còn lưu vết đầy đủ để phục vụ điều tra và báo cáo. Ngoài các sự kiện truy cập bị chặn, audit log còn có thể ghi nhận những mốc như `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_CONFIRMED` hoặc `LOGIN_FAILED`, qua đó hỗ trợ theo dõi toàn bộ vòng đời xác thực và các hành vi bất thường.
 
 ## Hình 23. Rate limiting đối với chức năng đăng nhập
 
@@ -192,7 +192,7 @@ Sau nhiều lần gọi liên tiếp với thông tin đăng nhập sai, endpoin
 Hình 24. Reverse proxy Nginx thực hiện chuyển hướng từ HTTP sang HTTPS.
 
 **Mô tả gợi ý**  
-Lệnh `curl -I http://localhost` trả về `301 Moved Permanently`, cho thấy tất cả request HTTP đều được buộc chuyển sang kênh HTTPS. Hình này minh họa vai trò của TLS trong việc bảo vệ dữ liệu khi truyền trên mạng.
+Lệnh `curl -I http://localhost/api/health` trả về `301 Moved Permanently`, cho thấy các request HTTP đều được buộc chuyển sang kênh HTTPS. Hình này minh họa vai trò của TLS trong việc bảo vệ dữ liệu khi truyền trên mạng.
 
 ## Hình 25. Kiểm tra sức khỏe hệ thống qua HTTPS
 
@@ -210,10 +210,26 @@ Hình 26. Kết quả quét OWASP ZAP baseline đối với bề mặt tấn cô
 **Mô tả gợi ý**  
 Báo cáo ZAP tại `docs/security/zap-baseline-report.html` cho thấy hệ thống không có `FAIL`, có `2 WARN` và `59 PASS`. Hình này được đưa vào để chứng minh đồ án đã được kiểm thử cơ bản bằng công cụ đánh giá bảo mật phổ biến, đồng thời giải trình các cảnh báo còn lại liên quan chủ yếu đến Swagger UI và cấu hình CSP.
 
+## Hình 27. Giao diện quên mật khẩu
+
+**Caption**  
+Hình 27. Người dùng gửi yêu cầu quên mật khẩu từ giao diện frontend.
+
+**Mô tả gợi ý**  
+Giao diện `Forgot Password` cho phép người dùng nhập email đã đăng ký để yêu cầu cấp reset token. Trong môi trường demo local, token này có thể được trả về qua API để thuận tiện kiểm thử; tuy nhiên trong mô hình triển khai thực tế, token cần được gửi qua email thay vì hiển thị trực tiếp trên giao diện người dùng.
+
+## Hình 28. Đặt lại mật khẩu bằng reset token hợp lệ
+
+**Caption**  
+Hình 28. Người dùng đặt lại mật khẩu thành công bằng reset token hợp lệ.
+
+**Mô tả gợi ý**  
+Sau khi có reset token hợp lệ, người dùng nhập mật khẩu mới tại giao diện `Reset Password`. Hình này được dùng để minh họa việc hoàn thiện vòng đời xác thực tài khoản và cho thấy hệ thống có thể kết hợp reset token, bcrypt và revoke refresh token cũ trong cùng một luồng bảo mật.
+
 ## Gợi ý sắp xếp hình trong báo cáo
 
 1. Giao diện và kiến trúc: Hình 1, Hình 2.
-2. Xác thực và token: Hình 3, Hình 4, Hình 18, Hình 19.
+2. Xác thực, token và vòng đời tài khoản: Hình 3, Hình 4, Hình 18, Hình 19, Hình 27, Hình 28.
 3. Bảo vệ mật khẩu và mã hóa dữ liệu: Hình 5, Hình 6, Hình 16, Hình 17.
 4. Phân quyền và chống BOLA/IDOR: Hình 7, Hình 8, Hình 9, Hình 10, Hình 15, Hình 20.
 5. Webhook HMAC và thanh toán: Hình 11, Hình 12, Hình 13, Hình 14.

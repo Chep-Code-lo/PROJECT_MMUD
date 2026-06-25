@@ -23,8 +23,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await authService.login(form);
-      router.push("/courses");
+      const response = await authService.login(form);
+      router.push(response.user.role === "ADMIN" ? "/admin/courses" : "/courses");
     } catch (err) {
       setError(getApiErrorMessage(err, "Dang nhap that bai."));
     } finally {
@@ -39,10 +39,10 @@ export default function LoginPage() {
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#cddbd2]">
             Chao mung quay tro lai
           </p>
-          <h1 className="mb-4 text-3xl font-bold">Dang nhap tai khoan hoc vien</h1>
+          <h1 className="mb-4 text-3xl font-bold">Dang nhap tai khoan he thong</h1>
           <p className="mb-6 text-sm leading-7 text-[#dbe4de]">
-            Dang nhap de tiep tuc hoc tap, xem khoa hoc da dang ky va theo doi ket qua
-            cua ban tren he thong.
+            Sinh vien dang nhap de gui yeu cau tham gia khoa hoc va hoc tap.
+            Quan tri vien dang nhap de duyet ghi danh, quan ly hoc vien va theo doi audit log.
           </p>
           <div className="rounded-2xl border border-white/15 bg-white/8 px-4 py-4 text-sm leading-7 text-[#dbe4de]">
             Neu ban quen mat khau, co the dat lai trong vai buoc ngay tren ung dung.

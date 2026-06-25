@@ -42,7 +42,6 @@ import org.springframework.test.web.servlet.MockMvc;
         "app.webhook.hmac-secret=test-hmac-secret-123456789012345678901234567890",
         "app.seed.enabled=true",
         "app.seed.student-password=Password123!",
-        "app.seed.instructor-password=Password123!",
         "app.seed.admin-password=Admin123!"
 })
 class WebhookSecurityIntegrationTest {

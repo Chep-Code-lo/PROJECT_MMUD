@@ -45,6 +45,11 @@ public class EnrollmentService {
 
     public CheckoutResponse checkout(Long courseId) {
         User student = currentUserService.getRequiredUser();
+        authorizationService.assertStudentOnly(
+                student,
+                "Course",
+                courseId,
+                "Administrator accounts cannot create course enrollments.");
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Course was not found."));
 
@@ -82,12 +87,17 @@ public class EnrollmentService {
                 "evt_" + UUID.randomUUID().toString().replace("-", ""),
                 Instant.now().getEpochSecond(),
                 "/api/webhooks/payment-success",
-                "Call the HMAC-protected webhook to simulate payment success and unlock lessons.");
+                "Checkout request created successfully.");
     }
 
     @Transactional(readOnly = true)
     public List<EnrollmentResponse> getMyEnrollments() {
         User currentUser = currentUserService.getRequiredUser();
+        authorizationService.assertStudentOnly(
+                currentUser,
+                "Enrollment",
+                null,
+                "Administrator accounts do not use the student enrollment area.");
         return enrollmentRepository.findAllByStudentIdOrderByCreatedAtDesc(currentUser.getId())
                 .stream()
                 .map(this::toEnrollmentResponse)

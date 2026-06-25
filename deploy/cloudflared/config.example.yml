@@ -1,16 +1,16 @@
 # Copy this file to deploy/cloudflared/config.local.yml
 # and replace the placeholder values on your own machine.
 #
-# This file is intentionally kept separate from the team's localhost flow.
-# The shared repo can stay on https://localhost while your machine exposes
-# a public hostname through Cloudflare Tunnel.
+# This config is used by the Docker cloudflared service, not by the local host.
+# Copy the tunnel credential JSON into:
+#   deploy/cloudflared/credentials/<tunnel-uuid>.json
 
 tunnel: REPLACE_WITH_TUNNEL_UUID
-credentials-file: C:\Users\<your-user>\.cloudflared\REPLACE_WITH_TUNNEL_UUID.json
+credentials-file: /etc/cloudflared/credentials/REPLACE_WITH_TUNNEL_UUID.json
 
 ingress:
   - hostname: demo.example.com
-    service: https://localhost
+    service: https://nginx:443
     originRequest:
       noTLSVerify: true
   - service: http_status:404

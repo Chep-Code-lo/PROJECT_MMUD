@@ -8,7 +8,7 @@ Tài liệu này hướng dẫn kiểm thử bảo mật cơ bản bằng OWASP 
 - quan sát security headers;
 - xác nhận cơ chế chuyển hướng HTTP sang HTTPS;
 - kiểm tra phản hồi `401`, `403`, `404`, `429`;
-- quét giao diện Swagger/OpenAPI ở chế độ chỉ mở trên máy chủ local.
+- quét giao diện Swagger/OpenAPI qua HTTPS để đối chiếu tài liệu API và các header bảo mật.
 
 ## 2. Chuẩn bị trước khi quét
 
@@ -22,16 +22,16 @@ docker compose up --build -d
 
 - Frontend: `https://localhost`
 - API health: `https://localhost/api/health`
-- Swagger local-only: `https://localhost:8444/swagger-ui.html`
-- OpenAPI JSON local-only: `https://localhost:8444/v3/api-docs`
+- Swagger: `https://localhost/swagger-ui.html`
+- OpenAPI JSON: `https://localhost/v3/api-docs`
 
-### 2.3. Lưu ý về Swagger local-only
+### 2.3. Lưu ý về Swagger
 
-Swagger hiện được cấu hình chỉ bind vào `127.0.0.1` của máy host. Điều đó có nghĩa:
+Swagger hiện có thể truy cập qua `https://localhost/swagger-ui.html` và qua domain public khi tunnel đang bật. Tuy nhiên để quét an toàn và ổn định hơn, nên ưu tiên:
 
-- máy khác trong mạng không truy cập được;
-- container khác cũng không truy cập được theo cách thông thường;
-- cách kiểm thử phù hợp nhất là chạy `OWASP ZAP Desktop` trực tiếp trên chính máy host.
+- `localhost` khi quét trực tiếp trên máy host;
+- `host.docker.internal` khi quét bằng container trên cùng máy host;
+- domain public chỉ dùng khi cần kiểm tra đúng bề mặt public đang mở.
 
 ## 3. Cài đặt và mở OWASP ZAP
 
@@ -69,7 +69,7 @@ Sau khi quét, xem tab `Alerts` và kiểm tra:
 - trang có truy cập được qua HTTPS;
 - không xuất hiện lỗi nghiêm trọng kiểu lộ stack trace;
 - hệ thống có các header bảo mật cơ bản;
-- không có dấu hiệu public Swagger trên cổng người dùng.
+- nếu tunnel public đang bật, cần kiểm tra Swagger public có còn đúng cấu hình bảo mật hay không.
 
 ## 5. Kiểm thử Swagger/OpenAPI trên máy host
 
@@ -78,13 +78,13 @@ Sau khi quét, xem tab `Alerts` và kiểm tra:
 Trong `Quick Start` hoặc `Manual Explore`, dùng URL:
 
 ```text
-https://localhost:8444/swagger-ui.html
+https://localhost/swagger-ui.html
 ```
 
-Hoặc vào trực tiếp:
+Hoặc nếu quét bằng container trên cùng máy host:
 
 ```text
-https://localhost:8444/swagger-ui/index.html
+https://host.docker.internal/swagger-ui.html
 ```
 
 ### 5.2. Mục tiêu của bước này
@@ -139,13 +139,13 @@ Kỳ vọng:
 - thiếu xác thực: `401 Unauthorized`
 - sai quyền: `403 Forbidden`
 
-### 6.4. Swagger không lộ trên cổng public
+### 6.4. Swagger không lộ trên hostname/IP public
 
-Thử mở:
+Thử gửi request:
 
-```text
-https://localhost/swagger-ui.html
-https://localhost/v3/api-docs
+```powershell
+curl.exe -k -I https://localhost/swagger-ui.html -H "Host: demo-public.example"
+curl.exe -k -I https://localhost/v3/api-docs -H "Host: demo-public.example"
 ```
 
 Kỳ vọng:
@@ -196,8 +196,8 @@ Nên chụp ít nhất các hình sau:
 
 1. Giao diện ZAP đang quét `https://localhost`
 2. Kết quả alert sau khi quét
-3. Kết quả truy cập `https://localhost/swagger-ui.html` bị `404`
-4. Kết quả truy cập `https://localhost:8444/swagger-ui.html` thành công trên máy host
+3. Kết quả truy cập `https://localhost/swagger-ui.html` thành công trên máy host
+4. Kết quả giả lập `Host: demo-public.example` bị `404`
 
 Các hình này giúp giải thích rõ rằng:
 
@@ -206,7 +206,7 @@ Các hình này giúp giải thích rõ rằng:
 
 ## 10. Giới hạn hiện tại của cách quét
 
-- Swagger chỉ mở local-only nên không phù hợp với kiểu quét bằng container ZAP từ bên ngoài.
+- Swagger chỉ mở cho hostname local nên khi quét bằng container ZAP phải dùng `https://host.docker.internal/swagger-ui.html`.
 - ZAP baseline không tự mô phỏng đầy đủ các ca đăng nhập, refresh token hay webhook HMAC.
 - Các tình huống nghiệp vụ sâu như BOLA, replay webhook, rate limit vẫn nên kiểm chứng bằng Postman và integration test.
 

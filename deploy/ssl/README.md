@@ -1,41 +1,46 @@
 # Ghi chú TLS cho môi trường local
 
-Thư mục này chứa certificate dùng cho `Nginx` local origin.
+Thư mục này chứa certificate mà `Nginx` dùng để phục vụ môi trường demo local qua `https://localhost`.
 
-## 1. File cần có
+## 1. Các file cần có
 
 - `fullchain.pem`
 - `privkey.pem`
 
-Reverse proxy được mô tả tại [deploy/nginx/securityapp.conf](/E:/PROJECT_MMUD/deploy/nginx/securityapp.conf).
+Reverse proxy sử dụng các file này được mô tả tại [deploy/nginx/securityapp.conf](/E:/PROJECT_MMUD/deploy/nginx/securityapp.conf).
 
 ## 2. Cách dùng trong project
 
-- `Nginx` dùng certificate trong thư mục này để phục vụ `https://localhost`
+- `Nginx` dùng certificate trong thư mục này để phục vụ frontend và API qua HTTPS
 - Đây là chế độ chạy chuẩn cho demo đồ án và kiểm thử bảo mật nội bộ
-- Nếu sau này cần publish ra internet, nên để TLS kết thúc ở reverse proxy hoặc dịch vụ edge phù hợp, nhưng luồng nộp đồ án hiện tại chỉ cần `https://localhost`
+- Trong luồng nộp đồ án hiện tại, chỉ cần `https://localhost`; chưa cần public Internet
 
-## 3. Mục tiêu của lớp TLS
+## 3. Mục tiêu của lớp TLS trong project
 
-1. Frontend và backend đi qua `HTTPS`
-2. Backend không bị public trực tiếp qua HTTP ngoài internet
+1. Frontend và backend được truy cập qua `HTTPS`
+2. Backend không bị public trực tiếp ra ngoài bằng HTTP thuần
 3. `Nginx` terminate TLS rồi proxy:
    - `/` -> frontend
    - `/api/*` -> backend
-   - cổng `8444` local-only -> Swagger/OpenAPI -> backend
+   - `/swagger-ui*` và `/v3/api-docs*` -> backend nhưng chỉ mở với hostname local
 
-## 4. Tạo cert self-signed cho local
+## 4. Tạo certificate self-signed cho local
 
-Nếu cần test local với self-signed certificate:
+Nếu cần sinh lại certificate local:
 
 ```powershell
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 ^
-  -keyout deploy/ssl/privkey.pem ^
-  -out deploy/ssl/fullchain.pem ^
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 `
+  -keyout deploy/ssl/privkey.pem `
+  -out deploy/ssl/fullchain.pem `
   -subj "/CN=localhost"
 ```
 
 ## 5. Ghi chú thêm
 
-- File cert local đã được đưa vào `.gitignore`.
-- Nếu cần sinh lại cert local, có thể xóa `deploy/ssl/fullchain.pem` và `deploy/ssl/privkey.pem`, sau đó chạy lại `docker compose up -d --build`.
+- Nếu cần sinh lại cert local, có thể xóa `deploy/ssl/fullchain.pem` và `deploy/ssl/privkey.pem`, sau đó chạy lại:
+
+```powershell
+docker compose up -d --build
+```
+
+- Khi triển khai Internet thật, nên thay self-signed certificate bằng certificate hợp lệ, ví dụ từ Let's Encrypt hoặc hệ thống PKI nội bộ phù hợp

@@ -223,7 +223,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public UserResponse getUserProfile(Long userId) {
         User actor = currentUserService.getRequiredUser();
-        authorizationService.assertSelfOrAdmin(actor, userId);
+        authorizationService.assertSelfOnly(actor, userId);
         User requestedUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User profile was not found."));
         return toUserResponse(requestedUser);

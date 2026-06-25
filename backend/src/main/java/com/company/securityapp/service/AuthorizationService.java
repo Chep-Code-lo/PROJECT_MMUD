@@ -25,60 +25,48 @@ public class AuthorizationService {
         return actor.getRole() == Role.ADMIN;
     }
 
-    public boolean isInstructor(User actor) {
-        return actor.getRole() == Role.INSTRUCTOR;
-    }
-
     public boolean canManageCourse(User actor, Course course) {
         return isAdmin(actor)
-                || (isInstructor(actor) && course.getInstructor() != null
-                        && course.getInstructor().getId().equals(actor.getId()));
+                || (course.getInstructor() != null && course.getInstructor().getId().equals(actor.getId()));
     }
 
-    public void assertSelfOrAdmin(User actor, Long requestedUserId) {
-        if (isAdmin(actor) || actor.getId().equals(requestedUserId)) {
+    public void assertSelfOnly(User actor, Long requestedUserId) {
+        if (actor.getRole() == Role.STUDENT && actor.getId().equals(requestedUserId)) {
             return;
         }
-        deny(actor, "User", requestedUserId, "Students cannot access another user's profile.");
+        deny(actor, "User", requestedUserId, "Only the owning student can access this profile.");
     }
 
-    public void assertCanCreateCourse(User actor) {
-        if (isAdmin(actor) || isInstructor(actor)) {
+    public void assertStudentOnly(User actor, String targetType, Long targetId, String message) {
+        if (actor.getRole() == Role.STUDENT) {
             return;
         }
-        deny(actor, "Course", null, "Only instructors or admins can create courses.");
-    }
-
-    public void assertCanManageCourse(User actor, Course course) {
-        if (canManageCourse(actor, course)) {
-            return;
-        }
-        deny(actor, "Course", course.getId(), "You do not have permission to manage this course.");
+        deny(actor, targetType, targetId, message);
     }
 
     public void assertCanViewEnrollment(User actor, Enrollment enrollment) {
-        if (isAdmin(actor) || enrollment.getStudent().getId().equals(actor.getId())) {
+        if (actor.getRole() == Role.STUDENT && enrollment.getStudent().getId().equals(actor.getId())) {
             return;
         }
-        deny(actor, "Enrollment", enrollment.getId(), "Students cannot access another student's enrollment.");
+        deny(actor, "Enrollment", enrollment.getId(), "Only the owning student can access this enrollment.");
     }
 
     public void assertCanViewCertificate(User actor, Certificate certificate) {
-        if (isAdmin(actor) || certificate.getStudent().getId().equals(actor.getId())) {
+        if (actor.getRole() == Role.STUDENT && certificate.getStudent().getId().equals(actor.getId())) {
             return;
         }
-        deny(actor, "Certificate", certificate.getId(), "Students cannot access another student's certificate.");
+        deny(actor, "Certificate", certificate.getId(), "Only the owning student can access this certificate.");
     }
 
     public void assertCanViewLesson(User actor, Lesson lesson, boolean unlocked) {
-        if (unlocked || canManageCourse(actor, lesson.getCourse())) {
+        if (actor.getRole() == Role.STUDENT && unlocked) {
             return;
         }
         deny(
                 actor,
                 "Lesson",
                 lesson.getId(),
-                "Course lessons are only available to enrolled students or the course owner.");
+                "Course lessons are only available to the enrolled student.");
     }
 
     private void deny(User actor, String targetType, Long targetId, String message) {

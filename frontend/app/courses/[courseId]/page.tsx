@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Button from "@/components/Button";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { tokenStorage } from "@/lib/tokenStorage";
+import { authService } from "@/services/authService";
 import { courseService } from "@/services/courseService";
 import type { CheckoutResponse, CourseDetail } from "@/types/course";
 
@@ -23,6 +24,12 @@ export default function CourseDetailPage() {
   const [checkingOut, setCheckingOut] = useState(false);
 
   useEffect(() => {
+    const storedUser = authService.getStoredUser();
+    if (storedUser?.role === "ADMIN") {
+      router.replace("/admin/courses");
+      return;
+    }
+
     courseService
       .getCourse(courseId)
       .then(setCourse)
@@ -30,7 +37,7 @@ export default function CourseDetailPage() {
         setError(getApiErrorMessage(err, "Khong tai duoc chi tiet khoa hoc."))
       )
       .finally(() => setLoading(false));
-  }, [courseId]);
+  }, [courseId, router]);
 
   const handleCheckout = async () => {
     if (!tokenStorage.getAccessToken()) {
@@ -75,7 +82,7 @@ export default function CourseDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-              {course.instructorName}
+              Bao mat API lab
             </p>
             <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
               {course.title}
@@ -90,7 +97,7 @@ export default function CourseDetailPage() {
 
           <div className="rounded-[28px] border border-[#1f2a24]/10 bg-[#f4ecdf] p-5">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6c655a]">
-              Trang thai tham gia
+              Truy cap khoa hoc
             </div>
             <div
               className={`mt-3 rounded-full px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] ${
@@ -102,7 +109,7 @@ export default function CourseDetailPage() {
               {course.enrolled ? "Da ghi danh" : "Chua ghi danh"}
             </div>
             <p className="mt-4 text-sm leading-7 text-[#536059]">
-              Sau khi hoan tat dang ky, ban co the mo day du tat ca bai hoc trong khoa hoc nay.
+              Dang nhap de gui yeu cau tham gia va truy cap khoa hoc bang tai khoan cua ban.
             </p>
             <div className="mt-5">
               <Button onClick={handleCheckout} disabled={checkingOut}>
@@ -124,16 +131,10 @@ export default function CourseDetailPage() {
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
             Yeu cau da duoc ghi nhan
           </p>
-          <h2 className="mb-3 text-xl font-semibold text-[#16443a]">
-            {checkout.courseTitle}
-          </h2>
-          <div className="space-y-2 text-sm leading-7 text-[#426158]">
-            <p>
-              Yeu cau tham gia khoa hoc da duoc ghi nhan. Trang thai hien tai:
-              {" "}
-              {checkout.status === "ACTIVE" ? "Dang hoc" : "Dang xu ly"}.
-            </p>
-          </div>
+          <h2 className="mb-3 text-xl font-semibold text-[#16443a]">{checkout.courseTitle}</h2>
+          <p className="text-sm leading-7 text-[#426158]">
+            Ban da gui yeu cau tham gia thanh cong. Tai khoan admin se duyet yeu cau nay truoc khi mo quyen hoc.
+          </p>
         </section>
       )}
 
@@ -153,44 +154,23 @@ export default function CourseDetailPage() {
               key={lesson.id}
               className="rounded-[28px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_36px_rgba(31,42,36,0.05)]"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b5e34]">
-                    Lesson {lesson.sortOrder}
-                  </p>
-                  <h3 className="mt-2 text-xl font-semibold text-[#163d35]">
-                    {lesson.title}
-                  </h3>
-                </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${
-                    lesson.unlocked
-                      ? "bg-[#e7f6ee] text-[#166534]"
-                      : "bg-[#fff4ea] text-[#9a3412]"
-                  }`}
-                >
-                  {lesson.unlocked ? "Co the xem" : "Xem truoc"}
-                </span>
-              </div>
-
-              <p className="mt-4 text-sm leading-7 text-[#536059]">
-                {lesson.previewText}
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b5e34]">
+                Bai {lesson.sortOrder}
               </p>
+              <h3 className="mt-2 text-xl font-semibold text-[#163d35]">
+                {lesson.title}
+              </h3>
 
-              <div className="mt-5">
-                {lesson.unlocked ? (
+              {course.enrolled && (
+                <div className="mt-5">
                   <Link
                     href={`/courses/${course.id}/lessons/${lesson.id}`}
                     className="inline-flex rounded-full bg-[#12372f] px-4 py-2.5 text-sm font-semibold text-[#f7faf8]"
                   >
-                    Xem bai hoc
+                    Mo bai hoc
                   </Link>
-                ) : (
-                  <div className="text-sm text-[#8c5b3c]">
-                    Dang ky khoa hoc de mo noi dung day du.
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </article>
           ))}
         </div>

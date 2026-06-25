@@ -41,6 +41,10 @@ export default function Navbar() {
     };
   }, [pathname]);
 
+  if (pathname === "/") {
+    return null;
+  }
+
   const isAdmin = currentUser?.role === "ADMIN";
 
   return (
@@ -48,19 +52,24 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Link href="/" className="shrink-0">
           <span className="block text-xs font-semibold uppercase tracking-[0.34em] text-[#8b5e34]">
-            Online Learning
+            Security API Lab
           </span>
-          <span className="text-xl font-bold text-[#12372f]">CourseHub</span>
+          <span className="text-xl font-bold text-[#12372f]">Applied Cryptography Demo</span>
         </Link>
 
         <div className="flex flex-col gap-3 text-sm font-medium text-[#30413a] md:flex-row md:items-center md:gap-5">
-          <Link href="/courses" className="transition hover:text-[#0f766e]">
-            Khoa hoc
-          </Link>
+          {!isAdmin && (
+            <Link href="/courses" className="transition hover:text-[#0f766e]">
+              Khoa hoc
+            </Link>
+          )}
 
-          {currentUser && (
-            <Link href="/dashboard" className="transition hover:text-[#0f766e]">
-              Tong quan
+          {isAdmin && (
+            <Link
+              href="/admin/courses"
+              className="transition hover:text-[#0f766e]"
+            >
+              Quan ly ghi danh
             </Link>
           )}
 
@@ -75,7 +84,7 @@ export default function Navbar() {
               href="/admin/audit-logs"
               className="transition hover:text-[#0f766e]"
             >
-              Quan tri
+              Audit log
             </Link>
           )}
 

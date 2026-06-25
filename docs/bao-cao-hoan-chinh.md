@@ -22,6 +22,18 @@ Với sinh viên ngành An toàn thông tin, việc chỉ học lý thuyết v�
 
 Báo cáo này được xây dựng với định hướng vừa mang tính học thuật, vừa mang tính thực hành. Ngoài phần cơ sở lý thuyết, báo cáo còn trình bày cách thiết kế hệ thống, tổ chức mã nguồn, mô hình dữ liệu, quy trình kiểm thử và các kịch bản demo tấn công/phòng thủ. Mục tiêu cuối cùng là chứng minh rằng các kỹ thuật mật mã không chỉ tồn tại ở mức khái niệm, mà có thể được tích hợp đúng cách vào một hệ thống chạy thật, có thể quan sát, đo kiểm và đánh giá.
 
+## Phân công công việc
+
+Để bảo đảm tiến độ triển khai và phân tách rõ trách nhiệm kỹ thuật trong nhóm, đề tài được chia thành ba mảng công việc chính. Việc phân công này bám theo các lớp kỹ thuật quan trọng của hệ thống gồm backend security, backend nghiệp vụ và dữ liệu, cùng với frontend, triển khai và tài liệu hóa.
+
+| Thành viên | Mảng phụ trách chính | Nội dung thực hiện tiêu biểu |
+| --- | --- | --- |
+| Bạn 1 | Backend Security - Auth, JWT, Role | Phụ trách luồng đăng ký, đăng nhập, refresh token, logout, quên mật khẩu và đặt lại mật khẩu; cấu hình `Spring Security`; triển khai `JWT`; xử lý `role/scope`; kiểm tra quyền truy cập ở backend; hỗ trợ audit log cho các sự kiện bảo mật quan trọng. |
+| Bạn 2 | Backend Business API - Customer, Ticket, AES, Database | Phụ trách thiết kế và hiện thực các API nghiệp vụ, entity, repository, service và tầng cơ sở dữ liệu; triển khai `AES-GCM` để mã hóa dữ liệu nhạy cảm; chuẩn bị seed data và kiểm tra dữ liệu lưu trong database. Trong cách gọi theo source ban đầu, phần này gắn với `Customer`, `Ticket`, `AES`, `Database`; trong phiên bản đồ án hiện tại có thể đối chiếu tương ứng với các module nghiệp vụ như `Course`, `Lesson`, `Enrollment`, `Certificate` và dữ liệu liên quan. |
+| Bạn 3 | Frontend, Docker, Swagger, Test, Report | Phụ trách xây dựng giao diện `NextJS` phục vụ demo; cấu hình `Docker`, `Docker Compose`, `Nginx` và `HTTPS/TLS`; tích hợp `Swagger/OpenAPI`; chuẩn bị tài liệu kiểm thử bằng Postman và OWASP ZAP; biên soạn báo cáo, ảnh minh họa và hướng dẫn demo. |
+
+Ngoài phạm vi chính đã được phân công, các thành viên vẫn phối hợp chéo ở giai đoạn tích hợp, chạy kiểm thử tổng thể, sửa lỗi phát sinh và hoàn thiện báo cáo cuối cùng. Cách tổ chức này giúp đề tài vừa đảm bảo tiến độ thực hiện, vừa thể hiện rõ đóng góp của từng thành viên trong quá trình xây dựng hệ thống.
+
 ## Chương 1. Tổng quan đề tài
 
 ### 1.1. Đặt vấn đề

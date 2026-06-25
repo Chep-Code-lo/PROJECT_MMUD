@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/api/webhooks/payment-success"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "enrollmentId": {{pendingEnrollmentId}},
+      "userId": {{studentUserId}},
+      "courseId": {{pendingCourseId}},
+      "paymentReference": "{{paymentReference}}",
+      "amount": {{courseAmount}}
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const eventId = `evt_postman_${Date.now()}`;
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      pm.collectionVariables.set('webhookEventId', eventId);
+      pm.collectionVariables.set('webhookTimestamp', timestamp);
+      const rawBody = pm.variables.replaceIn(pm.request.body.raw);
+      const payloadToSign = `${eventId}.${timestamp}.${rawBody}`;
+      const signature = CryptoJS.HmacSHA256(payloadToSign, pm.collectionVariables.get('webhookSecret')).toString(CryptoJS.enc.Hex);
+      pm.request.headers.upsert({ key: 'X-Event-Id', value: eventId });
+      pm.request.headers.upsert({ key: 'X-Timestamp', value: timestamp });
+      pm.request.headers.upsert({ key: 'X-Signature', value: signature });
+    language: text/javascript
+order: 17000

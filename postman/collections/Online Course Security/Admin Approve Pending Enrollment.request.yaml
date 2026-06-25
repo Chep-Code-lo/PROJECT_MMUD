@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/admin/enrollments/{{pendingEnrollmentId}}/approve"
+method: POST
+headers:
+  Authorization: Bearer {{adminAccessToken}}
+order: 12000

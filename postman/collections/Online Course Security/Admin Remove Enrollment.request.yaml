@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/admin/enrollments/{{managedEnrollmentId}}"
+method: DELETE
+headers:
+  Authorization: Bearer {{adminAccessToken}}
+order: 15000

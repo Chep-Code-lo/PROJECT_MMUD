@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/admin/users/{{studentUserId}}"
+method: GET
+headers:
+  Authorization: Bearer {{adminAccessToken}}
+order: 14000

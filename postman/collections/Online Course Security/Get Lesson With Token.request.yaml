@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/courses/{{courseId}}/lessons/{{lessonId}}"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+order: 7000

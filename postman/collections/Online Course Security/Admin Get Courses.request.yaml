@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/admin/courses"
+method: GET
+headers:
+  Authorization: Bearer {{adminAccessToken}}
+order: 10000

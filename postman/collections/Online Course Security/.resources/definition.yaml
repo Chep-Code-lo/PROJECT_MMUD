@@ -1,0 +1,21 @@
+$kind: collection
+description: "Postman collection for the Applied Cryptography project: JWT, bcrypt, AES-GCM, BOLA, HMAC webhook, audit log, and rate limit."
+variables:
+  baseUrl: https://localhost
+  accessToken: ""
+  refreshToken: ""
+  student2AccessToken: ""
+  adminAccessToken: ""
+  studentUserId: "1"
+  courseId: "1"
+  adminCourseId: "1"
+  lessonId: "1"
+  pendingCourseId: "3"
+  pendingEnrollmentId: "3"
+  managedEnrollmentId: ""
+  victimCertificateId: "1"
+  courseAmount: "299000.00"
+  paymentReference: PAY-POSTMAN-001
+  webhookSecret: change-me-webhook-secret-with-at-least-32-characters
+  webhookEventId: ""
+  webhookTimestamp: ""

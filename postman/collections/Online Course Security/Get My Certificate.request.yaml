@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/certificates/me"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      const data = pm.response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        pm.collectionVariables.set('victimCertificateId', String(data[0].id));
+      }
+    language: text/javascript
+order: 8000

@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/admin/courses/{{pendingCourseId}}/students"
+method: POST
+headers:
+  Authorization: Bearer {{adminAccessToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "student2@example.com"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      const data = pm.response.json();
+      pm.collectionVariables.set('managedEnrollmentId', String(data.enrollmentId));
+    language: text/javascript
+order: 13000

@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/courses/{{pendingCourseId}}/checkout"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      const data = pm.response.json();
+      pm.collectionVariables.set('pendingEnrollmentId', String(data.enrollmentId));
+      pm.collectionVariables.set('paymentReference', data.paymentReference);
+    language: text/javascript
+order: 6000

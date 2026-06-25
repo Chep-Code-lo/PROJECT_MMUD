@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "admin@example.com",
+      "password": "Admin123!"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      const data = pm.response.json();
+      pm.collectionVariables.set('adminAccessToken', data.accessToken);
+    language: text/javascript
+order: 4000

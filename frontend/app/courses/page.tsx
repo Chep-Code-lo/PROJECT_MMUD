@@ -27,7 +27,7 @@ export default function CoursesPage() {
       .getCourses()
       .then(setCourses)
       .catch((err) =>
-        setError(getApiErrorMessage(err, "Khong tai duoc danh sach khoa hoc."))
+        setError(getApiErrorMessage(err, "Không tải được danh sách khóa học."))
       )
       .finally(() => setLoading(false));
   }, [router]);
@@ -36,20 +36,20 @@ export default function CoursesPage() {
     <main className="space-y-6">
       <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-          Danh muc khoa hoc
+          Danh mục khóa học
         </p>
         <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-          Kham pha cac khoa hoc hien co
+          Khám phá các khóa học hiện có
         </h1>
         <p className="max-w-3xl text-sm leading-7 text-[#536059]">
-          Ban co the xem thong tin tong quan, hoc phi va noi dung khai giang truoc
-          khi dang ky hoc.
+          Bạn có thể xem thông tin tổng quan, học phí và nội dung khai giảng trước
+          khi đăng ký học.
         </p>
       </section>
 
       {loading && (
         <div className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
-          Dang tai khoa hoc...
+          Đang tải khóa học...
         </div>
       )}
 
@@ -77,9 +77,9 @@ export default function CoursesPage() {
 
             <Link
               href={`/courses/${course.id}`}
-              className="inline-flex rounded-full bg-[#12372f] px-4 py-2.5 text-sm font-semibold text-[#f7faf8]"
+              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#0f766e] px-6 py-3 text-base font-bold tracking-wide text-white shadow-[0_16px_34px_rgba(15,118,110,0.28)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#115e59] hover:shadow-[0_20px_42px_rgba(15,118,110,0.34)] active:translate-y-0"
             >
-              Xem chi tiet khoa hoc
+              Xem chi tiết khóa học
             </Link>
           </article>
         ))}

@@ -29,7 +29,7 @@ export default function AdminCourseRosterPage() {
       setRoster(data);
       setError("");
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong tai duoc danh sach hoc vien cua khoa hoc."));
+      setError(getApiErrorMessage(err, "Không tải được danh sách học viên của khóa học."));
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export default function AdminCourseRosterPage() {
       await adminService.approveEnrollment(enrollmentId);
       await loadRoster();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong the duyet yeu cau ghi danh."));
+      setError(getApiErrorMessage(err, "Không thể duyệt yêu cầu ghi danh."));
     } finally {
       setActionKey("");
     }
@@ -61,7 +61,7 @@ export default function AdminCourseRosterPage() {
       await adminService.removeEnrollment(enrollmentId);
       await loadRoster();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong the xoa hoc vien khoi khoa hoc."));
+      setError(getApiErrorMessage(err, "Không thể xóa học viên khỏi khóa học."));
     } finally {
       setActionKey("");
     }
@@ -77,7 +77,7 @@ export default function AdminCourseRosterPage() {
       setAddEmail("");
       await loadRoster();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong the them hoc vien vao khoa hoc."));
+      setError(getApiErrorMessage(err, "Không thể thêm học viên vào khóa học."));
     } finally {
       setActionKey("");
     }
@@ -88,7 +88,7 @@ export default function AdminCourseRosterPage() {
       <main className="space-y-6">
         {loading && (
           <div className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
-            Dang tai thong tin khoa hoc...
+            Đang tải thông tin khóa học...
           </div>
         )}
 
@@ -98,7 +98,7 @@ export default function AdminCourseRosterPage() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="max-w-3xl">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-                    Quan ly hoc vien
+                    Quản lý học viên
                   </p>
                   <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
                     {roster.courseTitle}
@@ -107,10 +107,10 @@ export default function AdminCourseRosterPage() {
                     {roster.courseSummary}
                   </p>
                   <div className="space-y-2 text-sm text-[#4f5b54]">
-                    <p>Giang vien: {roster.instructorName}</p>
-                    <p>Hoc phi: {currencyFormatter.format(roster.price)} VND</p>
-                    <p>Hoc vien dang hoc: {roster.activeStudentCount}</p>
-                    <p>Yeu cau cho duyet: {roster.pendingRequestCount}</p>
+                    <p>Giảng viên: {roster.instructorName}</p>
+                    <p>Học phí: {currencyFormatter.format(roster.price)} VND</p>
+                    <p>Học viên đang học: {roster.activeStudentCount}</p>
+                    <p>Yêu cầu chờ duyệt: {roster.pendingRequestCount}</p>
                   </div>
                 </div>
 
@@ -118,7 +118,7 @@ export default function AdminCourseRosterPage() {
                   href="/admin/courses"
                   className="inline-flex rounded-full border border-[#1f2a24]/12 bg-white/80 px-4 py-2.5 text-sm font-semibold text-[#12372f]"
                 >
-                  Quay lai danh sach khoa hoc
+                  Quay lại danh sách khóa học
                 </Link>
               </div>
             </section>
@@ -131,11 +131,11 @@ export default function AdminCourseRosterPage() {
 
             <section className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
               <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
-                Them hoc vien vao khoa hoc
+                Thêm học viên vào khóa học
               </h2>
               <form onSubmit={handleAddStudent} className="flex flex-col gap-3 md:flex-row md:items-end">
                 <Input
-                  label="Email hoc vien"
+                  label="Email học viên"
                   type="email"
                   placeholder="student2@example.com"
                   value={addEmail}
@@ -147,7 +147,7 @@ export default function AdminCourseRosterPage() {
                   className="md:w-auto"
                   disabled={actionKey === "add-student"}
                 >
-                  {actionKey === "add-student" ? "Dang them..." : "Them hoc vien"}
+                  {actionKey === "add-student" ? "Đang thêm..." : "Thêm học viên"}
                 </Button>
               </form>
             </section>
@@ -156,17 +156,17 @@ export default function AdminCourseRosterPage() {
               <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <h2 className="text-2xl font-semibold text-[#163d35]">
-                    Yeu cau cho duyet
+                    Yêu cầu chờ duyệt
                   </h2>
                   <span className="rounded-full bg-[#fff4ea] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#9a3412]">
-                    {roster.pendingRequestCount} yeu cau
+                    {roster.pendingRequestCount} yêu cầu
                   </span>
                 </div>
 
                 <div className="space-y-4">
                   {roster.pendingRequests.length === 0 && (
                     <div className="rounded-2xl border border-[#1f2a24]/8 bg-[#faf6ee] px-4 py-4 text-sm text-[#536059]">
-                      Khong co yeu cau nao dang cho duyet.
+                      Không có yêu cầu nào đang chờ duyệt.
                     </div>
                   )}
 
@@ -181,7 +181,7 @@ export default function AdminCourseRosterPage() {
                             {enrollment.studentName}
                           </p>
                           <p>{enrollment.studentEmail}</p>
-                          <p>Tao yeu cau: {formatLocalDateTime(enrollment.createdAt)}</p>
+                          <p>Tạo yêu cầu: {formatLocalDateTime(enrollment.createdAt)}</p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
@@ -189,7 +189,7 @@ export default function AdminCourseRosterPage() {
                             href={`/admin/students/${enrollment.studentId}`}
                             className="inline-flex rounded-full border border-[#1f2a24]/12 bg-white/80 px-4 py-2 text-sm font-semibold text-[#12372f]"
                           >
-                            Xem ho so
+                            Xem hồ sơ
                           </Link>
                           <Button
                             variant="success"
@@ -197,8 +197,8 @@ export default function AdminCourseRosterPage() {
                             onClick={() => handleApprove(enrollment.enrollmentId)}
                           >
                             {actionKey === `approve-${enrollment.enrollmentId}`
-                              ? "Dang duyet..."
-                              : "Duyet"}
+                              ? "Đang duyệt..."
+                              : "Duyệt"}
                           </Button>
                           <Button
                             variant="danger"
@@ -206,8 +206,8 @@ export default function AdminCourseRosterPage() {
                             onClick={() => handleRemove(enrollment.enrollmentId)}
                           >
                             {actionKey === `remove-${enrollment.enrollmentId}`
-                              ? "Dang xoa..."
-                              : "Tu choi"}
+                              ? "Đang xóa..."
+                              : "Từ chối"}
                           </Button>
                         </div>
                       </div>
@@ -219,17 +219,17 @@ export default function AdminCourseRosterPage() {
               <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
                 <div className="mb-5 flex items-center justify-between gap-3">
                   <h2 className="text-2xl font-semibold text-[#163d35]">
-                    Hoc vien dang hoc
+                    Học viên đang học
                   </h2>
                   <span className="rounded-full bg-[#eef7f4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#0f766e]">
-                    {roster.activeStudentCount} hoc vien
+                    {roster.activeStudentCount} học viên
                   </span>
                 </div>
 
                 <div className="space-y-4">
                   {roster.activeStudents.length === 0 && (
                     <div className="rounded-2xl border border-[#1f2a24]/8 bg-[#faf6ee] px-4 py-4 text-sm text-[#536059]">
-                      Chua co hoc vien nao dang hoc.
+                      Chưa có học viên nào đang học.
                     </div>
                   )}
 
@@ -244,9 +244,9 @@ export default function AdminCourseRosterPage() {
                             {enrollment.studentName}
                           </p>
                           <p>{enrollment.studentEmail}</p>
-                          <p>Kich hoat: {formatLocalDateTime(enrollment.activatedAt)}</p>
+                          <p>Kích hoạt: {formatLocalDateTime(enrollment.activatedAt)}</p>
                           <p>
-                            Chung chi: {enrollment.certificateIssued ? "Da cap" : "Chua cap"}
+                            Chứng chỉ: {enrollment.certificateIssued ? "Đã cấp" : "Chưa cấp"}
                           </p>
                         </div>
 
@@ -255,7 +255,7 @@ export default function AdminCourseRosterPage() {
                             href={`/admin/students/${enrollment.studentId}`}
                             className="inline-flex rounded-full border border-[#1f2a24]/12 bg-white/80 px-4 py-2 text-sm font-semibold text-[#12372f]"
                           >
-                            Xem ho so
+                            Xem hồ sơ
                           </Link>
                           <Button
                             variant="danger"
@@ -263,8 +263,8 @@ export default function AdminCourseRosterPage() {
                             onClick={() => handleRemove(enrollment.enrollmentId)}
                           >
                             {actionKey === `remove-${enrollment.enrollmentId}`
-                              ? "Dang xoa..."
-                              : "Xoa khoi khoa hoc"}
+                              ? "Đang xóa..."
+                              : "Xóa khỏi khóa học"}
                           </Button>
                         </div>
                       </div>

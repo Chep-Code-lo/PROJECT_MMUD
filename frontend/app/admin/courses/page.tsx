@@ -19,7 +19,7 @@ export default function AdminCoursesPage() {
       .getCourses()
       .then(setCourses)
       .catch((err) =>
-        setError(getApiErrorMessage(err, "Khong tai duoc danh sach khoa hoc quan tri."))
+        setError(getApiErrorMessage(err, "Không tải được danh sách khóa học quản trị."))
       )
       .finally(() => setLoading(false));
   }, []);
@@ -29,20 +29,20 @@ export default function AdminCoursesPage() {
       <main className="space-y-6">
         <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-            Quan ly ghi danh
+            Quản lý ghi danh
           </p>
           <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-            Duyet yeu cau hoc vien theo tung khoa hoc
+            Duyệt yêu cầu học viên theo từng khóa học
           </h1>
           <p className="max-w-3xl text-sm leading-7 text-[#536059]">
-            Admin xem so luong hoc vien dang hoc, so yeu cau cho duyet va di vao
-            tung khoa hoc de them, xoa hoac duyet hoc vien.
+            Quản trị viên xem số lượng học viên đang học, số yêu cầu chờ duyệt và đi vào
+            từng khóa học để thêm, xóa hoặc duyệt học viên.
           </p>
         </section>
 
         {loading && (
           <div className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
-            Dang tai danh sach khoa hoc...
+            Đang tải danh sách khóa học...
           </div>
         )}
 
@@ -61,24 +61,24 @@ export default function AdminCoursesPage() {
               <div className="mb-4 flex items-start justify-between gap-3">
                 <h2 className="text-xl font-semibold text-[#163d35]">{course.title}</h2>
                 <span className="rounded-full bg-[#eef7f4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#0f766e]">
-                  {course.pendingRequestCount} cho duyet
+                  {course.pendingRequestCount} chờ duyệt
                 </span>
               </div>
 
               <p className="mb-4 text-sm leading-7 text-[#536059]">{course.summary}</p>
 
               <div className="space-y-2 text-sm text-[#4f5b54]">
-                <p>Giang vien: {course.instructorName}</p>
-                <p>Hoc vien dang hoc: {course.activeStudentCount}</p>
-                <p>Hoc phi: {currencyFormatter.format(course.price)} VND</p>
+                <p>Giảng viên: {course.instructorName}</p>
+                <p>Học viên đang học: {course.activeStudentCount}</p>
+                <p>Học phí: {currencyFormatter.format(course.price)} VND</p>
               </div>
 
               <div className="mt-6">
                 <Link
                   href={`/admin/courses/${course.id}`}
-                  className="inline-flex rounded-full bg-[#12372f] px-4 py-2.5 text-sm font-semibold text-[#f7faf8]"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#0f766e] px-6 py-3 text-base font-bold tracking-wide text-white shadow-[0_16px_34px_rgba(15,118,110,0.28)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#115e59] hover:shadow-[0_20px_42px_rgba(15,118,110,0.34)] active:translate-y-0"
                 >
-                  Mo quan ly khoa hoc
+                  Mở quản lý khóa học
                 </Link>
               </div>
             </article>

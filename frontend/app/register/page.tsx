@@ -29,33 +29,31 @@ export default function RegisterPage() {
       await authService.register(form);
       router.push("/courses");
     } catch (err) {
-      setError(getApiErrorMessage(err, "Dang ky that bai."));
+      setError(getApiErrorMessage(err, "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin đã nhập."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="mx-auto max-w-3xl">
-      <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_26px_60px_rgba(31,42,36,0.08)] md:p-10">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-          Dang ky tai khoan
+    <main className="relative mx-auto max-w-4xl overflow-hidden py-6">
+      <div className="pointer-events-none absolute -right-8 top-8 h-32 w-32 rounded-full bg-[#0f766e]/12 blur-2xl animate-pulse-glow" />
+      <section className="relative rounded-[30px] border border-[#1f2a24]/10 bg-white/90 p-7 shadow-[0_28px_70px_rgba(31,42,36,0.1)] backdrop-blur animate-fade-in-up md:p-10">
+        <p className="mb-3 text-base font-bold text-[#8b5e34]">
+          Đăng ký tài khoản
         </p>
-        <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-          Tao tai khoan hoc vien moi
+        <h1 className="mb-4 text-4xl font-bold leading-tight text-[#12372f] md:text-5xl">
+          Tạo tài khoản học viên mới
         </h1>
-        <p className="mb-8 max-w-2xl text-sm leading-7 text-[#546159]">
-          Dien thong tin can thiet de bat dau hoc tap, theo doi khoa hoc va quan ly
-          tai khoan ca nhan tren he thong.
-        </p>
 
         <form onSubmit={handleRegister} className="grid gap-5 md:grid-cols-2">
           <Input
-            label="Full Name"
+            label="Họ và tên"
             value={form.fullName}
             onChange={(event) =>
               setForm((current) => ({ ...current, fullName: event.target.value }))
             }
+            placeholder="Nhập họ và tên"
             required
           />
           <Input
@@ -65,28 +63,31 @@ export default function RegisterPage() {
             onChange={(event) =>
               setForm((current) => ({ ...current, email: event.target.value }))
             }
+            placeholder="Nhập email của bạn"
             required
           />
           <Input
-            label="Password"
+            label="Mật khẩu"
             type="password"
             value={form.password}
             onChange={(event) =>
               setForm((current) => ({ ...current, password: event.target.value }))
             }
             autoComplete="new-password"
+            placeholder="Tạo mật khẩu"
             required
           />
           <Input
-            label="Phone Number"
+            label="Số điện thoại"
             value={form.phoneNumber}
             onChange={(event) =>
               setForm((current) => ({ ...current, phoneNumber: event.target.value }))
             }
+            placeholder="Nhập số điện thoại"
           />
           <div className="md:col-span-2">
             <Input
-              label="Billing Address"
+              label="Địa chỉ"
               value={form.billingAddress}
               onChange={(event) =>
                 setForm((current) => ({
@@ -94,21 +95,22 @@ export default function RegisterPage() {
                   billingAddress: event.target.value,
                 }))
               }
+              placeholder="Nhập địa chỉ"
             />
           </div>
 
           {error && (
-            <div className="md:col-span-2 rounded-2xl border border-[#b45309]/15 bg-[#fff4ea] px-4 py-3 text-sm text-[#9a3412]">
+            <div className="rounded-2xl border border-[#b45309]/18 bg-[#fff4ea] px-5 py-4 text-base font-semibold text-[#9a3412] md:col-span-2">
               {error}
             </div>
           )}
 
           <div className="md:col-span-2 flex flex-wrap items-center gap-3">
             <Button type="submit" disabled={loading}>
-              {loading ? "Dang xu ly..." : "Dang ky tai khoan"}
+              {loading ? "Đang xử lý..." : "Đăng ký tài khoản"}
             </Button>
-            <Link href="/login" className="text-sm font-semibold text-[#0f766e]">
-              Da co tai khoan? Dang nhap
+            <Link href="/login" className="text-lg font-bold text-[#8b5e34] transition hover:text-[#6f4725]">
+              Đã có tài khoản? Đăng nhập
             </Link>
           </div>
         </form>

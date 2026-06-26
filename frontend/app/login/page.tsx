@@ -26,30 +26,31 @@ export default function LoginPage() {
       const response = await authService.login(form);
       router.push(response.user.role === "ADMIN" ? "/admin/courses" : "/courses");
     } catch (err) {
-      setError(getApiErrorMessage(err, "Dang nhap that bai."));
+      setError(getApiErrorMessage(err, "Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="mx-auto max-w-4xl">
-      <div className="grid gap-6 md:grid-cols-[0.95fr_1.05fr]">
-        <section className="rounded-[32px] border border-[#1f2a24]/10 bg-[#12372f] p-8 text-[#f7f5ef] shadow-[0_24px_60px_rgba(18,55,47,0.24)]">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#cddbd2]">
-            Chao mung quay tro lai
+    <main className="relative mx-auto max-w-5xl overflow-hidden py-6">
+      <div className="pointer-events-none absolute -left-10 top-10 h-32 w-32 rounded-full bg-[#0f766e]/12 blur-2xl animate-pulse-glow" />
+      <div className="pointer-events-none absolute -right-8 bottom-8 h-36 w-36 rounded-full bg-[#b45309]/12 blur-2xl animate-pulse-glow" />
+
+      <div className="relative grid gap-6 md:grid-cols-[0.92fr_1.08fr] animate-fade-in-up">
+        <section className="rounded-[30px] border border-white/12 bg-[#12372f] p-8 text-[#f7f5ef] shadow-[0_28px_70px_rgba(18,55,47,0.26)] md:p-10">
+          <p className="mb-3 text-base font-bold text-[#d7e6dd]">
+            Welcome
           </p>
-          <h1 className="mb-4 text-3xl font-bold">Dang nhap tai khoan he thong</h1>
-          <p className="mb-6 text-sm leading-7 text-[#dbe4de]">
-            Sinh vien dang nhap de gui yeu cau tham gia khoa hoc va hoc tap.
-            Quan tri vien dang nhap de duyet ghi danh, quan ly hoc vien va theo doi audit log.
+          <h1 className="mb-5 text-4xl font-bold leading-tight md:text-5xl">
+            Đăng nhập tài khoản hệ thống
+          </h1>
+          <p className="text-xl leading-8 text-[#dbe4de]">
+            Truy cập tài khoản để tiếp tục học tập, quản lý khóa học và theo dõi thông tin cá nhân.
           </p>
-          <div className="rounded-2xl border border-white/15 bg-white/8 px-4 py-4 text-sm leading-7 text-[#dbe4de]">
-            Neu ban quen mat khau, co the dat lai trong vai buoc ngay tren ung dung.
-          </div>
         </section>
 
-        <section className="rounded-[32px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
+        <section className="rounded-[30px] border border-[#1f2a24]/10 bg-white/90 p-7 shadow-[0_26px_64px_rgba(31,42,36,0.1)] backdrop-blur md:p-10">
           <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
             <Input
               label="Email"
@@ -58,42 +59,43 @@ export default function LoginPage() {
               onChange={(event) =>
                 setForm((current) => ({ ...current, email: event.target.value }))
               }
-              placeholder="student1@example.com"
+              placeholder="Nhập email của bạn"
               autoComplete="off"
               required
             />
 
             <Input
-              label="Password"
+              label="Mật khẩu"
               type="password"
               value={form.password}
               onChange={(event) =>
                 setForm((current) => ({ ...current, password: event.target.value }))
               }
               autoComplete="off"
+              placeholder="Nhập mật khẩu"
               required
             />
 
             {error && (
-              <div className="rounded-2xl border border-[#b45309]/15 bg-[#fff4ea] px-4 py-3 text-sm text-[#9a3412]">
+              <div className="rounded-2xl border border-[#b45309]/18 bg-[#fff4ea] px-5 py-4 text-base font-semibold text-[#9a3412]">
                 {error}
               </div>
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Dang xu ly..." : "Dang nhap"}
+              {loading ? "Đang xử lý..." : "Đăng nhập"}
             </Button>
           </form>
 
-          <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-[#526059]">
-            <Link href="/forgot-password" className="font-semibold text-[#0f766e]">
-              Quen mat khau?
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-lg text-[#526059]">
+            <Link href="/forgot-password" className="font-bold text-[#0f766e] transition hover:text-[#115e59]">
+              Quên mật khẩu?
             </Link>
             <span className="text-[#9aa29d]">/</span>
             <p>
-              Chua co tai khoan?{" "}
-              <Link href="/register" className="font-semibold text-[#0f766e]">
-                Dang ky ngay
+              Chưa có tài khoản?{" "}
+              <Link href="/register" className="font-bold text-[#8b5e34] transition hover:text-[#6f4725]">
+                Đăng ký ngay
               </Link>
             </p>
           </div>

@@ -34,7 +34,7 @@ export default function CourseDetailPage() {
       .getCourse(courseId)
       .then(setCourse)
       .catch((err) =>
-        setError(getApiErrorMessage(err, "Khong tai duoc chi tiet khoa hoc."))
+        setError(getApiErrorMessage(err, "Không tải được chi tiết khóa học."))
       )
       .finally(() => setLoading(false));
   }, [courseId, router]);
@@ -54,7 +54,7 @@ export default function CourseDetailPage() {
       const updatedCourse = await courseService.getCourse(courseId);
       setCourse(updatedCourse);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong the xu ly yeu cau dang ky."));
+      setError(getApiErrorMessage(err, "Không thể xử lý yêu cầu đăng ký."));
     } finally {
       setCheckingOut(false);
     }
@@ -63,7 +63,7 @@ export default function CourseDetailPage() {
   if (loading) {
     return (
       <main className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
-        Dang tai chi tiet khoa hoc...
+        Đang tải chi tiết khóa học...
       </main>
     );
   }
@@ -71,7 +71,7 @@ export default function CourseDetailPage() {
   if (!course) {
     return (
       <main className="rounded-[28px] border border-[#b45309]/15 bg-[#fff4ea] p-6 text-sm text-[#9a3412]">
-        {error || "Khong tim thay khoa hoc."}
+        {error || "Không tìm thấy khóa học."}
       </main>
     );
   }
@@ -81,13 +81,10 @@ export default function CourseDetailPage() {
       <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-              Bao mat API lab
-            </p>
-            <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
+            <h1 className="mb-4 text-4xl font-bold leading-tight text-[#12372f] md:text-5xl">
               {course.title}
             </h1>
-            <p className="mb-4 text-sm leading-7 text-[#536059]">
+            <p className="mb-5 text-lg leading-8 text-[#536059]">
               {course.description}
             </p>
             <div className="text-2xl font-bold text-[#0f766e]">
@@ -95,25 +92,32 @@ export default function CourseDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-[#1f2a24]/10 bg-[#f4ecdf] p-5">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6c655a]">
-              Truy cap khoa hoc
+          <div className="w-full rounded-[28px] border border-[#1f2a24]/10 bg-white/90 p-6 shadow-[0_18px_42px_rgba(31,42,36,0.08)] backdrop-blur md:w-[320px]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xl font-bold text-[#12372f]">
+                Truy cập khóa học
+              </div>
+              <div
+                className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold ${
+                  course.enrolled
+                    ? "bg-[#e7f6ee] text-[#166534]"
+                    : "bg-[#fff4ea] text-[#9a3412]"
+                }`}
+              >
+                {course.enrolled ? "Đã ghi danh" : "Chưa ghi danh"}
+              </div>
             </div>
+
             <div
-              className={`mt-3 rounded-full px-4 py-2 text-sm font-semibold uppercase tracking-[0.16em] ${
-                course.enrolled
-                  ? "bg-[#e7f6ee] text-[#166534]"
-                  : "bg-[#fff4ea] text-[#9a3412]"
-              }`}
-            >
-              {course.enrolled ? "Da ghi danh" : "Chua ghi danh"}
-            </div>
-            <p className="mt-4 text-sm leading-7 text-[#536059]">
-              Dang nhap de gui yeu cau tham gia va truy cap khoa hoc bang tai khoan cua ban.
+              className="mt-5 h-px bg-gradient-to-r from-transparent via-[#1f2a24]/12 to-transparent"
+            />
+
+            <p className="mt-5 text-base leading-7 text-[#536059]">
+              Đăng nhập để gửi yêu cầu tham gia và truy cập khóa học bằng tài khoản của bạn.
             </p>
             <div className="mt-5">
-              <Button onClick={handleCheckout} disabled={checkingOut}>
-                {checkingOut ? "Dang xu ly..." : "Dang ky hoc"}
+              <Button className="w-full" onClick={handleCheckout} disabled={checkingOut}>
+                {checkingOut ? "Đang xử lý..." : "Đăng ký học"}
               </Button>
             </div>
           </div>
@@ -129,11 +133,11 @@ export default function CourseDetailPage() {
       {checkout && (
         <section className="rounded-[30px] border border-[#0f766e]/15 bg-[#eef7f4] p-6 shadow-[0_18px_40px_rgba(15,118,110,0.08)]">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
-            Yeu cau da duoc ghi nhan
+            Yêu cầu đã được ghi nhận
           </p>
           <h2 className="mb-3 text-xl font-semibold text-[#16443a]">{checkout.courseTitle}</h2>
           <p className="text-sm leading-7 text-[#426158]">
-            Ban da gui yeu cau tham gia thanh cong. Tai khoan admin se duyet yeu cau nay truoc khi mo quyen hoc.
+            Bạn đã gửi yêu cầu tham gia thành công. Tài khoản quản trị viên sẽ duyệt yêu cầu này trước khi mở quyền học.
           </p>
         </section>
       )}
@@ -141,10 +145,10 @@ export default function CourseDetailPage() {
       <section className="space-y-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8b5e34]">
-            Bai hoc
+            Bài học
           </p>
           <h2 className="mt-2 text-2xl font-bold text-[#12372f]">
-            Noi dung khoa hoc
+            Nội dung khóa học
           </h2>
         </div>
 
@@ -155,7 +159,7 @@ export default function CourseDetailPage() {
               className="rounded-[28px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_36px_rgba(31,42,36,0.05)]"
             >
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b5e34]">
-                Bai {lesson.sortOrder}
+                Bài {lesson.sortOrder}
               </p>
               <h3 className="mt-2 text-xl font-semibold text-[#163d35]">
                 {lesson.title}
@@ -165,9 +169,9 @@ export default function CourseDetailPage() {
                 <div className="mt-5">
                   <Link
                     href={`/courses/${course.id}/lessons/${lesson.id}`}
-                    className="inline-flex rounded-full bg-[#12372f] px-4 py-2.5 text-sm font-semibold text-[#f7faf8]"
+                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#0f766e] px-6 py-3 text-base font-bold tracking-wide text-[#f9f7f1] shadow-[0_16px_34px_rgba(15,118,110,0.28)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#115e59] hover:shadow-[0_20px_42px_rgba(15,118,110,0.34)] active:translate-y-0"
                   >
-                    Mo bai hoc
+                    Mở bài học
                   </Link>
                 </div>
               )}

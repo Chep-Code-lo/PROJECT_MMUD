@@ -24,11 +24,11 @@ export default function LessonDetailPage() {
       .then(setLesson)
       .catch((err) => {
         if (axios.isAxiosError(err) && [401, 403].includes(err.response?.status ?? 0)) {
-          setError("Ban khong co quyen truy cap bai hoc nay.");
+          setError("Bạn không có quyền truy cập bài học này.");
           return;
         }
 
-        setError(getApiErrorMessage(err, "Khong tai duoc bai hoc."));
+        setError(getApiErrorMessage(err, "Không tải được bài học."));
       })
       .finally(() => setLoading(false));
   }, [courseId, lessonId]);
@@ -38,19 +38,19 @@ export default function LessonDetailPage() {
       <main className="space-y-6">
         {loading && (
           <section className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
-            Dang tai lesson...
+            Đang tải bài học...
           </section>
         )}
 
         {!loading && error && (
           <section className="rounded-[30px] border border-[#b45309]/15 bg-[#fff4ea] p-6 text-sm text-[#9a3412]">
-            <div className="font-semibold">Khong the mo bai hoc.</div>
+            <div className="font-semibold">Không thể mở bài học.</div>
             <p className="mt-2 leading-7">{error}</p>
             <Link
               href={`/courses/${courseId}`}
               className="mt-4 inline-flex rounded-full bg-[#12372f] px-4 py-2 text-sm font-semibold text-[#f7faf8]"
             >
-              Quay lai khoa hoc
+              Quay lại khóa học
             </Link>
           </section>
         )}
@@ -69,7 +69,7 @@ export default function LessonDetailPage() {
 
             <section className="rounded-[34px] border border-[#1f2a24]/10 bg-[#f9f7f2] p-8 shadow-[0_24px_60px_rgba(31,42,36,0.06)]">
               <div className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
-                Noi dung bai hoc
+                Nội dung bài học
               </div>
               <div className="whitespace-pre-wrap text-sm leading-8 text-[#33433c]">
                 {lesson.content}

@@ -52,15 +52,14 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Link href="/" className="shrink-0">
           <span className="block text-xs font-semibold uppercase tracking-[0.34em] text-[#8b5e34]">
-            Security API Lab
+            Khóa học bảo mật
           </span>
-          <span className="text-xl font-bold text-[#12372f]">Applied Cryptography Demo</span>
         </Link>
 
         <div className="flex flex-col gap-3 text-sm font-medium text-[#30413a] md:flex-row md:items-center md:gap-5">
           {!isAdmin && (
             <Link href="/courses" className="transition hover:text-[#0f766e]">
-              Khoa hoc
+              Khóa học
             </Link>
           )}
 
@@ -69,13 +68,13 @@ export default function Navbar() {
               href="/admin/courses"
               className="transition hover:text-[#0f766e]"
             >
-              Quan ly ghi danh
+              Quản lý ghi danh
             </Link>
           )}
 
           {currentUser && (
             <Link href="/profile" className="transition hover:text-[#0f766e]">
-              Ho so
+              Hồ sơ
             </Link>
           )}
 
@@ -84,21 +83,21 @@ export default function Navbar() {
               href="/admin/audit-logs"
               className="transition hover:text-[#0f766e]"
             >
-              Audit log
+              Nhật ký kiểm tra
             </Link>
           )}
 
           {currentUser ? (
             <>
               <div className="rounded-full border border-[#1f2a24]/10 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#5b675f]">
-                {currentUser.fullName} / {currentUser.role}
+                {currentUser.fullName} / {currentUser.role === "ADMIN" ? "Quản trị viên" : "Học viên"}
               </div>
 
               <button
                 onClick={() => authService.logout()}
                 className="rounded-full bg-[#b45309] px-4 py-2 text-sm font-semibold text-[#fffaf2] shadow-[0_16px_30px_rgba(180,83,9,0.18)] transition hover:bg-[#92400e]"
               >
-                Dang xuat
+                Đăng xuất
               </button>
             </>
           ) : (
@@ -107,13 +106,13 @@ export default function Navbar() {
                 href="/login"
                 className="rounded-full border border-[#1f2a24]/12 px-4 py-2 transition hover:bg-white/70"
               >
-                Dang nhap
+                Đăng nhập
               </Link>
               <Link
                 href="/register"
                 className="rounded-full bg-[#0f766e] px-4 py-2 text-[#f7faf8] shadow-[0_16px_30px_rgba(15,118,110,0.2)] transition hover:bg-[#115e59]"
               >
-                Dang ky
+                Đăng ký
               </Link>
             </div>
           )}

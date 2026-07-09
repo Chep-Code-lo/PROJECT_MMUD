@@ -42,13 +42,13 @@ export default function ResetPasswordPage() {
 
     if (newPassword !== confirmPassword) {
       setLoading(false);
-      setError("Mat khau nhap lai khong khop.");
+      setError("Mật khẩu nhập lại không khớp.");
       return;
     }
 
     if (!token.trim()) {
       setLoading(false);
-      setError("Vui long nhap ma xac nhan hop le.");
+      setError("Vui lòng nhập mã xác nhận hợp lệ.");
       return;
     }
 
@@ -62,75 +62,80 @@ export default function ResetPasswordPage() {
         window.sessionStorage.removeItem(RESET_TOKEN_STORAGE_KEY);
       }
 
-      setSuccess(response.message);
+      void response;
+      setSuccess("Mật khẩu đã được cập nhật thành công.");
       setTimeout(() => router.push("/login"), 1200);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong the dat lai mat khau."));
+      setError(getApiErrorMessage(err, "Không thể đặt lại mật khẩu. Vui lòng thử lại sau."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="mx-auto max-w-3xl">
-      <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_26px_60px_rgba(31,42,36,0.08)] md:p-10">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-          Mat khau moi
+    <main className="relative mx-auto max-w-3xl overflow-hidden py-6">
+      <div className="pointer-events-none absolute -right-8 top-8 h-32 w-32 rounded-full bg-[#0f766e]/12 blur-2xl animate-pulse-glow" />
+      <section className="relative rounded-[30px] border border-[#1f2a24]/10 bg-white/90 p-7 shadow-[0_28px_70px_rgba(31,42,36,0.1)] backdrop-blur animate-fade-in-up md:p-10">
+        <p className="mb-3 text-base font-bold text-[#8b5e34]">
+          Mật khẩu mới
         </p>
-        <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-          Tao lai mat khau cho tai khoan
+        <h1 className="mb-4 text-4xl font-bold leading-tight text-[#12372f] md:text-5xl">
+          Tạo lại mật khẩu cho tài khoản
         </h1>
-        <p className="mb-8 max-w-2xl text-sm leading-7 text-[#546159]">
-          Nhap mat khau moi de hoan tat qua trinh khoi phuc tai khoan.
+        <p className="mb-8 max-w-2xl text-xl leading-8 text-[#546159]">
+          Nhập mật khẩu mới để hoàn tất quá trình khôi phục tài khoản.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
           {!token && (
             <Input
-              label="Ma xac nhan"
+              label="Mã xác nhận"
               value={token}
               onChange={(event) => setToken(event.target.value)}
               autoComplete="off"
+              placeholder="Nhập mã xác nhận"
               required
             />
           )}
 
           <Input
-            label="Mat khau moi"
+            label="Mật khẩu mới"
             type="password"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
             autoComplete="new-password"
+            placeholder="Nhập mật khẩu mới"
             required
           />
 
           <Input
-            label="Nhap lai mat khau moi"
+            label="Nhập lại mật khẩu mới"
             type="password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             autoComplete="new-password"
+            placeholder="Nhập lại mật khẩu mới"
             required
           />
 
           {error && (
-            <div className="rounded-2xl border border-[#b45309]/15 bg-[#fff4ea] px-4 py-3 text-sm text-[#9a3412]">
+            <div className="rounded-2xl border border-[#b45309]/18 bg-[#fff4ea] px-5 py-4 text-base font-semibold text-[#9a3412]">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="rounded-2xl border border-[#0f766e]/15 bg-[#eef7f4] px-4 py-3 text-sm text-[#115e59]">
+            <div className="rounded-2xl border border-[#0f766e]/18 bg-[#eef7f4] px-5 py-4 text-base font-semibold text-[#115e59]">
               {success}
             </div>
           )}
 
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" disabled={loading}>
-              {loading ? "Dang xu ly..." : "Cap nhat mat khau"}
+              {loading ? "Đang xử lý..." : "Cập nhật mật khẩu"}
             </Button>
-            <Link href="/login" className="text-sm font-semibold text-[#0f766e]">
-              Quay lai dang nhap
+            <Link href="/login" className="text-lg font-bold text-[#8b5e34] transition hover:text-[#6f4725]">
+              Quay lại đăng nhập
             </Link>
           </div>
         </form>

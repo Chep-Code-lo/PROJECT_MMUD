@@ -19,7 +19,7 @@ export default function AdminAuditLogsPage() {
         setLogs(logsData);
       })
       .catch((err) =>
-        setError(getApiErrorMessage(err, "Khong tai duoc nhat ky an ninh."))
+        setError(getApiErrorMessage(err, "Không tải được nhật ký an ninh."))
       )
       .finally(() => setLoading(false));
   }, []);
@@ -29,21 +29,16 @@ export default function AdminAuditLogsPage() {
       <main className="space-y-6">
         <section className="rounded-[34px] border border-[#1f2a24]/10 bg-white/86 p-8 shadow-[0_24px_60px_rgba(31,42,36,0.08)]">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-            Giam sat an ninh
+            Giám sát
           </p>
           <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-            Nhat ky an ninh
+            Nhật ký
           </h1>
-          <p className="max-w-3xl text-sm leading-7 text-[#536059]">
-            Khu vuc nay chi giu lai phan phuc vu do an Mat ma ung dung:
-            theo doi dang nhap, truy cap bi tu choi, webhook, rate limit va cac
-            su kien bao mat khac.
-          </p>
         </section>
 
         {loading && (
           <div className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
-            Dang tai nhat ky an ninh...
+            Đang tải nhật ký an ninh...
           </div>
         )}
 

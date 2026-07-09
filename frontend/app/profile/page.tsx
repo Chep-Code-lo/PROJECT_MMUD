@@ -39,7 +39,7 @@ export default function ProfilePage() {
       setCertificates(certificateList);
       setError("");
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong tai duoc thong tin ca nhan."));
+      setError(getApiErrorMessage(err, "Không tải được thông tin cá nhân."));
     } finally {
       setLoading(false);
     }
@@ -50,9 +50,9 @@ export default function ProfilePage() {
   }, []);
 
   const enrollmentStatusLabel: Record<Enrollment["status"], string> = {
-    ACTIVE: "Dang hoc",
-    PENDING: "Dang xu ly",
-    CANCELLED: "Da huy",
+    ACTIVE: "Đang học",
+    PENDING: "Đang xử lý",
+    CANCELLED: "Đã hủy",
   };
 
   return (
@@ -60,7 +60,7 @@ export default function ProfilePage() {
       <main className="space-y-6">
         {loading && (
           <div className="rounded-[28px] border border-[#1f2a24]/10 bg-white/85 p-6 text-sm text-[#4f5b54]">
-            Dang tai thong tin tai khoan...
+            Đang tải thông tin tài khoản...
           </div>
         )}
 
@@ -74,19 +74,19 @@ export default function ProfilePage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.32em] text-[#8b5e34]">
-                Ho so ca nhan
+                Hồ sơ cá nhân
               </p>
               <h1 className="mb-3 text-3xl font-bold text-[#12372f]">
-                Thong tin tai khoan
+                Thông tin tài khoản
               </h1>
               {profile && (
                 <div className="space-y-2 text-sm leading-7 text-[#536059]">
-                  <p>Ho ten: {profile.fullName}</p>
+                  <p>Họ tên: {profile.fullName}</p>
                   <p>Email: {profile.email}</p>
-                  <p>Role: {profile.role}</p>
-                  <p>Phone: {profile.phoneNumber ?? "-"}</p>
-                  <p>Billing address: {profile.billingAddress ?? "-"}</p>
-                  <p>Tao luc: {formatLocalDateTime(profile.createdAt)}</p>
+                  <p>Vai trò: {profile.role === "ADMIN" ? "Quản trị viên" : "Học viên"}</p>
+                  <p>Số điện thoại: {profile.phoneNumber ?? "-"}</p>
+                  <p>Địa chỉ: {profile.billingAddress ?? "-"}</p>
+                  <p>Tạo lúc: {formatLocalDateTime(profile.createdAt)}</p>
                 </div>
               )}
             </div>
@@ -97,36 +97,36 @@ export default function ProfilePage() {
           <section className="grid gap-6 lg:grid-cols-2">
             <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
               <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
-                Chuc nang quan tri
+                Chức năng quản trị
               </h2>
               <p className="mb-5 text-sm leading-7 text-[#536059]">
-                Tai khoan admin khong su dung luong hoc vien. Admin tap trung
-                duyet ghi danh, quan ly hoc vien theo tung khoa hoc va giam sat nhat ky an ninh.
+                Tài khoản quản trị viên không sử dụng luồng học viên. Quản trị viên tập trung
+                duyệt ghi danh, quản lý học viên theo từng khóa học và giám sát nhật ký an ninh.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/admin/courses"
-                  className="inline-flex rounded-full bg-[#12372f] px-4 py-2.5 text-sm font-semibold text-[#f7faf8]"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#0f766e] px-6 py-3 text-base font-bold tracking-wide text-white shadow-[0_16px_34px_rgba(15,118,110,0.28)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#115e59] hover:shadow-[0_20px_42px_rgba(15,118,110,0.34)] active:translate-y-0"
                 >
-                  Quan ly ghi danh
+                  Quản lý ghi danh
                 </Link>
                 <Link
                   href="/admin/audit-logs"
                   className="inline-flex rounded-full border border-[#1f2a24]/12 bg-white/80 px-4 py-2.5 text-sm font-semibold text-[#12372f]"
                 >
-                  Xem audit log
+                  Xem nhật ký kiểm tra
                 </Link>
               </div>
             </article>
 
             <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
               <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
-                Vai tro hien tai
+                Vai trò hiện tại
               </h2>
               <div className="space-y-3 text-sm leading-7 text-[#536059]">
-                <p>Admin co the duyet yeu cau dang ky hoc va them hoc vien vao khoa hoc.</p>
-                <p>Admin co the xem danh sach hoc vien cua tung khoa hoc va ho so hoc vien.</p>
-                <p>Admin co the theo doi cac su kien bao mat trong audit log.</p>
+                <p>Quản trị viên có thể duyệt yêu cầu đăng ký học và thêm học viên vào khóa học.</p>
+                <p>Quản trị viên có thể xem danh sách học viên của từng khóa học và hồ sơ học viên.</p>
+                <p>Quản trị viên có thể theo dõi các sự kiện bảo mật trong nhật ký kiểm tra.</p>
               </div>
             </article>
           </section>
@@ -134,12 +134,12 @@ export default function ProfilePage() {
           <section className="grid gap-6 lg:grid-cols-2">
           <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
             <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
-              Khoa hoc da dang ky
+              Khóa học đã đăng ký
             </h2>
             <div className="space-y-3">
               {enrollments.length === 0 && (
                 <div className="rounded-2xl border border-[#1f2a24]/8 bg-[#faf6ee] px-4 py-4 text-sm text-[#536059]">
-                  Ban chua co khoa hoc nao.
+                  Bạn chưa có khóa học nào.
                 </div>
               )}
 
@@ -164,8 +164,8 @@ export default function ProfilePage() {
                   </div>
                   <div className="mt-2 text-sm leading-7 text-[#526059]">
                     {enrollment.activatedAt
-                      ? `Kich hoat luc: ${formatLocalDateTime(enrollment.activatedAt)}`
-                      : "Dang cho xac nhan."}
+                      ? `Kích hoạt lúc: ${formatLocalDateTime(enrollment.activatedAt)}`
+                      : "Đang chờ xác nhận."}
                   </div>
                 </div>
               ))}
@@ -174,12 +174,12 @@ export default function ProfilePage() {
 
           <article className="rounded-[30px] border border-[#1f2a24]/8 bg-white/82 p-6 shadow-[0_18px_40px_rgba(31,42,36,0.06)]">
             <h2 className="mb-4 text-2xl font-semibold text-[#163d35]">
-              Chung chi va diem so
+              Chứng chỉ và điểm số
             </h2>
             <div className="space-y-3">
               {certificates.length === 0 && (
                 <div className="rounded-2xl border border-[#1f2a24]/8 bg-[#faf6ee] px-4 py-4 text-sm text-[#536059]">
-                  Chua co certificate nao.
+                  Chưa có chứng chỉ nào.
                 </div>
               )}
 
@@ -192,11 +192,11 @@ export default function ProfilePage() {
                     {certificate.courseTitle}
                   </div>
                   <div className="mt-2 text-sm leading-7 text-[#526059]">
-                    Code: {certificate.certificateCode}
+                    Mã chứng chỉ: {certificate.certificateCode}
                     <br />
-                    Score: {certificate.score}
+                    Điểm số: {certificate.score}
                     <br />
-                    Cap luc: {formatLocalDateTime(certificate.issuedAt)}
+                    Cấp lúc: {formatLocalDateTime(certificate.issuedAt)}
                   </div>
                 </div>
               ))}

@@ -118,9 +118,19 @@ export default function CourseDetailPage() {
                 Truy cập khóa học
               </div>
               <div
+<<<<<<< HEAD
                 className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold ${accessBadgeClass}`}
               >
                 {accessLabel}
+=======
+                className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold ${
+                  course.enrolled
+                    ? "bg-[#e7f6ee] text-[#166534]"
+                    : "bg-[#fff4ea] text-[#9a3412]"
+                }`}
+              >
+                {course.enrolled ? "Đã ghi danh" : "Chưa ghi danh"}
+>>>>>>> 9473e804e5d1cac22a0a761f54d7ef4e3ad72109
               </div>
             </div>
 
@@ -132,12 +142,17 @@ export default function CourseDetailPage() {
               Đăng nhập để gửi yêu cầu tham gia và truy cập khóa học bằng tài khoản của bạn.
             </p>
             <div className="mt-5">
+<<<<<<< HEAD
               <Button
                 className="w-full"
                 onClick={handleRequestEnrollment}
                 disabled={submittingRequest || course.enrolled || hasPendingRequest}
               >
                 {actionLabel}
+=======
+              <Button className="w-full" onClick={handleCheckout} disabled={checkingOut}>
+                {checkingOut ? "Đang xử lý..." : "Đăng ký học"}
+>>>>>>> 9473e804e5d1cac22a0a761f54d7ef4e3ad72109
               </Button>
             </div>
           </div>

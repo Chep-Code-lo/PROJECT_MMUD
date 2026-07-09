@@ -9,7 +9,7 @@ public enum Role {
             "enrollment:read",
             "certificate:read",
             "profile:read",
-            "checkout:create")),
+            "enrollment:request")),
     // Retained for compatibility with older demo data. The current demo flow does not use this role directly.
     INSTRUCTOR(List.of(
             "course:read",

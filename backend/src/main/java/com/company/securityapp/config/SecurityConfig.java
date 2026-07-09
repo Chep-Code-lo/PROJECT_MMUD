@@ -95,11 +95,9 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password")
                         .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/webhooks/payment-success")
-                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/courses", "/api/courses/*")
                         .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/courses/*/checkout")
+                        .requestMatchers(HttpMethod.POST, "/api/courses/*/enrollment-requests")
                         .hasRole("STUDENT")
                         .requestMatchers(
                                 HttpMethod.GET,

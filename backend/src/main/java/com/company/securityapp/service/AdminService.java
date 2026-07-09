@@ -18,7 +18,6 @@ import com.company.securityapp.repository.EnrollmentRepository;
 import com.company.securityapp.repository.UserRepository;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -193,11 +192,6 @@ public class AdminService {
 
         enrollment.setStatus(EnrollmentStatus.ACTIVE);
         enrollment.setActivatedAt(Instant.now());
-        enrollment.setPaymentReferenceEncrypted(encryptionService.encryptEnrollmentField(
-                "ADMIN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
-                student.getId(),
-                courseId,
-                "paymentReference"));
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
 
         auditLogService.logForActor(

@@ -1,8 +1,8 @@
 import axiosClient from "@/lib/axiosClient";
 import type {
-  CheckoutResponse,
   CourseDetail,
   CourseSummary,
+  EnrollmentRequestResponse,
   LessonDetail,
 } from "@/types/course";
 
@@ -17,9 +17,9 @@ export const courseService = {
     return res.data;
   },
 
-  checkout: async (courseId: number) => {
-    const res = await axiosClient.post<CheckoutResponse>(
-      `/api/courses/${courseId}/checkout`
+  requestEnrollment: async (courseId: number) => {
+    const res = await axiosClient.post<EnrollmentRequestResponse>(
+      `/api/courses/${courseId}/enrollment-requests`
     );
     return res.data;
   },

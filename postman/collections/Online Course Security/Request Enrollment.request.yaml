@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/courses/{{pendingCourseId}}/checkout"
+url: "{{baseUrl}}/api/courses/{{pendingCourseId}}/enrollment-requests"
 method: POST
 headers:
   Authorization: Bearer {{accessToken}}
@@ -8,6 +8,5 @@ scripts:
     code: |-
       const data = pm.response.json();
       pm.collectionVariables.set('pendingEnrollmentId', String(data.enrollmentId));
-      pm.collectionVariables.set('paymentReference', data.paymentReference);
     language: text/javascript
 order: 6000

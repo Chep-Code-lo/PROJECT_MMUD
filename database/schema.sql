@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS enrollments (
     student_id BIGINT NOT NULL,
     course_id BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL,
-    payment_reference_encrypted VARCHAR(512) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     activated_at TIMESTAMP NULL,
     CONSTRAINT pk_enrollments PRIMARY KEY (id),
@@ -108,17 +107,6 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 );
 
 CREATE INDEX idx_password_reset_tokens_user ON password_reset_tokens(user_id);
-
-CREATE TABLE IF NOT EXISTS webhook_events (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    event_id VARCHAR(255) NOT NULL,
-    event_type VARCHAR(100) NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    message VARCHAR(1000) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT pk_webhook_events PRIMARY KEY (id),
-    CONSTRAINT uk_webhook_events_event_id UNIQUE (event_id)
-);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
     id BIGINT NOT NULL AUTO_INCREMENT,

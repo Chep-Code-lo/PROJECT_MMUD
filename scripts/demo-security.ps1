@@ -187,25 +187,6 @@ function Invoke-Api {
     }
 }
 
-function Get-HmacSignature {
-    param(
-        [string]$Secret,
-        [string]$EventId,
-        [string]$Timestamp,
-        [string]$RawBody
-    )
-
-    $hmac = New-Object System.Security.Cryptography.HMACSHA256
-    try {
-        $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($Secret)
-        $bytes = [System.Text.Encoding]::UTF8.GetBytes("$EventId.$Timestamp.$RawBody")
-        $digest = $hmac.ComputeHash($bytes)
-        return -join ($digest | ForEach-Object { $_.ToString("x2") })
-    } finally {
-        $hmac.Dispose()
-    }
-}
-
 function ConvertTo-Base64Url {
     param([byte[]]$Bytes)
 
@@ -296,13 +277,12 @@ $BaseUrl = if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
     $BaseUrl
 }
 $jwtSecret = Get-ConfigValue -Values $envValues -Name "JWT_SECRET"
-$webhookSecret = Get-ConfigValue -Values $envValues -Name "HMAC_WEBHOOK_SECRET"
 $script:mysqlDatabase = Get-ConfigValue -Values $envValues -Name "MYSQL_DATABASE" -Default "securityapp"
 $script:mysqlAppUser = Get-ConfigValue -Values $envValues -Name "MYSQL_APP_USERNAME" -Default "securityapp"
 $script:mysqlAppPassword = Get-ConfigValue -Values $envValues -Name "MYSQL_APP_PASSWORD"
 
-if ([string]::IsNullOrWhiteSpace($jwtSecret) -or [string]::IsNullOrWhiteSpace($webhookSecret) -or [string]::IsNullOrWhiteSpace($script:mysqlAppPassword)) {
-    throw "Missing JWT_SECRET, HMAC_WEBHOOK_SECRET, or MYSQL_APP_PASSWORD in .env."
+if ([string]::IsNullOrWhiteSpace($jwtSecret) -or [string]::IsNullOrWhiteSpace($script:mysqlAppPassword)) {
+    throw "Missing JWT_SECRET or MYSQL_APP_PASSWORD in .env."
 }
 
 Write-Step "Health check"
@@ -355,7 +335,6 @@ Add-Result -Scenario "Register demo student" -Expected "201" -Actual $demoRegist
 Add-Result -Scenario "Register response hides password hash" -Expected "False" -Actual ($demoRegister.RawBody.Contains("passwordHash")) -Note "API response should never leak passwordHash."
 
 $demoHeaders = @{ Authorization = "Bearer $($demoRegister.Body.accessToken)" }
-$demoUser = Convert-PlainObject $demoRegister.Body.user
 
 Write-Step "bcrypt and AES at rest"
 $userRow = (Invoke-DbQuery "SELECT password_hash, phone_number_encrypted, billing_address_encrypted FROM users WHERE email = '$demoEmail';")[0]
@@ -375,59 +354,21 @@ Add-Result -Scenario "Course 3 initially locked" -Expected "False" -Actual $cour
 
 $lockedLessonId = [string]$courseDetailBefore.Body.lessons[0].id
 $lockedLesson = Invoke-Api -Method "GET" -Path "/api/courses/3/lessons/$lockedLessonId" -Headers $demoHeaders
-Add-Result -Scenario "Locked lesson access denied before payment" -Expected "403" -Actual $lockedLesson.StatusCode -Note $lockedLesson.RawBody
+Add-Result -Scenario "Locked lesson access denied before approval" -Expected "403" -Actual $lockedLesson.StatusCode -Note $lockedLesson.RawBody
 
-Write-Step "Mock checkout and HMAC webhook"
-$checkout = Invoke-Api -Method "POST" -Path "/api/courses/3/checkout" -Headers $demoHeaders
-Add-Result -Scenario "Checkout creates pending enrollment" -Expected "200" -Actual $checkout.StatusCode -Note $checkout.RawBody
+Write-Step "Enrollment request and admin approval"
+$enrollmentRequest = Invoke-Api -Method "POST" -Path "/api/courses/3/enrollment-requests" -Headers $demoHeaders
+Add-Result -Scenario "Enrollment request created" -Expected "200" -Actual $enrollmentRequest.StatusCode -Note $enrollmentRequest.RawBody
+Add-Result -Scenario "Enrollment request starts as pending" -Expected "PENDING" -Actual $enrollmentRequest.Body.status -Note $enrollmentRequest.RawBody
 
-$webhookPayload = [ordered]@{
-    enrollmentId = [int64]$checkout.Body.enrollmentId
-    userId = [int64]$demoUser.id
-    courseId = 3
-    paymentReference = [string]$checkout.Body.paymentReference
-    amount = [decimal]299000.00
-}
-$rawWebhookBody = $webhookPayload | ConvertTo-Json -Compress
-$invalidWebhookHeaders = @{
-    "X-Signature" = "deadbeef"
-    "X-Timestamp" = [string][DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-    "X-Event-Id" = "evt-invalid-$suffix"
-}
-$invalidWebhook = Invoke-Api -Method "POST" -Path "/api/webhooks/payment-success" -Headers $invalidWebhookHeaders -RawBody $rawWebhookBody
-Add-Result -Scenario "Webhook with bad HMAC is rejected" -Expected "401" -Actual $invalidWebhook.StatusCode -Note $invalidWebhook.RawBody
+$approvedEnrollment = Invoke-Api -Method "POST" -Path "/api/admin/enrollments/$($enrollmentRequest.Body.enrollmentId)/approve" -Headers $adminHeaders
+Add-Result -Scenario "Admin approves enrollment request" -Expected "200" -Actual $approvedEnrollment.StatusCode -Note $approvedEnrollment.RawBody
+Add-Result -Scenario "Approved enrollment becomes active" -Expected "ACTIVE" -Actual $approvedEnrollment.Body.status -Note $approvedEnrollment.RawBody
 
-$validTimestamp = [string][DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-$validEventId = "evt-valid-$suffix"
-$validSignature = Get-HmacSignature -Secret $webhookSecret -EventId $validEventId -Timestamp $validTimestamp -RawBody $rawWebhookBody
-$validWebhookHeaders = @{
-    "X-Signature" = $validSignature
-    "X-Timestamp" = $validTimestamp
-    "X-Event-Id" = $validEventId
-}
-$validWebhook = Invoke-Api -Method "POST" -Path "/api/webhooks/payment-success" -Headers $validWebhookHeaders -RawBody $rawWebhookBody
-Add-Result -Scenario "Valid webhook activates enrollment" -Expected "200" -Actual $validWebhook.StatusCode -Note $validWebhook.RawBody
-
-$replayWebhook = Invoke-Api -Method "POST" -Path "/api/webhooks/payment-success" -Headers $validWebhookHeaders -RawBody $rawWebhookBody
-Add-Result -Scenario "Webhook replay is rejected" -Expected "409" -Actual $replayWebhook.StatusCode -Note $replayWebhook.RawBody
-
-Write-Step "Course access after valid webhook"
-$lessonAfterWebhook = Invoke-Api -Method "GET" -Path "/api/courses/3/lessons/$lockedLessonId" -Headers $demoHeaders
-Add-Result -Scenario "Lesson unlocked after valid webhook" -Expected "200" -Actual $lessonAfterWebhook.StatusCode -Note $lessonAfterWebhook.RawBody
-Add-Result -Scenario "Lesson returns full content after enrollment" -Expected "True" -Actual (-not [string]::IsNullOrWhiteSpace($lessonAfterWebhook.Body.content)) -Note $lessonAfterWebhook.RawBody
-
-$demoCertificates = Invoke-Api -Method "GET" -Path "/api/certificates/me" -Headers $demoHeaders
-Add-Result -Scenario "Certificate issued after webhook" -Expected "200" -Actual $demoCertificates.StatusCode -Note $demoCertificates.RawBody
-
-$demoCertificate = $demoCertificates.Body | Where-Object { $_.courseId -eq 3 } | Select-Object -First 1
-if ($null -eq $demoCertificate) {
-    throw "Expected a certificate for course 3 after valid webhook."
-}
-
-$enrollmentRow = (Invoke-DbQuery "SELECT payment_reference_encrypted FROM enrollments WHERE id = $($checkout.Body.enrollmentId);")[0].Trim()
-$certificateRow = (Invoke-DbQuery "SELECT certificate_code_encrypted FROM certificates WHERE id = $($demoCertificate.id);")[0].Trim()
-Add-Result -Scenario "Payment reference stored encrypted in database" -Expected "True" -Actual ($enrollmentRow -ne [string]$checkout.Body.paymentReference) -Note $enrollmentRow
-Add-Result -Scenario "Certificate code stored encrypted in database" -Expected "True" -Actual ($certificateRow -ne [string]$demoCertificate.certificateCode) -Note $certificateRow
+Write-Step "Course access after approval"
+$lessonAfterApproval = Invoke-Api -Method "GET" -Path "/api/courses/3/lessons/$lockedLessonId" -Headers $demoHeaders
+Add-Result -Scenario "Lesson unlocked after admin approval" -Expected "200" -Actual $lessonAfterApproval.StatusCode -Note $lessonAfterApproval.RawBody
+Add-Result -Scenario "Lesson returns full content after enrollment" -Expected "True" -Actual (-not [string]::IsNullOrWhiteSpace($lessonAfterApproval.Body.content)) -Note $lessonAfterApproval.RawBody
 
 Write-Step "JWT tampering and expiration"
 $tamperedToken = $student1Login.Body.accessToken.Substring(0, $student1Login.Body.accessToken.Length - 1) + "a"
@@ -468,16 +409,17 @@ Add-Result -Scenario "Admin can read audit logs" -Expected "200" -Actual $auditL
 $auditActions = @($auditLogResponse.Body | Select-Object -ExpandProperty action)
 Add-Result -Scenario "Audit log contains ACCESS_DENIED" -Expected "True" -Actual ($auditActions -contains "ACCESS_DENIED") -Note ($auditActions -join ", ")
 Add-Result -Scenario "Audit log contains TOKEN_REJECTED" -Expected "True" -Actual ($auditActions -contains "TOKEN_REJECTED") -Note ($auditActions -join ", ")
-Add-Result -Scenario "Audit log contains WEBHOOK_ACCEPTED" -Expected "True" -Actual ($auditActions -contains "WEBHOOK_ACCEPTED") -Note ($auditActions -join ", ")
-Add-Result -Scenario "Audit log contains WEBHOOK_REJECTED" -Expected "True" -Actual ($auditActions -contains "WEBHOOK_REJECTED") -Note ($auditActions -join ", ")
+Add-Result -Scenario "Audit log contains ENROLLMENT_APPROVED" -Expected "True" -Actual ($auditActions -contains "ENROLLMENT_APPROVED") -Note ($auditActions -join ", ")
 Add-Result -Scenario "Audit log contains RATE_LIMIT_EXCEEDED" -Expected "True" -Actual ($auditActions -contains "RATE_LIMIT_EXCEEDED") -Note ($auditActions -join ", ")
 
 Write-Step "Database evidence"
+$enrollmentRow = (Invoke-DbQuery "SELECT id, student_id, course_id, status, activated_at FROM enrollments WHERE id = $($enrollmentRequest.Body.enrollmentId);")[0]
+$certificateRow = (Invoke-DbQuery "SELECT certificate_code_encrypted FROM certificates ORDER BY id LIMIT 1;")[0]
 Write-Host "Demo user email: $demoEmail"
 Write-Host "bcrypt password hash: $passwordHash"
 Write-Host "Encrypted phone: $phoneCipher"
 Write-Host "Encrypted billing address: $billingCipher"
-Write-Host "Encrypted payment reference: $enrollmentRow"
+Write-Host "Enrollment row after approval: $enrollmentRow"
 Write-Host "Encrypted certificate code: $certificateRow"
 
 Write-Step "Summary"

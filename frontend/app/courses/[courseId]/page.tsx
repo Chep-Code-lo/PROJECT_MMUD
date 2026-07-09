@@ -8,7 +8,7 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { tokenStorage } from "@/lib/tokenStorage";
 import { authService } from "@/services/authService";
 import { courseService } from "@/services/courseService";
-import type { CheckoutResponse, CourseDetail } from "@/types/course";
+import type { CourseDetail, EnrollmentRequestResponse } from "@/types/course";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
 
@@ -18,10 +18,11 @@ export default function CourseDetailPage() {
   const courseId = Number(params.courseId);
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
-  const [checkout, setCheckout] = useState<CheckoutResponse | null>(null);
+  const [enrollmentRequest, setEnrollmentRequest] =
+    useState<EnrollmentRequestResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [checkingOut, setCheckingOut] = useState(false);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
 
   useEffect(() => {
     const storedUser = authService.getStoredUser();
@@ -39,24 +40,24 @@ export default function CourseDetailPage() {
       .finally(() => setLoading(false));
   }, [courseId, router]);
 
-  const handleCheckout = async () => {
+  const handleRequestEnrollment = async () => {
     if (!tokenStorage.getAccessToken()) {
       router.push("/login");
       return;
     }
 
-    setCheckingOut(true);
+    setSubmittingRequest(true);
     setError("");
 
     try {
-      const result = await courseService.checkout(courseId);
-      setCheckout(result);
+      const result = await courseService.requestEnrollment(courseId);
+      setEnrollmentRequest(result);
       const updatedCourse = await courseService.getCourse(courseId);
       setCourse(updatedCourse);
     } catch (err) {
       setError(getApiErrorMessage(err, "Không thể xử lý yêu cầu đăng ký."));
     } finally {
-      setCheckingOut(false);
+      setSubmittingRequest(false);
     }
   };
 
@@ -75,6 +76,25 @@ export default function CourseDetailPage() {
       </main>
     );
   }
+
+  const hasPendingRequest = enrollmentRequest?.status === "PENDING";
+  const accessLabel = course.enrolled
+    ? "Đã ghi danh"
+    : hasPendingRequest
+      ? "Chờ duyệt"
+      : "Chưa ghi danh";
+  const accessBadgeClass = course.enrolled
+    ? "bg-[#e7f6ee] text-[#166534]"
+    : hasPendingRequest
+      ? "bg-[#fff7e6] text-[#a16207]"
+      : "bg-[#fff4ea] text-[#9a3412]";
+  const actionLabel = course.enrolled
+    ? "Đã có quyền truy cập"
+    : hasPendingRequest
+      ? "Yêu cầu đã gửi"
+      : submittingRequest
+        ? "Đang gửi..."
+        : "Đăng ký học";
 
   return (
     <main className="space-y-6">
@@ -98,13 +118,9 @@ export default function CourseDetailPage() {
                 Truy cập khóa học
               </div>
               <div
-                className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold ${
-                  course.enrolled
-                    ? "bg-[#e7f6ee] text-[#166534]"
-                    : "bg-[#fff4ea] text-[#9a3412]"
-                }`}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold ${accessBadgeClass}`}
               >
-                {course.enrolled ? "Đã ghi danh" : "Chưa ghi danh"}
+                {accessLabel}
               </div>
             </div>
 
@@ -116,8 +132,12 @@ export default function CourseDetailPage() {
               Đăng nhập để gửi yêu cầu tham gia và truy cập khóa học bằng tài khoản của bạn.
             </p>
             <div className="mt-5">
-              <Button className="w-full" onClick={handleCheckout} disabled={checkingOut}>
-                {checkingOut ? "Đang xử lý..." : "Đăng ký học"}
+              <Button
+                className="w-full"
+                onClick={handleRequestEnrollment}
+                disabled={submittingRequest || course.enrolled || hasPendingRequest}
+              >
+                {actionLabel}
               </Button>
             </div>
           </div>
@@ -130,12 +150,14 @@ export default function CourseDetailPage() {
         </div>
       )}
 
-      {checkout && (
+      {enrollmentRequest && (
         <section className="rounded-[30px] border border-[#0f766e]/15 bg-[#eef7f4] p-6 shadow-[0_18px_40px_rgba(15,118,110,0.08)]">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
             Yêu cầu đã được ghi nhận
           </p>
-          <h2 className="mb-3 text-xl font-semibold text-[#16443a]">{checkout.courseTitle}</h2>
+          <h2 className="mb-3 text-xl font-semibold text-[#16443a]">
+            {enrollmentRequest.courseTitle}
+          </h2>
           <p className="text-sm leading-7 text-[#426158]">
             Bạn đã gửi yêu cầu tham gia thành công. Tài khoản quản trị viên sẽ duyệt yêu cầu này trước khi mở quyền học.
           </p>

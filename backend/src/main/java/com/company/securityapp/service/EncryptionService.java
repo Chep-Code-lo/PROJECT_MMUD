@@ -38,14 +38,6 @@ public class EncryptionService {
         return decrypt(ciphertext, "user", normalize(email), fieldName);
     }
 
-    public String encryptEnrollmentField(String plaintext, Long studentId, Long courseId, String fieldName) {
-        return encrypt(plaintext, "enrollment", studentId + "|" + courseId, fieldName);
-    }
-
-    public String decryptEnrollmentField(String ciphertext, Long studentId, Long courseId, String fieldName) {
-        return decrypt(ciphertext, "enrollment", studentId + "|" + courseId, fieldName);
-    }
-
     public String encryptCertificateField(String plaintext, Long studentId, Long courseId, String fieldName) {
         return encrypt(plaintext, "certificate", studentId + "|" + courseId, fieldName);
     }

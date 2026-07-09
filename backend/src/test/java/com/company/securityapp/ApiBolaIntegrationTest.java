@@ -29,7 +29,6 @@ import org.springframework.test.web.servlet.MockMvc;
         "spring.datasource.url=jdbc:h2:mem:bola_security_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
         "app.jwt.secret=test-jwt-secret-123456789012345678901234567890",
         "app.encryption.key=test-encryption-key-123456789012345678901234567890",
-        "app.webhook.hmac-secret=test-hmac-secret-123456789012345678901234567890",
         "app.seed.enabled=true",
         "app.seed.student-password=Password123!",
         "app.seed.admin-password=Admin123!"

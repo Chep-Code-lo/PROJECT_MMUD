@@ -86,7 +86,7 @@ public class DemoUserInitializer {
                     admin,
                     "Applied Cryptography for Beginners",
                     "AES-GCM, HMAC-SHA256, and secure key handling for students.",
-                    "Focuses on practical cryptography in application code with database encryption and webhook signing.",
+                    "Focuses on practical cryptography in application code with database encryption and signed API messages.",
                     BigDecimal.valueOf(249000),
                     true);
             Course course3 = createCourse(
@@ -103,34 +103,28 @@ public class DemoUserInitializer {
                     lesson("BCrypt Password Storage", "Why password hashing must be one-way and salted.", 2)));
             createLessons(lessonRepository, course2, List.of(
                     lesson("AES-GCM for Data at Rest", "Encrypt sensitive fields with IV and authentication tag.", 1),
-                    lesson("HMAC-SHA256 for Webhooks", "Verify source authenticity and integrity of payment callbacks.", 2)));
+                    lesson("HMAC-SHA256 for Signed Requests", "Verify source authenticity and integrity of critical API messages.", 2)));
             createLessons(lessonRepository, course3, List.of(
                     lesson("BOLA and Ownership Checks", "Server-side authorization to stop IDOR attacks.", 1),
                     lesson("HTTPS, Swagger, and ZAP", "Secure transport and API testing workflow.", 2)));
 
             Enrollment activeEnrollment1 = createEnrollment(
                     enrollmentRepository,
-                    encryptionService,
                     student1,
                     course1,
                     EnrollmentStatus.ACTIVE,
-                    "PAY-STUDENT1-COURSE1",
                     true);
             Enrollment activeEnrollment2 = createEnrollment(
                     enrollmentRepository,
-                    encryptionService,
                     student2,
                     course2,
                     EnrollmentStatus.ACTIVE,
-                    "PAY-STUDENT2-COURSE2",
                     true);
             createEnrollment(
                     enrollmentRepository,
-                    encryptionService,
                     student1,
                     course3,
                     EnrollmentStatus.PENDING,
-                    "PAY-PENDING-DEMO",
                     false);
 
             createCertificate(certificateRepository, encryptionService, activeEnrollment1, BigDecimal.valueOf(91.50));
@@ -192,21 +186,14 @@ public class DemoUserInitializer {
 
     private Enrollment createEnrollment(
             EnrollmentRepository enrollmentRepository,
-            EncryptionService encryptionService,
             User student,
             Course course,
             EnrollmentStatus status,
-            String paymentReference,
             boolean activated) {
         Enrollment enrollment = new Enrollment();
         enrollment.setStudent(student);
         enrollment.setCourse(course);
         enrollment.setStatus(status);
-        enrollment.setPaymentReferenceEncrypted(encryptionService.encryptEnrollmentField(
-                paymentReference,
-                student.getId(),
-                course.getId(),
-                "paymentReference"));
         if (activated) {
             enrollment.setActivatedAt(java.time.Instant.now());
         }

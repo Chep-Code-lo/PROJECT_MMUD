@@ -36,15 +36,11 @@ export type LessonDetail = {
   unlocked: boolean;
 };
 
-export type CheckoutResponse = {
+export type EnrollmentRequestResponse = {
   enrollmentId: number;
   courseId: number;
   courseTitle: string;
   status: "PENDING" | "ACTIVE" | "CANCELLED";
-  paymentReference: string;
-  suggestedEventId: string;
-  suggestedTimestampEpochSeconds: number;
-  webhookPath: string;
   message: string;
 };
 

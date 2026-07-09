@@ -3,7 +3,7 @@
     "_postman_id": "7f0c1c0b-6e46-4f53-a5e1-8d9b3e77c101",
     "name": "Online Course Security",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Postman collection for the Applied Cryptography project: JWT, bcrypt, AES-GCM, BOLA, HMAC webhook, audit log, and rate limit."
+    "description": "Postman collection for the Applied Cryptography project: JWT, bcrypt, AES-GCM, enrollment approval, BOLA, audit log, and rate limit."
   },
   "variable": [
     { "key": "baseUrl", "value": "https://localhost" },
@@ -18,12 +18,7 @@
     { "key": "pendingCourseId", "value": "3" },
     { "key": "pendingEnrollmentId", "value": "3" },
     { "key": "managedEnrollmentId", "value": "" },
-    { "key": "victimCertificateId", "value": "1" },
-    { "key": "courseAmount", "value": "299000.00" },
-    { "key": "paymentReference", "value": "PAY-POSTMAN-001" },
-    { "key": "webhookSecret", "value": "change-me-webhook-secret-with-at-least-32-characters" },
-    { "key": "webhookEventId", "value": "" },
-    { "key": "webhookTimestamp", "value": "" }
+    { "key": "victimCertificateId", "value": "1" }
   ],
   "item": [
     {
@@ -148,15 +143,14 @@
       }
     },
     {
-      "name": "Checkout Course",
+      "name": "Request Enrollment",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
               "const data = pm.response.json();",
-              "pm.collectionVariables.set('pendingEnrollmentId', String(data.enrollmentId));",
-              "pm.collectionVariables.set('paymentReference', data.paymentReference);"
+              "pm.collectionVariables.set('pendingEnrollmentId', String(data.enrollmentId));"
             ],
             "type": "text/javascript"
           }
@@ -168,9 +162,9 @@
           { "key": "Authorization", "value": "Bearer {{accessToken}}" }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/courses/{{pendingCourseId}}/checkout",
+          "raw": "{{baseUrl}}/api/courses/{{pendingCourseId}}/enrollment-requests",
           "host": ["{{baseUrl}}"],
-          "path": ["api", "courses", "{{pendingCourseId}}", "checkout"]
+          "path": ["api", "courses", "{{pendingCourseId}}", "enrollment-requests"]
         }
       }
     },
@@ -342,77 +336,6 @@
           "raw": "{{baseUrl}}/api/admin/audit-logs",
           "host": ["{{baseUrl}}"],
           "path": ["api", "admin", "audit-logs"]
-        }
-      }
-    },
-    {
-      "name": "Webhook Valid HMAC",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "exec": [
-              "const eventId = `evt_postman_${Date.now()}`;",
-              "const timestamp = Math.floor(Date.now() / 1000).toString();",
-              "pm.collectionVariables.set('webhookEventId', eventId);",
-              "pm.collectionVariables.set('webhookTimestamp', timestamp);",
-              "const rawBody = pm.variables.replaceIn(pm.request.body.raw);",
-              "const payloadToSign = `${eventId}.${timestamp}.${rawBody}`;",
-              "const signature = CryptoJS.HmacSHA256(payloadToSign, pm.collectionVariables.get('webhookSecret')).toString(CryptoJS.enc.Hex);",
-              "pm.request.headers.upsert({ key: 'X-Event-Id', value: eventId });",
-              "pm.request.headers.upsert({ key: 'X-Timestamp', value: timestamp });",
-              "pm.request.headers.upsert({ key: 'X-Signature', value: signature });"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"enrollmentId\": {{pendingEnrollmentId}},\n  \"userId\": {{studentUserId}},\n  \"courseId\": {{pendingCourseId}},\n  \"paymentReference\": \"{{paymentReference}}\",\n  \"amount\": {{courseAmount}}\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/webhooks/payment-success",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "webhooks", "payment-success"]
-        }
-      }
-    },
-    {
-      "name": "Webhook Invalid HMAC",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "exec": [
-              "const eventId = `evt_invalid_${Date.now()}`;",
-              "const timestamp = Math.floor(Date.now() / 1000).toString();",
-              "pm.request.headers.upsert({ key: 'X-Event-Id', value: eventId });",
-              "pm.request.headers.upsert({ key: 'X-Timestamp', value: timestamp });",
-              "pm.request.headers.upsert({ key: 'X-Signature', value: 'bad-signature' });"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"enrollmentId\": {{pendingEnrollmentId}},\n  \"userId\": {{studentUserId}},\n  \"courseId\": {{pendingCourseId}},\n  \"paymentReference\": \"PAY-INVALID-001\",\n  \"amount\": {{courseAmount}}\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/webhooks/payment-success",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "webhooks", "payment-success"]
         }
       }
     },

@@ -22,11 +22,11 @@ public class SwaggerConfig {
                         .title("Online Course Security API")
                         .description(
                                 "RESTful API demo for an Applied Cryptography project using JWT, bcrypt, AES-GCM, "
-                                        + "HMAC webhook verification, HTTPS/TLS, audit logging, and OWASP API Security testing.")
+                                        + "role-based enrollment approval, HTTPS/TLS, audit logging, and OWASP API Security testing.")
                         .version("1.0.0")
                         .contact(new Contact().name("Applied Cryptography Student Project"))
                         .license(new License().name("Educational Use")))
-                .servers(List.of(new Server().url("/").description("Same-origin gateway")))
+                .servers(List.of(new Server().url("/").description("Same-origin reverse proxy")))
                 .schemaRequirement(
                         "bearerAuth",
                         new SecurityScheme()

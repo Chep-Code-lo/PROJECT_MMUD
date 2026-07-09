@@ -32,7 +32,7 @@ from table_geometry import apply_table_geometry, column_widths_from_weights  # n
 
 TITLE = "Bảo mật hệ thống RESTful API cho dịch vụ khóa học online nhỏ"
 SUBTITLE = (
-    "Sử dụng Spring Boot, NextJS, JWT, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS "
+    "Sử dụng Spring Boot, NextJS, JWT ký đối xứng, bcrypt, AES-GCM, HTTPS/TLS "
     "và Swagger/OpenAPI"
 )
 
@@ -335,7 +335,7 @@ def add_cover(doc: Document):
     labels = [
         ("Loại tài liệu", "Bản hoàn chỉnh phục vụ in, rà soát và nộp báo cáo"),
         ("Định hướng đề tài", "Mật mã ứng dụng và bảo mật RESTful API"),
-        ("Công nghệ trọng tâm", "JWT, bcrypt, AES-GCM, HMAC-SHA256, HTTPS/TLS, Swagger/OpenAPI"),
+        ("Công nghệ trọng tâm", "JWT ký đối xứng, bcrypt, AES-GCM, HTTPS/TLS, Swagger/OpenAPI"),
         ("Ngày xuất tài liệu", EXPORT_DATE_TEXT),
     ]
     widths = [2700, 6660]
@@ -363,7 +363,7 @@ def add_cover(doc: Document):
 
     p = doc.add_paragraph()
     set_paragraph_spacing(p, before=16, after=0, line_spacing=1.0, alignment=WD_ALIGN_PARAGRAPH.CENTER)
-    run = p.add_run("Tài liệu được biên soạn từ source code và tài liệu báo cáo hiện tại của project.")
+    run = p.add_run("Tài liệu được biên soạn từ hệ thống, mã nguồn và tài liệu thực nghiệm của chính đề tài.")
     set_run_font(run, size=10.5, color="6B7280", italic=True)
 
 
@@ -517,6 +517,32 @@ def add_code_block(doc: Document, text: str):
             run.add_break()
 
 
+def resolve_image_path(markdown_path: Path, src: str) -> Path:
+    candidate = Path(src)
+    if candidate.is_absolute():
+        return candidate
+    return (markdown_path.parent / candidate).resolve()
+
+
+def add_image(doc: Document, image_path: Path, caption: str | None = None):
+    p = doc.add_paragraph()
+    set_paragraph_spacing(p, before=6, after=3, line_spacing=1.0, alignment=WD_ALIGN_PARAGRAPH.CENTER)
+    run = p.add_run()
+    run.add_picture(str(image_path), width=Inches(6.3))
+
+    if caption:
+        caption_paragraph = doc.add_paragraph()
+        set_paragraph_spacing(
+            caption_paragraph,
+            before=0,
+            after=8,
+            line_spacing=1.05,
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+        )
+        caption_run = caption_paragraph.add_run(caption.strip())
+        set_run_font(caption_run, size=10.5, color="4B5563", italic=True)
+
+
 def add_list_item(doc: Document, item: Tag, *, numbered: bool, number_text: str | None = None):
     style_name = "List Bullet" if not numbered else None
     p = doc.add_paragraph(style=style_name) if style_name else doc.add_paragraph()
@@ -619,11 +645,38 @@ def build_document(markdown_path: Path, output_path: Path):
             continue
 
         if element.name == "p":
+            direct_images = [child for child in element.children if isinstance(child, Tag) and child.name == "img"]
+            if len(direct_images) == 1 and not element.get_text(" ", strip=True):
+                image = direct_images[0]
+                src = image.get("src", "").strip()
+                alt = image.get("alt", "").strip()
+                if src:
+                    image_path = resolve_image_path(markdown_path, src)
+                    if image_path.exists():
+                        add_image(doc, image_path, alt if alt else None)
+                    else:
+                        missing = doc.add_paragraph()
+                        set_paragraph_spacing(
+                            missing,
+                            before=4,
+                            after=8,
+                            line_spacing=1.05,
+                            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+                        )
+                        run = missing.add_run(f"[Thiếu ảnh: {src}]")
+                        set_run_font(run, size=10.5, color="B45309", italic=True)
+                continue
+
             text = element.get_text(" ", strip=False).strip()
             if not text:
                 continue
             p = doc.add_paragraph()
-            alignment = WD_ALIGN_PARAGRAPH.LEFT if len(text) < 180 or "`" in text else WD_ALIGN_PARAGRAPH.JUSTIFY
+            is_reference_like = bool(re.match(r"^\[\d+\]", text)) or "http://" in text or "https://" in text
+            alignment = (
+                WD_ALIGN_PARAGRAPH.LEFT
+                if len(text) < 180 or "`" in text or is_reference_like
+                else WD_ALIGN_PARAGRAPH.JUSTIFY
+            )
             set_paragraph_spacing(
                 p,
                 before=0,

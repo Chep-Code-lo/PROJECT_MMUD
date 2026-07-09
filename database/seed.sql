@@ -4,8 +4,8 @@
 -- 3. Sample enrollments/certificates stay aligned with the current entity model.
 --
 -- Suggested local reset order:
--- DELETE FROM webhook_events;
 -- DELETE FROM refresh_tokens;
+-- DELETE FROM password_reset_tokens;
 -- DELETE FROM certificates;
 -- DELETE FROM enrollments;
 -- DELETE FROM lessons;

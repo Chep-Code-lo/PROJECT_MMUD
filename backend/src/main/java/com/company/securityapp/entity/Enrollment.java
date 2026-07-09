@@ -1,6 +1,5 @@
 package com.company.securityapp.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -42,10 +41,6 @@ public class Enrollment {
     @Column(nullable = false, length = 20)
     private EnrollmentStatus status = EnrollmentStatus.PENDING;
 
-    @JsonIgnore
-    @Column(name = "payment_reference_encrypted", length = 512)
-    private String paymentReferenceEncrypted;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -83,14 +78,6 @@ public class Enrollment {
 
     public void setStatus(EnrollmentStatus status) {
         this.status = status;
-    }
-
-    public String getPaymentReferenceEncrypted() {
-        return paymentReferenceEncrypted;
-    }
-
-    public void setPaymentReferenceEncrypted(String paymentReferenceEncrypted) {
-        this.paymentReferenceEncrypted = paymentReferenceEncrypted;
     }
 
     public Instant getCreatedAt() {

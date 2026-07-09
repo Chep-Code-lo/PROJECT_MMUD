@@ -23,10 +23,7 @@ public class CorsConfig {
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(
                 "Authorization",
-                "Content-Type",
-                "X-Signature",
-                "X-Timestamp",
-                "X-Event-Id"));
+                "Content-Type"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
 
